@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Security policy. The browser runs only scripts from this site plus the inline
+     scripts hashed below. After editing ANY inline script, run
+     python3 tools/csp.py index.html  (or the app will stop running). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-wRerGw4qAHm3DFEu3kF0PbKBabamH8iID03/eWwFV6g=' 'sha256-K0i9Y+gc6wdJoQGqxSjaG1ED+VHfBuyBymTf3J6AzOg=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw=' 'sha256-9Rk9pxhbczAbF9qGYxPW78ulJHHwcMTC8Ny4Es/bfHo='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -67,18 +71,18 @@
   Copyright (c) 2026 Jonathan du Toit. Released under the MIT License
   (see LICENSE). Provided as is, without warranty of any kind.
 
-  Embedded third-party libraries keep their own licenses; their original
-  notices are preserved in place below: JSZip (dual MIT / GPL-3.0),
+  Third-party libraries keep their own licenses and live in lib/ beside
+  this page (see lib/README.md): JSZip (dual MIT / GPL-3.0),
   epub.js (BSD), MiniSearch (MIT).
 -->
 <!-- JSZip (MIT / GPL-3.0 dual license) -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="lib/jszip.min.js"></script>
 
 <!-- epub.js (BSD) -->
-<script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
+<script src="lib/epub.min.js"></script>
 
 <!-- MiniSearch (MIT) -->
-<script src="https://cdn.jsdelivr.net/npm/minisearch@7.2.0/dist/umd/index.min.js"></script>
+<script src="lib/minisearch.js"></script>
 <style>
   :root{
     --bg:#f7f6f3; --panel:#ffffff; --ink:#1c1b19; --muted:#6b675f;
@@ -1157,7 +1161,7 @@ var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.54";  // 1.0.54: standalone page for GitHub Pages (full page header, mobile viewport, title, icons); closed drawers parked fully off-screen so their shadow no longer shows at the page edge; the as-you-type search bound written as an escape so copying the file can no longer break it. 1.0.53: 1.0.53: "Remove from this device" on a book page (browser-only devices): frees the EPUB bytes and its search index while the record, cover, marks, margins and position stay and keep syncing; the card dims until the EPUB is added again, and the page button becomes "Add the EPUB to read". With sync on, Delete is labelled "Delete everywhere" and its confirm says so. 1.0.52: sync between devices. Optional bring-your-own relay (a Cloudflare Worker + KV the user owns): each device writes one encrypted slot (AES-GCM, key from a passphrase that never leaves the device) and reads the others, then merges through the same machinery as hand-off (mergeHighlights/mergeMeta + tombstones), so marks, comments, margins, progress, tags and deletions converge without manual hand-off. Books (EPUB bytes) do not travel. Setup link (#bcsync=) pre-fills address and token on a second device. 1.0.51: identity hardening. A content signature (m.sig = byte length + sampled hash) is stored at import/refresh and used ONLY as a negative guard: two records that are provably different files are never merged or collapsed, even when they share a loose title|author key. bookKey, note filenames and folder filenames are UNCHANGED (no migration). Fixes the silent cross-wire where two same-title no-ISBN editions could fold one book's highlights onto another. 1.0.50: deletions now propagate across devices. Highlight/comment delete is a soft-delete tombstone (deleted:true + fresh updated) that rides through merge and sync untouched and is filtered from every view/count/search/export, so a deleted mark no longer resurrects on the next merge. Tags get a tagsUpdated timestamp so a tag removal wins by recency instead of being unioned back (legacy records keep the additive union). 1.0.49: audit hardening \u2014 (H3) Delete now clears the disk search index too, so a deleted book no longer answers inside-books search; (H1) closeBook cancels the pending rebind save and saveRebinds is owner-guarded, so a quick open-then-back can no longer wipe a book's marks; (M2) an empty videoId can no longer overwrite a captured one (mergeMeta truthy guard + refresh writes videoId only on a successful extraction); (H4) a folder pull now refreshes the open book's in-memory marks so the next edit cannot drop what the pull merged in. 1.0.48: non-video Source line is now a resolving Obsidian wikilink (book note + author), using the file|display pattern + mdNoteName sanitizer so titles with | # : never break the link. 1.0.47: source captured only where bytes enter the app \u2014 both add paths and Refresh EPUB from folder; no work on plain open; mergeMeta carries source through re-import. 1.0.46: notes name their source \u2014 normal books get a "Source: title - author" line; transcript (YouTube) books embed the video in the markdown so it plays in Obsidian. Source captured at import and backfilled on open. 1.0.45: connect preview — picking a folder now scans it read-only and confirms before the two-way merge (shows book/notes counts, how many match your library, sample titles, and a merge warning), so a wrong folder is caught instead of silently merged. 1.0.44: removed Trails. FT_DISK=false reverts to the 1.0.34 in-memory path
+var BC_VERSION="1.0.55";  // 1.0.55: security pass. The three libraries (JSZip, epub.js, MiniSearch) now load from lib/ in this repository instead of a public CDN, and a Content-Security-Policy lets the browser run only this site's scripts and the hashed inline blocks (tools/csp.py keeps the hashes current). Fixed two stored script-injection paths a crafted folder file, backup or hand-off could use: bare-URL auto-links in margin notes could split open an image or link attribute, and book ids were written into markup unescaped. Restored settings are copied key by key with types and ranges checked; star ratings are clamped; a setup link now names its relay host; the video player listens only to YouTube's exact origins. 1.0.54: standalone page for GitHub Pages (full page header, mobile viewport, title, icons); closed drawers parked fully off-screen so their shadow no longer shows at the page edge; the as-you-type search bound written as an escape so copying the file can no longer break it. 1.0.53: 1.0.53: "Remove from this device" on a book page (browser-only devices): frees the EPUB bytes and its search index while the record, cover, marks, margins and position stay and keep syncing; the card dims until the EPUB is added again, and the page button becomes "Add the EPUB to read". With sync on, Delete is labelled "Delete everywhere" and its confirm says so. 1.0.52: sync between devices. Optional bring-your-own relay (a Cloudflare Worker + KV the user owns): each device writes one encrypted slot (AES-GCM, key from a passphrase that never leaves the device) and reads the others, then merges through the same machinery as hand-off (mergeHighlights/mergeMeta + tombstones), so marks, comments, margins, progress, tags and deletions converge without manual hand-off. Books (EPUB bytes) do not travel. Setup link (#bcsync=) pre-fills address and token on a second device. 1.0.51: identity hardening. A content signature (m.sig = byte length + sampled hash) is stored at import/refresh and used ONLY as a negative guard: two records that are provably different files are never merged or collapsed, even when they share a loose title|author key. bookKey, note filenames and folder filenames are UNCHANGED (no migration). Fixes the silent cross-wire where two same-title no-ISBN editions could fold one book's highlights onto another. 1.0.50: deletions now propagate across devices. Highlight/comment delete is a soft-delete tombstone (deleted:true + fresh updated) that rides through merge and sync untouched and is filtered from every view/count/search/export, so a deleted mark no longer resurrects on the next merge. Tags get a tagsUpdated timestamp so a tag removal wins by recency instead of being unioned back (legacy records keep the additive union). 1.0.49: audit hardening \u2014 (H3) Delete now clears the disk search index too, so a deleted book no longer answers inside-books search; (H1) closeBook cancels the pending rebind save and saveRebinds is owner-guarded, so a quick open-then-back can no longer wipe a book's marks; (M2) an empty videoId can no longer overwrite a captured one (mergeMeta truthy guard + refresh writes videoId only on a successful extraction); (H4) a folder pull now refreshes the open book's in-memory marks so the next edit cannot drop what the pull merged in. 1.0.48: non-video Source line is now a resolving Obsidian wikilink (book note + author), using the file|display pattern + mdNoteName sanitizer so titles with | # : never break the link. 1.0.47: source captured only where bytes enter the app \u2014 both add paths and Refresh EPUB from folder; no work on plain open; mergeMeta carries source through re-import. 1.0.46: notes name their source \u2014 normal books get a "Source: title - author" line; transcript (YouTube) books embed the video in the markdown so it plays in Obsidian. Source captured at import and backfilled on open. 1.0.45: connect preview — picking a folder now scans it read-only and confirms before the two-way merge (shows book/notes counts, how many match your library, sample titles, and a merge warning), so a wrong folder is caught instead of silently merged. 1.0.44: removed Trails. FT_DISK=false reverts to the 1.0.34 in-memory path
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -1195,12 +1199,29 @@ function defaultTheme(){ try{ return (window.matchMedia && matchMedia("(prefers-
 function loadSettings(){
   var D={theme:defaultTheme(),font:"serif",fs:100,lh:1.6,mg:2.2,flow:"paginated",hlColor:"yellow",tts:false,ttsRate:1,ttsVoice:""};
   var s;
-  try{ s=Object.assign(D, JSON.parse(localStorage.getItem("reader-settings")||"{}")); }
+  try{ s=cleanSettings(D, JSON.parse(localStorage.getItem("reader-settings")||"{}")); }
   catch(e){ s=D; }
   // Highlight labels are fixed now (rename removed): drop any legacy per-user overrides so
   // the permanent meanings from HL_LABEL_DEFAULTS always win via hlLabel().
   if(s.hlLabels) delete s.hlLabels;
   return s;
+}
+function bcStars(n){ n=Math.max(0, Math.min(5, Math.round(Number(n)||0))); return "★".repeat(n)+"☆".repeat(5-n); }
+/* Settings that arrive from outside (a restored backup, or storage a backup once wrote)
+   are copied key by key: only keys the reader knows, only with the type it expects, and
+   numbers kept within sane bounds. Anything else is dropped, so a crafted backup can't
+   smuggle markup or odd values into the interface. */
+function cleanSettings(base, src){
+  var out=Object.assign({}, base); if(!src || typeof src!=="object") return out;
+  var NUM={fs:[50,300], lh:[1,3], mg:[0,10], ttsRate:[0.25,4]};
+  Object.keys(base).forEach(function(k){
+    if(!Object.prototype.hasOwnProperty.call(src,k)) return;
+    var v=src[k], t=typeof base[k];
+    if(NUM[k]){ v=Number(v); if(isFinite(v)) out[k]=Math.min(NUM[k][1], Math.max(NUM[k][0], v)); return; }
+    if(t==="boolean"){ out[k]=!!v; return; }
+    if(t==="string" && typeof v==="string" && v.length<=200 && !/[<>"'`\\]/.test(v)) out[k]=v;
+  });
+  return out;
 }
 function saveSettings(){ localStorage.setItem("reader-settings", JSON.stringify(settings)); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
@@ -1572,7 +1593,7 @@ function safeCoverUrl(u){
    Tapping it toggles favorite (= kept in the inside-text search index) WITHOUT opening
    the book, so a user can search by author and heart the results in place. The handler
    stops propagation so the card's open-details click never fires. */
-function favBtnHtml(b){ return '<button class="card-fav'+(b&&b.fav?" fav-on":"")+'" data-fav="'+(b?b.id:"")+'" title="'+(b&&b.fav?"Favorited (searchable inside)":"Favorite (also keeps it searchable inside)")+'" aria-label="Favorite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>'; }
+function favBtnHtml(b){ return '<button class="card-fav'+(b&&b.fav?" fav-on":"")+'" data-fav="'+escapeHtml(b?b.id:"")+'" title="'+(b&&b.fav?"Favorited (searchable inside)":"Favorite (also keeps it searchable inside)")+'" aria-label="Favorite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>'; }
 function bcToggleFav(id, btnEl){
   return DB.get("meta", id).then(function(b){
     if(!b) return;
@@ -2968,13 +2989,13 @@ function renderHome(){
     var ch=$("#home-continue");
     if(cont){
       var pct=Math.round((cont.progress||0)*100);
-      ch.innerHTML = '<div class="cont" data-id="'+cont.id+'"><div class="cv">'+coverHtml(cont)+'</div><div class="ci"><div class="t">'+escapeHtml(cont.title)+'</div><div class="s">'+(cont.lastCfi?"Continue · ":"Start · ")+escapeHtml(cont.author||"")+'</div><div class="pbar"><i style="width:'+pct+'%"></i></div></div></div>';
+      ch.innerHTML = '<div class="cont" data-id="'+escapeHtml(cont.id)+'"><div class="cv">'+coverHtml(cont)+'</div><div class="ci"><div class="t">'+escapeHtml(cont.title)+'</div><div class="s">'+(cont.lastCfi?"Continue · ":"Start · ")+escapeHtml(cont.author||"")+'</div><div class="pbar"><i style="width:'+pct+'%"></i></div></div></div>';
       ch.querySelector(".cont").onclick=function(){ openBook(cont.id); };
     } else { ch.innerHTML=""; }
     // recent row
     var recent = byOpened.slice(cont?0:0, 5);
     var rg=$("#home-recent");
-    rg.innerHTML = recent.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+b.id+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
+    rg.innerHTML = recent.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
     [].forEach.call(rg.querySelectorAll(".card"), function(el){ el.onclick=function(){ openDetails(el.dataset.id); }; });
     try{ hydrateCovers($("#home")); }catch(e){}
     wireCardFavs(rg);
@@ -3190,7 +3211,7 @@ function renderLibrary(){
     var slice=arr.slice(lib.page*PAGE, lib.page*PAGE+PAGE);
     var grid=$("#lib-grid");
     if(!arr.length){ grid.innerHTML=libTagBar()+'<div class="empty" style="grid-column:1/-1">'+(lib.tag?("No "+nounPl+" with this tag."):(lib.q?("No "+nounPl+" match."):"No books yet. Add an EPUB."))+'</div>'; $("#lib-pager").innerHTML=""; wireLibTagClear(); return; }
-    grid.innerHTML = libTagBar() + slice.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+b.id+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
+    grid.innerHTML = libTagBar() + slice.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
     [].forEach.call(grid.querySelectorAll(".card"), function(el){ el.onclick=function(){ openDetails(el.dataset.id); }; });
     wireCardFavs(grid);
     markGhostCards(); wireLibTagClear(); hydrateCovers(grid);
@@ -3249,8 +3270,8 @@ function runSearch(q, box){
   });
 }
 function group(title, arr){ if(!arr || !arr.length) return ""; return '<div class="res-group"><h3>'+title+' ('+arr.length+')</h3>'+arr.join("")+'</div>'; }
-function resBtn(kind, id, target, title, sub, hid){ return '<button class="res" data-kind="'+kind+'" data-id="'+id+'" data-target="'+escapeHtml(target||"")+'" data-hid="'+escapeHtml(hid||"")+'"><div class="rt">'+title+'</div><div class="rs">'+sub+'</div>'+resCopyIcon()+'</button>'; }
-function resBtn2(kind, id, target, jump, title, sub, rawtext){ return '<button class="res" data-kind="'+kind+'" data-id="'+id+'" data-target="'+escapeHtml(target||"")+'" data-jump="'+escapeHtml(jump||"")+'" data-text="'+escapeHtml(rawtext||"")+'"><div class="rt">'+title+'</div><div class="rs">'+sub+'</div>'+resCopyIcon()+'</button>'; }
+function resBtn(kind, id, target, title, sub, hid){ return '<button class="res" data-kind="'+escapeHtml(kind)+'" data-id="'+escapeHtml(id)+'" data-target="'+escapeHtml(target||"")+'" data-hid="'+escapeHtml(hid||"")+'"><div class="rt">'+title+'</div><div class="rs">'+sub+'</div>'+resCopyIcon()+'</button>'; }
+function resBtn2(kind, id, target, jump, title, sub, rawtext){ return '<button class="res" data-kind="'+escapeHtml(kind)+'" data-id="'+escapeHtml(id)+'" data-target="'+escapeHtml(target||"")+'" data-jump="'+escapeHtml(jump||"")+'" data-text="'+escapeHtml(rawtext||"")+'"><div class="rt">'+title+'</div><div class="rs">'+sub+'</div>'+resCopyIcon()+'</button>'; }
 function resCopyIcon(){ return '<span class="res-copy" role="button" tabindex="0" title="Copy this location to paste into your margins" aria-label="Copy location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>'; }
 function hi(text, ql){ text=text||""; var i=text.toLowerCase().indexOf(ql); if(i<0) return escapeHtml(text.slice(0,160)); var s=Math.max(0,i-50), e=Math.min(text.length,i+ql.length+90); return (s>0?"…":"")+escapeHtml(text.slice(s,i))+"<mark>"+escapeHtml(text.slice(i,i+ql.length))+"</mark>"+escapeHtml(text.slice(i+ql.length,e))+(e<text.length?"…":""); }
 function copySearchLocation(resEl, mmap){
@@ -5177,8 +5198,19 @@ function inlineMd(s, forEpub){
   s=s.replace(/&lt;iframe\b.*?youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{6,20}).*?&gt;/g, function(_,id){ return vidCard(id, "https://www.youtube.com/watch?v="+id); });
   s=s.replace(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g,function(_,alt,u){ return '<img class="md-img" loading="lazy" src="'+u.replace(/"/g,"%22").replace(/'/g,"%27")+'" alt="'+alt+'"/>'; });
   s=s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,function(_,t,u){ return '<a href="'+u.replace(/"/g,"%22").replace(/'/g,"%27")+'" target="_blank" rel="noopener">'+t+'</a>'; });
-  s=s.replace(/(^|[\s(])((?:https?:\/\/)(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})[^\s<)"']*)/g, function(_,pre,url,id){ return pre+vidCard(id,url); });
-  s=s.replace(/(^|[\s(])((?:https?:\/\/)[^\s<)"']+)/g, function(_,pre,url){ var tail=""; var mm=url.match(/[.,;:!?]+$/); if(mm){ tail=mm[0]; url=url.slice(0,-tail.length); } return pre+'<a href="'+url.replace(/"/g,"%22")+'" target="_blank" rel="noopener">'+url+'</a>'+tail; });
+  // Bare-URL passes run on plain text only: never inside a tag the passes above built
+  // (an alt or href holding a space or "(" would otherwise be split open), and never
+  // inside an existing link's text.
+  function autoLinks(t){
+    t=t.replace(/(^|[\s(])((?:https?:\/\/)(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})[^\s<)"']*)/g, function(_,pre,url,id){ return pre+vidCard(id,url); });
+    t=t.replace(/(^|[\s(])((?:https?:\/\/)[^\s<)"']+)/g, function(_,pre,url){ var tail=""; var mm=url.match(/[.,;:!?]+$/); if(mm){ tail=mm[0]; url=url.slice(0,-tail.length); } return pre+'<a href="'+url.replace(/"/g,"%22")+'" target="_blank" rel="noopener">'+url+'</a>'+tail; });
+    return t;
+  }
+  var inA=0;
+  s=s.split(/(<[^>]*>)/).map(function(part,i){
+    if(i%2){ if(/^<a[\s>]/i.test(part)) inA++; else if(/^<\/a>/i.test(part)) inA=Math.max(0,inA-1); return part; }
+    return inA ? part : autoLinks(part);
+  }).join("");
   return s;
 }
 
@@ -5410,7 +5442,7 @@ function buildHighlightMarkdown(bk, hls, linkCtx, relatedExtra){
       lines.push("", "## Source", "", "!["+_srcName+"]("+_yurl+")", "", "["+_srcName+"]("+_yurl+")");
     }
     if(bk.tags && bk.tags.length){ lines.push("", bk.tags.map(function(t){ return "[["+mdNoteName(t)+"]]"; }).join(" ")); }   // tags as Obsidian links
-    if(bk.rating){ lines.push("", "Rating: "+"★".repeat(bk.rating)+"☆".repeat(5-bk.rating)); }
+    if(bk.rating){ lines.push("", "Rating: "+bcStars(bk.rating)); }
     if(bk.summary){ lines.push("", "## Summary", "", notesToMarkdown(bk.summary, linkCtx).trim()); }
     if(bk.scratch && bk.scratch.trim()){ lines.push("", "## Margins", "", notesToMarkdown(bk.scratch, linkCtx).trim()); }
     var rel=[]; (relatedExtra||[]).concat(bk.related||[]).forEach(function(t){ if(t && rel.indexOf(t)<0) rel.push(t); });
@@ -5635,7 +5667,7 @@ function restoreFromObject(data){
       return DB.put("highlights", {id:rec.id, items:merged, updatedAt: Math.max((loc&&loc.updatedAt)||0, rec.updatedAt||Date.now())});
     });
   }); });
-  return chain.then(function(){ if(data.settings){ try{ settings=Object.assign(settings, data.settings); saveSettings(); syncSettingsUI(); }catch(e){} } })
+  return chain.then(function(){ if(data.settings){ try{ settings=cleanSettings(settings, data.settings); saveSettings(); syncSettingsUI(); }catch(e){} } })
     .then(function(){ return reconcileLibrary(); })
     .then(function(){
       try{ markCorpusDirty(); markSearchIndexDirty(); setTimeout(function(){ try{ backfillAnchors().then(function(){ markSearchIndexDirty(); }); }catch(e){} }, 400); }catch(e){}
@@ -5722,7 +5754,7 @@ function renderDetails(){
 function renderRichDetails(b){
   var box=$("#det-rich"); if(!box) return;
   var s=[];
-  if(b.rating){ s.push('<section><h3>Rating</h3><div class="rstars">'+ "★".repeat(b.rating)+"☆".repeat(5-b.rating) +'</div></section>'); }
+  if(b.rating){ s.push('<section><h3>Rating</h3><div class="rstars">'+ bcStars(b.rating) +'</div></section>'); }
   if(b.summary){ s.push('<section><h3>Summary</h3><p>'+escapeHtml(b.summary)+'</p></section>'); }
   box.innerHTML=s.join("")+'<div id="det-connections"></div><div id="det-related"></div>';
   renderConnectionsSection(b);
@@ -6112,7 +6144,7 @@ function ensureAudioBar(){
     '<button class="iconbtn" id="tts-fwd2" title="Next paragraph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4 6l9 6-9 6z"/></svg></button>'+
     '<button class="iconbtn" id="tts-stop" title="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>'+
     '<div class="tts-status" id="tts-status"></div>'+
-    '<div class="tts-rate"><span>Speed</span><input type="range" id="tts-rate" min="0.6" max="1.8" step="0.1" value="'+(settings.ttsRate||1)+'"><span id="tts-rate-val">'+(+ (settings.ttsRate||1)).toFixed(1)+'×</span></div>';
+    '<div class="tts-rate"><span>Speed</span><input type="range" id="tts-rate" min="0.6" max="1.8" step="0.1" value="'+(Number(settings.ttsRate)||1)+'"><span id="tts-rate-val">'+(+ (settings.ttsRate||1)).toFixed(1)+'×</span></div>';
   bar.dataset.built="1";
   $("#tts-back2").onclick=function(){ ttsSkip(-1); };
   $("#tts-fwd2").onclick=function(){ ttsSkip(1); };
@@ -7131,6 +7163,12 @@ function cloudParseSetup(text){
   var i=String(text||"").indexOf("bcsync="); if(i<0) return null;
   try{ var p=String(text).slice(i+7).split(/[&\s]/)[0].replace(/-/g,"+").replace(/_/g,"/"); while(p.length%4) p+="="; var d=JSON.parse(decodeURIComponent(escape(atob(p)))); return (d && d.u && d.t) ? d : null; }catch(e){ return null; }
 }
+// A setup link names the relay it fills in, so a link from someone else can't quietly
+// point this device at a relay that isn't yours.
+function cloudLinkNote(u){
+  var host=""; try{ host=new URL(cloudNormUrl(u)).host; }catch(e){ host=String(u||""); }
+  return "Filled in from your setup link. Relay: "+host+". Continue only if this is your own relay, then type your passphrase and tap Turn on sync.";
+}
 // A setup link pre-fills the address and token on a new device; the passphrase is always typed by hand.
 function cloudHandleSetupHash(){
   var h=location.hash||"";
@@ -7143,7 +7181,7 @@ function cloudHandleSetupHash(){
     if(cloudReady() && cloud.cfg.url===data.u && cloud.cfg.token===data.t){ cloudRenderUI(); toast("This device already syncs with that relay"); return; }
     var setup=$("#cs-setup"), act=$("#cs-active"); if(setup) setup.classList.remove("hidden"); if(act) act.classList.add("hidden");
     $("#cs-url").value=data.u; $("#cs-token").value=data.t;
-    cloudMsg("Address and token filled in from your setup link. Type your passphrase, then tap Turn on sync.", false);
+    cloudMsg(cloudLinkNote(data.u), false);
     var ps=$("#cs-pass"); if(ps){ try{ ps.scrollIntoView({block:"center"}); }catch(e){} ps.focus(); }
   }, 400);
   return true;
@@ -7155,7 +7193,7 @@ function cloudHandleSetupHash(){
   var ur=$("#cs-url"); if(ur) ur.addEventListener("input", function(){
     var d=cloudParseSetup(ur.value); if(!d) return;
     ur.value=d.u; $("#cs-token").value=d.t;
-    cloudMsg("Address and token filled in from your setup link. Type your passphrase, then tap Turn on sync.", false);
+    cloudMsg(cloudLinkNote(d.u), false);
     var pp=$("#cs-pass"); if(pp) pp.focus();
   });
   var gen=$("#cs-gen"); if(gen) gen.onclick=function(e){
@@ -7999,7 +8037,7 @@ window.BackchatPlayer = (function () {
   }
 
   function onMessage(e) {
-    if (String(e.origin).indexOf("youtube.com") === -1) return;
+    if (!/^https:\/\/(www\.)?youtube(-nocookie)?\.com$/.test(String(e.origin))) return;
     var d;
     try { d = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch (err) { return; }
     if (!d || !d.info) return;

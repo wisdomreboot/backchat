@@ -6,7 +6,7 @@ Open it at **https://backchat.jonathandutoit.com**
 
 ## What it is
 
-Backchat is one HTML file. Everything runs in your browser: there is no server, no account and no tracking. The only outside requests fetch three open-source libraries from the jsDelivr CDN (listed under Licence) and, when you play a video in a transcript book, the video from YouTube. Your books and notes live in your browser's storage and, if you connect one, in a folder on your computer as ordinary EPUB and Markdown files, which works well with Obsidian.
+Backchat is one HTML page and three open-source libraries, all served from this repository. Everything runs in your browser: there is no server, no account and no tracking. The page talks to the outside world only to play a video in a transcript book (from YouTube), to show a cover or image that a book or note links to on the web, and, if you turn it on, to sync with your own relay. Your books and notes live in your browser's storage and, if you connect one, in a folder on your computer as ordinary EPUB and Markdown files, which works well with Obsidian.
 
 - Highlight, comment and write in the margins of any EPUB
 - Search across every book, your marks, and the full text inside books
@@ -22,7 +22,11 @@ Setup takes about 15 minutes in a browser: [docs/SYNC-SETUP.md](docs/SYNC-SETUP.
 
 ## Host your own copy
 
-Fork this repository and turn on GitHub Pages, or copy its files to any static host. Nothing else is needed. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`.
+Fork this repository and turn on GitHub Pages, or copy its files to any static host, keeping `lib/` beside `index.html`. Nothing else is needed. If you change any inline script in `index.html`, run `python3 tools/csp.py index.html` to refresh the security policy, or the browser will refuse to run the edited script. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`.
+
+## Security
+
+The page runs only code published in this repository. A security policy in the page tells the browser to refuse any other script, and book content is shown in a sandbox with its scripts stripped. See [SECURITY.md](SECURITY.md) for what Backchat can and cannot reach, and how to report a problem.
 
 ## The deal
 
@@ -32,4 +36,4 @@ I write about reading, decisions and building tools like this at [jonathandutoit
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE). Bundled libraries keep their own licences: JSZip (MIT or GPL-3.0, used under MIT), epub.js (BSD), MiniSearch (MIT).
+MIT, see [LICENSE](LICENSE). The libraries in [lib/](lib/) keep their own licences: JSZip (MIT or GPL-3.0, used under MIT), epub.js (BSD), MiniSearch (MIT).
