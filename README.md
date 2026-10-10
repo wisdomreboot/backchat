@@ -22,7 +22,7 @@ Setup takes about 15 minutes in a browser: [docs/SYNC-SETUP.md](docs/SYNC-SETUP.
 
 ## Host your own copy
 
-Download `index.html`, `icon.svg` and `apple-touch-icon.png` and serve them from any static host, or fork this repository and turn on GitHub Pages. Nothing else is needed.
+Fork this repository and turn on GitHub Pages, or copy its files to any static host. Nothing else is needed. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`.
 
 ## The deal
 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://backchat.jonathandutoit.com/sitemap.xml
