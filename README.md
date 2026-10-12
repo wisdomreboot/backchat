@@ -14,6 +14,8 @@ Backchat is one HTML page and three open-source libraries, all served from this 
 - Read aloud
 - Hand off notes between devices by file, or sync them automatically through a relay you own (see below)
 
+What changed in each build: [CHANGELOG.md](CHANGELOG.md).
+
 ## Sync between devices (optional)
 
 Backchat can keep your phone and computer in step through a small relay you set up yourself: a free Cloudflare Worker. Your notes are encrypted on your device with a passphrase that never leaves it, so the relay only stores scrambled data. Each person runs their own relay; nothing is shared with anyone else, including the author.
