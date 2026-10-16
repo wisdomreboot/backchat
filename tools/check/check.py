@@ -110,21 +110,63 @@ def settle(seconds=0.6):
     time.sleep(seconds)
 
 
+# 0. Every script the page loads is a file in this repository. The security policy refuses
+#    anything else, so a script linked from another site (a CDN, an analytics snippet pasted
+#    as given) silently never runs on the live site.
+_html = open(os.path.join(SITE, "index.html"), encoding="utf-8").read()
+_srcs = re.findall(r'<script\b[^>]*\bsrc\s*=\s*["\']([^"\']+)', _html, re.I)
+expect("every script is kept in this repository", [s for s in _srcs if re.match(r"^(?:[a-z]+:)?//", s, re.I) or not os.path.isfile(os.path.join(SITE, s))], [],
+       "the security policy runs only this site's files: save the library in lib/ and load it from there (see lib/README.md)")
+
+# The page-view counter announces that it skips local addresses; that note is expected here.
+_GC_LOCAL = "goatcounter: not counting because of: localhost"
+
 with sync_playwright() as p:
     browser = p.chromium.launch()
 
     # 1. The real security policy is enforced: boot must run with no violation, no error,
     #    and no stray request (a look-ahead fetch of a URL half-written in a script).
+    gc_local = {"notes": 0, "sent": []}
     for i in range(6):
         ctx = browser.new_context(); pg = ctx.new_page()
         notes = []
-        pg.on("console", lambda m: notes.append(m.text) if m.type in ("error", "warning") else None)
+        def _note(m, notes=notes):
+            if m.text == _GC_LOCAL: gc_local["notes"] += 1
+            elif m.type in ("error", "warning"): notes.append(m.text)
+        pg.on("console", _note)
         pg.on("pageerror", lambda e: notes.append(str(e)))
         pg.on("request", lambda r: notes.append("stray request " + r.url) if "'" in r.url else None)
+        pg.on("request", lambda r: gc_local["sent"].append(r.url) if "goatcounter.com" in r.url else None)
         pg.goto(URL); pg.wait_for_selector("#home-recent .card", timeout=20000); settle(0.5)
         if notes or i == 0:
             expect("boot under the security policy, run %d" % (i + 1), notes, [], "the page must boot cleanly with its Content-Security-Policy on")
         ctx.close()
+    expect("no page view is counted from a local address", gc_local, lambda g: g["notes"] >= 1 and not g["sent"],
+           "test runs and local copies must never reach the live count")
+
+    # 1b. The page-view count under a real-looking address, with the security policy on. The
+    #     counting service is intercepted, so nothing reaches the live dashboard. One count goes
+    #     out, and nothing after # (where a sync setup link carries the relay token) is in it.
+    gbrowser = p.chromium.launch(args=["--host-resolver-rules=MAP backchat.test 127.0.0.1"])
+    gctx = gbrowser.new_context(); gp = gctx.new_page()
+    sent, gnotes = [], []
+    def _gc_stub(route):
+        sent.append(route.request.url); route.fulfill(status=204, body="")
+    gp.route(re.compile(r"^https://backchat\.goatcounter\.com/"), _gc_stub)
+    gp.on("console", lambda m: gnotes.append(m.text) if m.type == "error" or "Content Security Policy" in m.text else None)
+    gp.on("pageerror", lambda e: gnotes.append(str(e)))
+    gp.on("dialog", lambda d: d.dismiss())
+    gp.goto("http://backchat.test:%d/index.html#bcsync=SETUPTOKEN-must-not-leave" % PORT)
+    gp.wait_for_selector("#home-recent .card", timeout=20000)
+    for _ in range(40):
+        if sent: break
+        time.sleep(0.25)
+    settle(0.5)
+    expect("a page view is counted once on a real address", len(sent), 1, "the counter runs under the security policy and sends one count per page load")
+    expect("the count never carries the address after #", [u for u in sent if "SETUPTOKEN" in u or "bcsync" in u or "%23" in u or "#" in u], [],
+           "a sync setup link puts the relay token after #; it must never be sent")
+    expect("the counter causes no errors or policy refusals", gnotes, [], "the counter must run cleanly with the policy on")
+    gctx.close(); gbrowser.close()
 
     # 2. Drive the app's own functions. The policy is bypassed here only so the test can evaluate.
     ctx = browser.new_context(bypass_csp=True); page = ctx.new_page(); watch(page, "app")
