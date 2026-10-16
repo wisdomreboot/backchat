@@ -2,6 +2,30 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.57 (16 October 2026)
+
+A durability pass, with no new features. Each fix below was reproduced in a real browser first, then checked again after the change.
+
+**Fixed**
+- **Margins could be overwritten by another book's.** If you typed in a book's margins and opened a different book within a second, the second book's margins were replaced with the first book's text. The margins editor now saves only to the book it was opened for.
+- **A book file could be deleted from the folder.** On a Mac or Windows disk, where file names ignore capital letters, a book file whose name differed from Backchat's own name for it only in capitals could be removed while being renamed, leaving no copy in the folder. It is now left in place.
+- **Restoring several deleted books brought back only one.** A backup or notes file holding several books you had deleted restored just one of them. Every book in the file now comes back. The same fix stops a sync that arrives while you delete a book from forgetting the delete.
+- **A deleted book could come back from an old notes file** in the folder's notes directory. Automatic imports now skip deleted books; a restore you choose still brings them back.
+- **A book deleted on another device kept turning up in inside-book search** on this one when the delete arrived through the folder. Its search index is now removed with it.
+- **Delete everything in this browser** now also clears the inside-book search index, which it left behind.
+- Opening a book whose file is not on this device, while another book was open, could make the open book save its reading position under the wrong book.
+- **Find in book** no longer retries without end, keeping the processor busy, on a book that cannot be read for indexing. It says so instead.
+- When storage is full, a save now fails with the storage-full warning instead of waiting forever.
+- Dropping a file on the reader or the search screen no longer opens the file in the tab in place of Backchat.
+- On about one page load in six, Chrome's look-ahead read part of the code as page markup and requested a nonsense image address, which failed. That request no longer happens.
+- In **Export to Markdown** and a book's own export, the Source link now points to the note inside the export rather than to the folder's file name, so it resolves in Obsidian.
+- The margins renderer relied on invisible control characters written into the code. An editor that stripped them would have made every number in your margins vanish from view. They, and the accent-folding characters in inside-book search, are now written so they cannot be lost.
+
+**Changed**
+- Removed code that no longer ran: the in-memory search the disk index replaced in 1.0.35, the paste-to-book builder, an unused drop box, a theme switch and a layout button that no longer appeared, debug stubs, and styles left from Trails and other retired features. The page is about 28 KB smaller.
+- A full push to the folder reads the library once instead of once per book.
+- Comments throughout the code now describe how it works today, and messages that pointed at old buttons name the current ones.
+
 ## 1.0.56 (13 October 2026)
 
 **Added**

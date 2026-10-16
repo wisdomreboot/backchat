@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-g7cZ5UboaDjuEx3XydGrEaY12qSD59iY7nGwmYZ0TzA=' 'sha256-K0i9Y+gc6wdJoQGqxSjaG1ED+VHfBuyBymTf3J6AzOg=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw=' 'sha256-9Rk9pxhbczAbF9qGYxPW78ulJHHwcMTC8Ny4Es/bfHo='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-3Fv42ZgrvOlluN/QydtDwDjw2Gvyd4k9NY8m7z7qFfg=' 'sha256-JdINcH+UzxVihuYNN1wSP0slWUOMxNknOYhcQ85vyKI=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -64,9 +64,10 @@
 <noscript><p style="font:16px/1.5 system-ui;max-width:36rem;margin:3rem auto;padding:0 1rem">Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own. It needs JavaScript to run. Read more at <a href="https://jonathandutoit.com/backchat/">jonathandutoit.com/backchat</a>.</p></noscript>
 <!--
   Backchat - talk back to your books.
-  A single-file, local-first EPUB reader: highlights, comments, margins,
-  location links, folder sync, hand-offs, and read-aloud. No server, no
-  account. Your library lives in your browser and in a folder you own.
+  A one-page, local-first EPUB reader: highlights, comments, margins,
+  location links, folder sync, hand-offs, optional device sync, and
+  read-aloud. No account. Your library lives in your browser and in a
+  folder you own.
 
   Copyright (c) 2026 Jonathan du Toit. Released under the MIT License
   (see LICENSE). Provided as is, without warranty of any kind.
@@ -120,7 +121,6 @@
     background:var(--topbar);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
   .topbar .title{font-weight:600;font-size:.95rem;letter-spacing:-.01em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .brand-wrap{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;line-height:1.05}
-  .brand{font-weight:700;font-size:1.06rem;letter-spacing:-.02em}
   .tk-brand{display:flex;align-items:center;gap:.45rem;margin:0;font-size:1.06rem;font-weight:700;letter-spacing:-.02em;line-height:1}
   .tk-brand-home{display:inline-flex;align-items:center;color:var(--ink);text-decoration:none;border-radius:6px;transition:color .15s}
   .tk-brand-home:hover{color:var(--accent)}
@@ -176,7 +176,6 @@
   .searchbox svg{width:18px;height:18px;color:var(--muted);flex:0 0 auto}
   .searchbox input{border:none;outline:none;background:none;flex:1;min-width:0;color:var(--ink);font-size:.95rem}
 
-  h1.page{font-size:1.6rem;letter-spacing:-.02em;margin:.6rem .15rem 1rem}
   h2.sec{font-size:1.02rem;letter-spacing:-.01em;margin:1.6rem .15rem .8rem;display:flex;align-items:center;justify-content:space-between}
   h2.sec a{font-size:.82rem;color:var(--accent);font-weight:600;cursor:pointer}
 
@@ -234,8 +233,6 @@
 .iconbtn.fav-on svg{fill:var(--accent);stroke:var(--accent)}
 .det-title-row{display:flex;align-items:center;gap:10px}
 .det-title-row h1{margin:0;flex:1;min-width:0}
-.det-title-row .iconbtn{flex:0 0 auto}
-.iconbtn.pin-on{color:var(--accent);background:var(--accent-soft)}
 .md-img{max-width:100%;border-radius:8px;margin:.35rem 0;display:block}
 .md-video{position:relative;display:block;max-width:420px;margin:.4rem 0;border-radius:10px;overflow:hidden;line-height:0}
 .md-video img{width:100%;display:block}
@@ -250,16 +247,11 @@
   .meta .a{color:var(--muted);font-size:.76rem;margin-top:.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .libbar{display:flex;gap:.6rem;align-items:center;margin:0 .15rem 1.1rem;flex-wrap:wrap}
-  .lib-modes{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:2px;gap:2px;flex:0 0 auto}
-  .lib-mode{background:none;border:0;color:var(--muted);font:inherit;font-weight:600;font-size:.86rem;padding:.34rem .8rem;border-radius:8px;cursor:pointer}
-  .lib-mode.on{background:var(--accent);color:#fff}
   .sel{border:1px solid var(--line);border-radius:10px;padding:.5rem .6rem;background:var(--panel);color:var(--ink)}
   .pager{display:flex;align-items:center;justify-content:center;gap:.8rem;margin-top:1.6rem;color:var(--muted);font-size:.85rem}
   .pager button{border:1px solid var(--line);border-radius:9px;padding:.45rem .8rem;background:var(--panel)}
   .pager button:disabled{opacity:.4;cursor:default}
   .empty{text-align:center;padding:4rem 1rem;color:var(--muted)}
-  .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:2.4rem;text-align:center;color:var(--muted);margin-top:1.2rem;transition:.15s;display:none}
-  .drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 
   /* search results */
   .res-group{margin-bottom:1.4rem}
@@ -398,7 +390,7 @@
   .margins-head .linkbtn{margin-left:auto;flex:0 0 auto}
   .margins-view{font-size:1.02rem;line-height:1.72;max-width:44rem}
   .margins-view > :first-child{margin-top:0}
-  .det-notes-empty{color:var(--muted);font-size:.95rem;line-height:1.6}
+  .det-notes-empty{color:var(--muted);font-size:.95rem;line-height:1.6;font-style:italic}
   .bc-ref-title{opacity:.72;font-weight:400}
   .scratch-view a:not(.bc-ref), .note a:not(.bc-ref), #note-pop a:not(.bc-ref){color:var(--accent);text-decoration:underline;text-underline-offset:2px}
   .scratch-edit-area{display:none;flex:1;min-height:60vh;width:100%;resize:none;border:1px solid var(--line);border-radius:11px;padding:.85rem;font:inherit;font-size:.95rem;line-height:1.6;background:var(--panel);color:var(--ink);box-sizing:border-box}
@@ -410,12 +402,8 @@
   .help-row kbd{flex:0 0 auto;min-width:70px;text-align:center;font-family:inherit;font-size:.72rem;background:var(--panel);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:.18rem .45rem;color:var(--ink)}
   .help-tip{font-size:.76rem;color:var(--muted);margin-top:1rem;line-height:1.5}
   .det-notes-area{display:block;width:100%;min-height:52vh;box-sizing:border-box;resize:vertical;border:1px solid var(--line);border-radius:11px;padding:1rem 1.05rem;font:inherit;font-size:1.02rem;line-height:1.72;background:var(--panel);color:var(--ink)}
-  .det-notes-empty{color:var(--muted);font-style:italic}
-  #det-notes-sec h3{display:flex;align-items:center;gap:.5rem}
-  #det-notes-sec h3 .linkbtn{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .45rem;line-height:1}
-  #det-notes-sec h3 .linkbtn svg{width:13px;height:13px}
   #det-notes-editor .actions{margin-top:.7rem;display:flex;gap:.5rem;justify-content:flex-end}
-  /* ---- Writing surface: calm, distraction-free margins & Trails (write-first, iA-inspired) ---- */
+  /* ---- Writing surface: calm, distraction-free margins (write-first, iA-inspired) ---- */
   .bc-write{
     border:1px solid transparent !important; background:transparent !important;
     outline:none !important; box-shadow:none !important; resize:none !important;
@@ -424,7 +412,7 @@
     color:var(--ink); padding:2rem .2rem 1.6rem; -webkit-tap-highlight-color:transparent;
   }
   .bc-write::placeholder{ color:var(--muted); opacity:.7 }
-  .det-notes-area.bc-write{ overflow-y:hidden }   /* details Trail editor auto-grows to fit; no inner scrollbar */
+  .det-notes-area.bc-write{ overflow-y:hidden }   /* the book page's margins editor auto-grows to fit; no inner scrollbar */
   /* ---- Distraction-free writing: strip the chrome so the screen is just your words ---- */
   #scratch-panel.editing .panel-head{ border-bottom:0 }
   #scratch-panel.editing .panel-head h2{ opacity:.3; font-weight:500 }
@@ -481,8 +469,6 @@
   .det-info h1{font-size:1.5rem;letter-spacing:-.02em;margin:0 0 .35rem;line-height:1.2}
   .det-author{color:var(--muted);font-size:1rem;margin-bottom:.9rem}
   .det-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.1rem}
-  .tag{background:var(--accent-soft);color:var(--accent);font-size:.75rem;font-weight:600;padding:.25rem .6rem;border-radius:99px}
-  .tag-empty{color:var(--muted);font-size:.8rem;font-style:italic}
   .det-cta{background:var(--accent);color:#fff;padding:.7rem 1.4rem;border-radius:11px;font-weight:600;font-size:.95rem;box-shadow:var(--shadow)}
   .det-cta:hover{filter:brightness(1.05)}
   .det-stats{margin-bottom:1.5rem}
@@ -491,9 +477,6 @@
   .det-pbar i{display:block;height:100%;background:var(--accent);border-radius:99px}
   .det-ppct{font-size:.76rem;color:var(--muted);flex:0 0 auto;font-variant-numeric:tabular-nums}
   .det-metaline{font-size:.8rem;color:var(--muted);line-height:1.55}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.6rem .7rem;text-align:center}
-  .stat .sv{font-size:1.02rem;font-weight:700;letter-spacing:-.01em}
-  .stat .sl{font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:.15rem}
   .det-actions{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
   .det-act{display:flex;align-items:center;gap:.6rem;border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:.8rem .9rem;font-size:.88rem;font-weight:600;color:var(--ink);text-align:left}
   .det-act:hover{border-color:var(--accent);color:var(--accent)}
@@ -532,8 +515,6 @@
   .det-rich section{margin-bottom:1.25rem}
   .det-rich h3{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.5rem}
   .det-rich p{line-height:1.6;white-space:pre-wrap;margin:0}
-  .det-rich blockquote{border-left:3px solid var(--accent);margin:0;padding:.15rem 0 .15rem .9rem;white-space:pre-wrap;line-height:1.6}
-  .det-rich .ta{margin-bottom:.75rem} .det-rich .ta .q{font-weight:600;font-size:.85rem;margin-bottom:.2rem}
   .det-rich .rstars{color:#f0a500;font-size:1.15rem;letter-spacing:.12em}
   .det-rich .rel-link{color:var(--accent);cursor:pointer}.det-rich .rel-link:hover{text-decoration:underline}
 
@@ -569,7 +550,6 @@
   #home-empty .bc-empty-copy{position:relative;z-index:1;display:flex;justify-content:center;width:100%}
   #home-empty .bc-empty-inner{max-width:34rem;text-align:left;padding:2rem 2.2rem;border-radius:var(--radius);background:radial-gradient(120% 100% at 50% 50%,var(--bg) 0%,var(--bg) 62%,rgba(0,0,0,0) 100%)}
   #home-empty .bc-empty-inner p{margin:0 0 1rem;color:var(--ink);line-height:1.6;font-size:1rem}
-  #home-empty .bc-kicker{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 1.1rem!important}
   #home-empty .bc-lead{font-family:Georgia,serif;font-size:1.3rem;line-height:1.5;color:var(--ink);margin-bottom:1.2rem!important}
   #home-empty .bc-cta{display:inline-block;margin:.5rem 0;cursor:pointer;font-size:.95rem;padding:.7rem 1.15rem}
   #home-empty .bc-sub{color:var(--muted);font-size:.92rem;margin:.1rem 0 0!important}
@@ -622,7 +602,6 @@
         </div>
       </div>
     </div>
-    <div class="drop" id="drop">Drag <strong>.epub</strong> files here, or click &ldquo;Add EPUB&rdquo;.</div>
     <input type="file" id="file-input" accept=".epub,application/epub+zip" multiple hidden />
   </div>
 </div>
@@ -692,9 +671,6 @@
     <div id="pct-label">0%</div><button id="rdr-sync" class="sync-chip is-synced" type="button" title="Sync status"><i class="sync-dot"></i><span class="sync-text">Synced</span></button>
   </div>
 </div>
-
-<!-- audio bar (separate so display toggling is simple) -->
-<template id="audiobar-tpl"></template>
 
 <div class="overlay" id="overlay"></div>
 
@@ -923,8 +899,8 @@
    - In-reader overlay search (openReaderSearch): select text in a book, tap Search, a
      library search opens OVER the reader without tearing it down, so you copy a location
      and return to the exact same spot.
-   - Quoted "exact phrase" narrows results (parseSearch/matchesParsed). MiniSearch has no
-     phrase parser, so phrases are enforced on top of its filter hook.
+   - Quoted "exact phrase" narrows results (parseSearch/matchesParsed), and the inside-book
+     search (ftQuery) verifies the phrase against each candidate block.
    - Following a result highlights the found passage reliably: jumpToTextInBook now polls
      until the section has rendered instead of one fixed 500ms guess.
    - IDENTITY IS THE BOOK KEY, NOT THE ID. Ids churn on delete/re-import. Links already
@@ -941,14 +917,18 @@
 
    FULL-TEXT INDEX AT SCALE (~1000-book library)
    - Whole-library search over titles/authors/tags/highlights/notes is cheap and always on.
-   - Inside-book full text cannot hold 1000 books in a browser, so it is a bounded, PINNED
-     cache: enforceFulltextCache keeps pinned books first, then recent, up to FULLTEXT_MAX
-     (150), and evicts only the DERIVED index, never a book or a mark. Pin a book from its
-     page (the heart on the book cover; favoriting sets meta.fav which keeps the book indexed. Legacy meta.indexPin is still honored). The two "index everything"
-     passes (buildAllIndex, backfillAnchors) now index only pinned books. indexBook fetches
-     a book from the folder to index it, so evicting a book blob does not block indexing.
-     The index record stores each book's text ONCE (in anchors) and reconstructs section
-     text on load (recSectionTexts, record format v4), which halves its size.
+   - Inside-book search runs on a disk-backed inverted index (ftseg/ftblk, see DISK-BACKED
+     SEARCH INDEX), so memory stays flat however large the library grows. It is derived from
+     the per-book fulltext records, which also hold the paragraph anchors that location
+     links resolve against.
+   - The fulltext records are a bounded cache: enforceFulltextCache keeps favorited books
+     first, then recent, up to FULLTEXT_MAX (150), and evicts only the DERIVED record, never
+     a book or a mark. The heart on a book's cover sets meta.fav, which keeps it indexed
+     (legacy meta.indexPin is still honored). The two "index everything" passes
+     (buildAllIndex, backfillAnchors) index only favorited books. indexBook fetches a book
+     from the folder to index it, so evicting a book blob does not block indexing. A record
+     stores each book's text ONCE (in anchors); recSectionTexts rebuilds section text from
+     them when Find in book needs it (record format v4).
    - Anchor links re-index the target book on demand (ensureBookAnchors inside
      followBcAnchor), so a location link always lands even after the book is unpinned and
      its index evicted. The pin is a coverage/performance control, never a correctness one.
@@ -961,28 +941,31 @@
    ============================================================ */
 
 /* ============================================================
-   BACKCHAT - a single-file, local-first EPUB reader
+   BACKCHAT - a one-page, local-first EPUB reader
    ------------------------------------------------------------
-   Design promise: the only copy is the one you keep. No server,
-   no account, no cloud. Everything lives in this one HTML file,
-   the reader's own browser storage, and (optionally) a folder
-   the reader picks. Stability comes first: never lose a book or
-   a mark, never let a sync destroy what a person wrote.
+   Design promise: the only copy is the one you keep. No account,
+   no server of ours. Everything lives in this page, the reader's
+   own browser storage, (optionally) a folder the reader picks,
+   and (optionally) an encrypted relay the reader owns. Stability
+   comes first: never lose a book or a mark, never let a sync
+   destroy what a person wrote.
 
-   THIRD-PARTY LIBS (inlined above, do not edit):
+   THIRD-PARTY LIBS (in lib/, loaded above, do not edit):
      JSZip      reads/writes the .epub zip and the export .zip
      epub.js    renders the EPUB and tracks position via CFIs
-     MiniSearch full-text search index across the library
+     MiniSearch the marks corpus behind rhymes (echoesFor)
 
    WHERE THINGS LIVE (IndexedDB "epub-reader", see DB below):
-     meta        one record per book (title, author, cover,
-                 progress, rating, summary, margins [field name
-                 "scratch"], tags, favourite, bookmarks...)
+     meta        one record per book (title, author, progress,
+                 rating, summary, margins [field name "scratch"],
+                 tags, favourite, bookmarks...)
      blob        the original .epub bytes, kept whole and never
                  rewritten - the immutable source of truth
      highlights  one record per book: { id, items:[...] }
-     fulltext    optional search index, built on demand
-     app         small app-wide values (e.g. tombstones)
+     fulltext    per-book paragraph anchors, built on demand
+     ftseg/ftblk the disk-backed inside-book search index
+     app         small app-wide values (tombstones, covers,
+                 index markers, the sync key)
    localStorage holds settings, sync stamps, hand-off stamps.
 
    THE FOLDER (File System Access API), when connected:
@@ -1013,30 +996,32 @@
      pinpoints the exact spot (raw range CFIs are unreliable on
      a cold open). See BC_LINK_RE, followBcRef, openMarkById.
 
-   SYNC MODEL (all additive, nothing silently lost):
+   SYNC MODEL (nothing silently lost):
      Every merge is by id: newest edit of each mark wins,
      additions from either side are kept, deletes are remembered
-     as tombstones so they cannot silently return. Whole-field
-     meta merges are newest-wins, except margins: when both
-     devices changed them, the older text is preserved below a
-     dated divider instead of being discarded. Records are
+     as tombstones (a deleted mark is kept with deleted:true; a
+     deleted book by id and key) so they cannot silently return.
+     Whole-field meta merges are newest-wins, margins included,
+     so an edit or a deletion in the margins holds. Records are
      pushed back to the folder ONLY when a content signature
      (hlSig/metaSig in vaultPull) shows a real difference -
      identical sides write nothing, which starves the cloud
      client of collisions; any real change writes, which
      guarantees convergence. Cloud conflict copies, when they
-     do occur, are absorbed manually via the Merge button in
-     Settings > Advanced (marks folded in before the copy is
-     deleted). Sync pauses only on permission loss or a
+     do occur, are absorbed on the next pull (mergeConflictCopies),
+     or by hand via the Merge button in Settings > Advanced;
+     either way the marks are folded in before the copy is
+     deleted. Sync pauses only on permission loss or a
      vanished folder; a single locked file just retries.
 
    PHONES (no folder connection available):
      Provision by Load-ing a desktop backup (all marks arrive;
      books show a download badge until imported from the synced
-     folder via the files app), then send marks home with a
-     hand-off file (Settings > Advanced) which the desktop
+     folder via the files app), then send marks home with the
+     Hand off button on the home screen, whose file the desktop
      consumes, matching books by id and falling back to
-     title+author. The hand-off button counts unsent marks.
+     title+author. The button counts unsent marks. With device
+     sync on (DEVICE SYNC below) the button steps aside.
 
    READ ALOUD (tts* functions):
      Paragraph-sized utterances; sentence highlight tracks via
@@ -1063,9 +1048,20 @@
      ever emitted into attributes.
    ============================================================ */
 
-/* DB: a tiny promise wrapper over IndexedDB "epub-reader" (v3).
-   Stores: meta, blob, highlights, fulltext, app. Every method
-   returns a Promise resolving to the request result. */
+/* Settle on whichever way an IndexedDB transaction ends. A failed request reaches onerror;
+   a transaction aborted at commit (quota exceeded) fires only onabort, and without that
+   handler the caller's promise would wait forever. */
+function txSettle(t, done, fail){
+  var settled=false;
+  function once(f, v){ if(!settled){ settled=true; f(v); } }
+  t.oncomplete=function(){ once(done); };
+  t.onerror=function(e){ once(fail, (e && e.target && e.target.error) || t.error); };
+  t.onabort=function(){ once(fail, t.error || new Error("The storage transaction was aborted")); };
+}
+/* DB: a tiny promise wrapper over IndexedDB "epub-reader" (v4).
+   Stores: meta, blob, highlights, fulltext, app, ftseg, ftblk. Every
+   method returns a Promise resolving to the request result, and rejects
+   if the transaction fails or aborts (a full disk aborts at commit). */
 var DB = (function () {
   var dbp;
   function open(){
@@ -1073,7 +1069,7 @@ var DB = (function () {
     dbp = new Promise(function(res,rej){
       var r = indexedDB.open("epub-reader", 4);
       r.onupgradeneeded = function(e){
-        var db = e.target.result, txn = e.target.transaction;
+        var db = e.target.result;
         if(!db.objectStoreNames.contains("meta")) db.createObjectStore("meta",{keyPath:"id"});
         if(!db.objectStoreNames.contains("blob")) db.createObjectStore("blob",{keyPath:"id"});
         if(!db.objectStoreNames.contains("highlights")) db.createObjectStore("highlights",{keyPath:"id"});
@@ -1082,7 +1078,6 @@ var DB = (function () {
         // Disk-backed search index (v4): inverted-index segments + block store, both scoped per book.
         if(!db.objectStoreNames.contains("ftseg")){ var _ftseg=db.createObjectStore("ftseg",{keyPath:["b","t"]}); _ftseg.createIndex("t","t",{unique:false}); }
         if(!db.objectStoreNames.contains("ftblk")) db.createObjectStore("ftblk",{keyPath:["b","n"]});
-        // (1.0) legacy v1 "books"-store migration removed: the database is v3-native now.
       };
       // Another tab holding an older version blocks this upgrade; say so instead of hanging on a blank shelf.
       r.onblocked = function(){ console.warn("IndexedDB upgrade blocked by another open Backchat tab"); try{ toast("Another Backchat tab is open with an older version. Close the other tabs, then reload this page."); }catch(e){} };
@@ -1100,8 +1095,7 @@ var DB = (function () {
     return open().then(function(db){
       return new Promise(function(res,rej){
         var t=db.transaction(store,mode), s=t.objectStore(store), req=fn(s);
-        t.oncomplete=function(){ res(req && req.result); };
-        t.onerror=function(){ rej(t.error); };
+        txSettle(t, function(){ res(req && req.result); }, rej);
       });
     });
   }
@@ -1113,19 +1107,12 @@ var DB = (function () {
     clear:function(store){ return tx(store,"readwrite",function(s){ return s.clear(); }); },
     all:function(store){ return tx(store,"readonly",function(s){ return s.getAll(); }); },
     keys:function(store){ return tx(store,"readonly",function(s){ return s.getAllKeys(); }); },
-    count:function(store){ return tx(store,"readonly",function(s){ return s.count(); }); },
-    cursor:function(store, each){
-      return open().then(function(db){ return new Promise(function(res,rej){
-        var req=db.transaction(store,"readonly").objectStore(store).openCursor();
-        req.onsuccess=function(e){ var c=e.target.result; if(!c){ res(); return; } var stop=each(c.value); if(stop){ res(); return; } c.continue(); };
-        req.onerror=function(){ rej(req.error); };
-      }); });
-    }
+    count:function(store){ return tx(store,"readonly",function(s){ return s.count(); }); }
   };
 })();
 
 var $ = function(s){ return document.querySelector(s); };
-// Status message. The element (#toast) and CSS exist; this restores the missing function.
+// A short status message at the bottom of the screen.
 function toast(msg){
   var t=document.getElementById("toast"); if(!t) return;
   t.textContent=msg; t.classList.add("show");
@@ -1150,18 +1137,17 @@ var HL_BG = { yellow:"rgba(255,216,77,.45)", green:"rgba(155,227,155,.5)", blue:
 var HL_LABEL_DEFAULTS = { yellow:"I want to remember this", green:"I want to create from this", blue:"I want to use this later", pink:"I want to link this to something else" };
 function hlLabel(name){ return HL_LABEL_DEFAULTS[name] || (name+" highlights"); }
 var ICON_COMMENT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-var pendingNote=null;
 var PAGE = 25;
 var settings = loadSettings();
 var book=null, rendition=null, currentBook=null, currentData=null, highlights=[], lastSelection=null, noteContext=null;
 /* ---------------- READ ALOUD: chunks, sentence tracking, watchdog, bookmark ---------------- */
 var tts = { state:"idle", chunks:[], cidx:0, curSentIdx:-1, contents:null, voice:null, voices:[], token:0, lastChar:0, lastTickAt:0, watch:null, userScrollAt:0, cps:0, estTimer:null, chunkT0:0, boundarySeen:false };
-var lib = { q:"", sort:"opened", dir:"desc", page:0, fav:false, tag:"", mode:"books" };
+var lib = { q:"", sort:"opened", dir:"desc", page:0, fav:false, tag:"" };
 var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.56";  // 1.0.56: "Send to margins" in the selection menu (the notebook icon): the selected text goes into the book's margins as a full quote with a location link back to its paragraph, and no highlight is made. The Margins button under a highlight now carries the highlight's comment into the margins too (it was dropped). Copy location now links the selected paragraph even when it is not in the first rendered section. 1.0.55: security pass. The three libraries (JSZip, epub.js, MiniSearch) now load from lib/ in this repository instead of a public CDN, and a Content-Security-Policy lets the browser run only this site's scripts and the hashed inline blocks (tools/csp.py keeps the hashes current). Fixed two stored script-injection paths a crafted folder file, backup or hand-off could use: bare-URL auto-links in margin notes could split open an image or link attribute, and book ids were written into markup unescaped. Restored settings are copied key by key with types and ranges checked; star ratings are clamped; a setup link now names its relay host; the video player listens only to YouTube's exact origins. 1.0.54: standalone page for GitHub Pages (full page header, mobile viewport, title, icons); closed drawers parked fully off-screen so their shadow no longer shows at the page edge; the as-you-type search bound written as an escape so copying the file can no longer break it. 1.0.53: "Remove from this device" on a book page (browser-only devices): frees the EPUB bytes and its search index while the record, cover, marks, margins and position stay and keep syncing; the card dims until the EPUB is added again, and the page button becomes "Add the EPUB to read". With sync on, Delete is labelled "Delete everywhere" and its confirm says so. 1.0.52: sync between devices. Optional bring-your-own relay (a Cloudflare Worker + KV the user owns): each device writes one encrypted slot (AES-GCM, key from a passphrase that never leaves the device) and reads the others, then merges through the same machinery as hand-off (mergeHighlights/mergeMeta + tombstones), so marks, comments, margins, progress, tags and deletions converge without manual hand-off. Books (EPUB bytes) do not travel. Setup link (#bcsync=) pre-fills address and token on a second device. 1.0.51: identity hardening. A content signature (m.sig = byte length + sampled hash) is stored at import/refresh and used ONLY as a negative guard: two records that are provably different files are never merged or collapsed, even when they share a loose title|author key. bookKey, note filenames and folder filenames are UNCHANGED (no migration). Fixes the silent cross-wire where two same-title no-ISBN editions could fold one book's highlights onto another. 1.0.50: deletions now propagate across devices. Highlight/comment delete is a soft-delete tombstone (deleted:true + fresh updated) that rides through merge and sync untouched and is filtered from every view/count/search/export, so a deleted mark no longer resurrects on the next merge. Tags get a tagsUpdated timestamp so a tag removal wins by recency instead of being unioned back (legacy records keep the additive union). 1.0.49: audit hardening \u2014 (H3) Delete now clears the disk search index too, so a deleted book no longer answers inside-books search; (H1) closeBook cancels the pending rebind save and saveRebinds is owner-guarded, so a quick open-then-back can no longer wipe a book's marks; (M2) an empty videoId can no longer overwrite a captured one (mergeMeta truthy guard + refresh writes videoId only on a successful extraction); (H4) a folder pull now refreshes the open book's in-memory marks so the next edit cannot drop what the pull merged in. 1.0.48: non-video Source line is now a resolving Obsidian wikilink (book note + author), using the file|display pattern + mdNoteName sanitizer so titles with | # : never break the link. 1.0.47: source captured only where bytes enter the app \u2014 both add paths and Refresh EPUB from folder; no work on plain open; mergeMeta carries source through re-import. 1.0.46: notes name their source \u2014 normal books get a "Source: title - author" line; transcript (YouTube) books embed the video in the markdown so it plays in Obsidian. Source captured at import and backfilled on open. 1.0.45: connect preview — picking a folder now scans it read-only and confirms before the two-way merge (shows book/notes counts, how many match your library, sample titles, and a merge warning), so a wrong folder is caught instead of silently merged. 1.0.44: removed Trails. FT_DISK=false reverts to the 1.0.34 in-memory path
+var BC_VERSION="1.0.57";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -1182,11 +1168,6 @@ async function ensureVaultWritable(allowPrompt){
     if(allowPrompt && (await vault.handle.requestPermission(opts))==="granted"){ vault.connected=true; vault.needsReauth=false; _syncPausedToasted=false; updateVaultUI(); return true; }
   }catch(e){}
   vault.connected=false; vault.needsReauth=true; updateVaultUI(); markSyncPaused(); return false;
-}
-var _metaPushTimers={};
-function vaultPushMetaSoon(id){
-  if(!vault.handle || _metaPushTimers[id]) return;
-  _metaPushTimers[id]=setTimeout(function(){ delete _metaPushTimers[id]; vaultPushBook(id,false); scheduleNotesSnapshot(); }, 4000);
 }
 var hlFilter = "all";   // one active facet: all | yellow|green|blue|pink | notes | fav (matches the homepage marks filter)
 var detailsBook=null, detailsItems=[];
@@ -1226,21 +1207,18 @@ function cleanSettings(base, src){
 function saveSettings(){ localStorage.setItem("reader-settings", JSON.stringify(settings)); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 
-/* ---------- Book identity, dedup and tombstones ----------
-   Books used to be identified only by a random per-import id, so the same
-   file imported on another browser became a second record, and deletes did
-   not cross devices. bookKey gives a content-stable identity; tombstones make
-   deletes converge so removed books are not pulled or restored back. */
-function normStr(s){ return (s||"").toString().toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
 /* ============================================================
    BOOK IDENTITY & DEDUP
-   A stable key per book so the same title is never stored twice.
+   A book's id is a random per-import uid, so the same file imported on
+   another browser gets a different id. bookKey is the content-stable
+   identity (the EPUB's dc:identifier, else title+author), so the same
+   book is never stored twice; tombstones (below) make deletes converge.
    ============================================================ */
+function normStr(s){ return (s||"").toString().toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
 function looseTitleKey(m){ return "ta:"+normStr(m&&m.title)+"|"+normStr(m&&(m.author||"")); }
 function bookKeyOf(m){ if(!m) return ""; return m.bookKey ? m.bookKey : looseTitleKey(m); }
 // A dataless record "looks like" a real one when authors agree (or one is
 // missing) and one title is the start of the other (handles subtitle drift).
-// Two metas are the same book when their stable keys match (or, legacy, title+author).
 function looksSameBook(a,b){
   if(!a||!b) return false;
   var aa=normStr(a.author), ba=normStr(b.author);
@@ -1249,9 +1227,8 @@ function looksSameBook(a,b){
   if(!at||!bt) return false;
   return at===bt || at.indexOf(bt)===0 || bt.indexOf(at)===0;
 }
-// Read the EPUB's own dc:identifier so the same file resolves to one key on
-// every browser. Falls back to title+author when no identifier is present.
-// Derive a stable identity from EPUB metadata (identifier, else title+author) so re-imports dedupe.
+// Key for an existing record that has none yet: the EPUB's own dc:identifier, so the same
+// file resolves to one key on every browser, else the record's title+author.
 function computeBookKey(meta, buf){
   try{
     var epb=ePub(buf.slice(0));
@@ -1262,9 +1239,8 @@ function computeBookKey(meta, buf){
     }, function(){ try{ epb.destroy(); }catch(e){} return looseTitleKey(meta); });
   }catch(e){ return Promise.resolve(looseTitleKey(meta)); }
 }
-// Content identity read straight from an EPUB's bytes: its own dc:identifier when it
-// has one (stable on every device), else title+author. This is the SAME key the import
-// path assigns, so a file recognised here matches the record import would have made.
+// Content signature: byte length plus a sampled FNV-1a hash. Used only as a negative guard
+// (bcSigConflict): two records whose signatures differ are provably different files.
 function bcContentSig(buf){
   try{
     var b=(buf && buf.byteLength!=null) ? new Uint8Array(buf) : null;
@@ -1278,6 +1254,9 @@ function bcContentSig(buf){
   }catch(e){ return ""; }
 }
 function bcSigConflict(a,b){ var sa=a&&a.sig, sb=b&&b.sig; return !!(sa && sb && sa!==sb); }   // true only when the bytes PROVE two records are different files
+// Content identity read straight from an EPUB's bytes: its own dc:identifier when it
+// has one (stable on every device), else title+author. This is the SAME key the import
+// path assigns, so a file recognised here matches the record import would have made.
 function readEpubKey(buf){
   try{
     var epb=ePub(buf.slice(0));
@@ -1295,28 +1274,58 @@ var TOMB_KEY="tombstones";
    Remember deletes so a sync never resurrects a removed book.
    ============================================================ */
 function loadTombstones(){ return DB.get("app", TOMB_KEY).then(function(r){ return (r&&r.val) || {ids:{},keys:{}}; }).catch(function(){ return {ids:{},keys:{}}; }); }
-function saveTombstones(t){ t.ids=t.ids||{}; t.keys=t.keys||{}; return DB.put("app", {key:TOMB_KEY, val:t}); }
 function isTombstoned(t, id, key){ if(!t) return false; return !!((id && t.ids && t.ids[id]) || (key && t.keys && t.keys[key])); }
+/* Every change to the tombstone record goes through this one queue. Two writers working from
+   the same snapshot would otherwise each save their own copy, and the later save would drop
+   the earlier one's change: a restore that un-deletes several books at once kept only one,
+   and a sync landing while you deleted a book could forget the delete. fn(t) edits t in place
+   and returns true when it changed something; resolves to {tomb, changed}. */
+var _tombQ=Promise.resolve();
+function mutateTombstones(fn){
+  var run=_tombQ.then(function(){
+    return loadTombstones().then(function(t){
+      t.ids=t.ids||{}; t.keys=t.keys||{};
+      return Promise.resolve(fn(t)).then(function(changed){
+        if(!changed) return { tomb:t, changed:false };
+        return DB.put("app", {key:TOMB_KEY, val:t}).then(function(){ return { tomb:t, changed:true }; });
+      });
+    });
+  });
+  _tombQ=run.then(function(){}, function(){});
+  return run;
+}
+// Merge another copy's tombstones into t (newest stamp of each wins). True when t changed.
+function foldTombstones(t, src){
+  var changed=false;
+  ["ids","keys"].forEach(function(g){ var from=(src&&src[g])||{}; Object.keys(from).forEach(function(k){ var v=+from[k]||0; if(v>(t[g][k]||0)){ t[g][k]=v; changed=true; } }); });
+  return changed;
+}
+function tombPushIfChanged(r){ if(r.changed && vault.handle){ try{ vaultPushTombstones(); }catch(e){} } return r.tomb; }
 // Record a delete by id AND by book-key, so a later sync or import cannot bring it back.
 function addTombstone(id, key){
-  return loadTombstones().then(function(t){
-    var now=Date.now(); if(id) t.ids[id]=now; if(key) t.keys[key]=now;
-    return saveTombstones(t).then(function(){ if(vault.handle) try{ vaultPushTombstones(); }catch(e){} return t; });
-  });
+  return mutateTombstones(function(t){ var now=Date.now(); if(id) t.ids[id]=now; if(key) t.keys[key]=now; return !!(id||key); }).then(tombPushIfChanged);
 }
-function clearTombstone(id, key){
-  return loadTombstones().then(function(t){
-    if(id && t.ids) delete t.ids[id]; if(key && t.keys) delete t.keys[key];
-    return saveTombstones(t).then(function(){ if(vault.handle) try{ vaultPushTombstones(); }catch(e){} });
-  });
+function clearTombstone(id, key){ return clearTombstones([[id, key]]); }
+// Un-delete many books in one write (an explicit restore clears every book it carries).
+function clearTombstones(pairs){
+  return mutateTombstones(function(t){
+    var changed=false;
+    (pairs||[]).forEach(function(pr){
+      var id=pr&&pr[0], key=pr&&pr[1];
+      if(id && t.ids[id]){ delete t.ids[id]; changed=true; }
+      if(key && t.keys[key]){ delete t.keys[key]; changed=true; }
+    });
+    return changed;
+  }).then(tombPushIfChanged);
 }
-// Import path that merges into an existing copy instead of minting a duplicate.
+// Of the books already here, the live one an incoming record is the same book as, or null.
 function findLiveBookFor(metas, m, tomb){
   var key=bookKeyOf(m), loose=(key.indexOf("ta:")===0), i, e;
   for(i=0;i<metas.length;i++){ e=metas[i]; if(isTombstoned(tomb, e.id, bookKeyOf(e))) continue; if(bookKeyOf(e)===key && (!loose || !bcSigConflict(e, m))) return e; }   // an ISBN/uuid key is authoritative; a loose title|author key only matches when the bytes don't prove a different file
   for(i=0;i<metas.length;i++){ e=metas[i]; if(isTombstoned(tomb, e.id, bookKeyOf(e))) continue; if(looksSameBook(e, m) && !bcSigConflict(e, m)) return e; }
   return null;
 }
+// Import path that merges into an existing copy instead of minting a duplicate.
 function upsertImportedBook(m, buf){
   return Promise.all([DB.all("meta"), loadTombstones()]).then(function(r){
     var metas=r[0]||[], tomb=r[1];
@@ -1344,18 +1353,6 @@ function upsertImportedBook(m, buf){
       return DB.put("meta", m).then(function(){ return DB.put("blob", {id:m.id, data:buf}); }).then(function(){ return DB.put("highlights", {id:m.id, items:[]}); }).then(function(){ return m.id; });
     });
   });
-}
-function dbgLog(location, message, data, hypothesisId){
-  // #region agent log
-  /* debug telemetry disabled for production: this used to POST to a localhost dev endpoint on load, which triggered Chrome's "access other apps and services on this device" prompt for first-time visitors */
-  // #endregion
-}
-function dbSnapshot(label){
-  return Promise.all([DB.count("meta"), DB.count("blob"), DB.keys("meta"), loadTombstones()]).then(function(r){
-    var snap={ label:label, metaCount:r[0]||0, blobCount:r[1]||0, metaIds:(r[2]||[]).slice(0,5), tombIdCount:Object.keys((r[3]&&r[3].ids)||{}).length, origin:location.origin, href:location.href.split("#")[0] };
-    dbgLog("reader.html:dbSnapshot", label, snap, "boot");
-    return snap;
-  }).catch(function(e){ dbgLog("reader.html:dbSnapshot", label+" failed", {err:String(e)}, "boot"); return null; });
 }
 /* ============================================================
    HTML / RENDER HELPERS
@@ -1504,10 +1501,9 @@ var Combobox=(function(){
 
   function choose(n){
     if(!active) return;
-    var cfg=active.cfg, input=active.input, o=items[n];
+    var cfg=active.cfg, o=items[n];
     if(!o) return;
-    if(o._create){ if(cfg.onPick) cfg.onPick(o.value, o); }
-    else if(cfg.onPick) cfg.onPick(o.value, o);
+    if(cfg.onPick) cfg.onPick(o.value, o);   // a "+ Add" row and a listed row both hand their value to onPick
     close();
   }
 
@@ -1601,12 +1597,15 @@ function bcToggleFav(id, btnEl){
     if(btnEl){ btnEl.classList.toggle("fav-on", !!b.fav); btnEl.title=b.fav?"Favorited (searchable inside)":"Favorite (also keeps it searchable inside)"; }
     if(typeof detailsBook!=="undefined" && detailsBook && detailsBook.id===id){ detailsBook.fav=b.fav; detailsBook.indexPin=b.indexPin; var _df=$("#det-fav"); if(_df){ _df.classList.toggle("fav-on", !!b.fav); } }
     saveProgress(b, {immediate:true});
-    if(b.fav){ toast("Favorited \u00b7 indexing\u2026"); indexBook(id, {force:true}).then(function(){ try{ enforceFulltextCache(); markSearchIndexDirty(); }catch(e){} toast("Favorited \u00b7 searchable inside"); }, function(){ toast("Favorited (index will retry)"); }); }
+    if(b.fav){ toast("Favorited \u00b7 indexing\u2026"); indexBook(id, {force:true}).then(function(){ try{ enforceFulltextCache(); }catch(e){} toast("Favorited \u00b7 searchable inside"); }, function(){ toast("Favorited (index will retry)"); }); }
     else { toast("Removed from favorites"); try{ enforceFulltextCache(); }catch(e){} }
   }).catch(function(){});
 }
 function wireCardFavs(root){ if(!root) return; [].forEach.call(root.querySelectorAll(".card-fav"), function(el){ el.onclick=function(e){ e.stopPropagation(); e.preventDefault(); bcToggleFav(el.dataset.fav, el); }; }); }
-function coverHtml(b, cls){ var _cu=safeCoverUrl(b&&b.cover); return _cu ? '<img src="'+_cu+'" alt="">' : '<div class="ph" data-cover="'+escapeHtml((b&&b.id)||"")+'">'+escapeHtml((b&&b.title)||"Untitled")+'</div>'; }
+/* Markup with a fetchable URL is written "\x3cimg" inside this script, never with a bare "<".
+   Chromium's look-ahead preloader sometimes reads a long inline script as page markup and would
+   otherwise fetch the URL half of a JS string ("'+_cu+'") as a real image on page load. */
+function coverHtml(b, cls){ var _cu=safeCoverUrl(b&&b.cover); return _cu ? '\x3cimg src="'+_cu+'" alt="">' : '<div class="ph" data-cover="'+escapeHtml((b&&b.id)||"")+'">'+escapeHtml((b&&b.title)||"Untitled")+'</div>'; }
 /* Covers live under cover:<id> in the app store, written at import time, so reading metadata
    never drags every image. coverHtml paints a title placeholder immediately; hydrateCovers
    fills each visible one, self-healing from the EPUB when a cover is missing (e.g. after a
@@ -1635,20 +1634,14 @@ function hydrateCovers(root){
     });
   }catch(e){}
 }
-// (1.0) Covers are written straight to the app store at import (see importEpubBuffer /
-// importFiles), so the old boot-time "move inline covers out of meta" pass is gone.
-
 /* ---------- screen switching ---------- */
 function show(id){ ["home","library","search","reader","details"].forEach(function(s){ $("#"+s).classList.toggle("hidden", s!==id); }); }
 
 /* ============================================================
-   Optional folder vault (File System Access API)
-   Default storage stays IndexedDB. When a folder is connected the app
-   mirrors books + highlights (as Markdown) into files the user owns.
-   ============================================================ */
-/* ============================================================
    FOLDER SYNC (File System Access API)
-   The durable local mirror: books, notes, backups written to a chosen folder.
+   Optional. Default storage stays IndexedDB. When a folder is connected
+   the app mirrors books, notes (as Markdown) and backups into files the
+   user owns: the durable local mirror.
    ============================================================ */
 function fsaSupported(){ return typeof window.showDirectoryPicker === "function"; }
 // ---- content-stable vault filename tag ----
@@ -1663,8 +1656,8 @@ function vaultPathName(m){ return safeName(m.title)+"-"+bookTag(m); }
 async function writeFileInDir(dir, name, contents){
   var fh = await dir.getFileHandle(name, {create:true});
   var w = await fh.createWritable();
-  await w.write(contents);
-  await w.close();
+  try{ await w.write(contents); await w.close(); }
+  catch(e){ try{ await w.abort(); }catch(_e){} throw e; }   // a failed write leaves the old file intact and releases its lock
 }
 async function vaultDirs(){
   var books = await vault.handle.getDirectoryHandle("books", {create:true});
@@ -1735,7 +1728,7 @@ async function reconnectVault(){
       // Chromium drops directory permission to "prompt" on reload. queryPermission tells us
       // the truth without a gesture; if it lapsed we hold the handle and offer Reconnect.
       var st = await rec.handle.queryPermission({mode:"readwrite"});
-      if(st==="granted"){ vault.connected=true; vault.needsReauth=false; updateVaultUI(); await vaultPushAll(); await vaultPull(); dbgLog("reader.html:reconnectVault", "reconnected push+pull", {vault:true}, "vault"); renderHome(); }
+      if(st==="granted"){ vault.connected=true; vault.needsReauth=false; updateVaultUI(); await vaultPushAll(); await vaultPull(); }
       else { vault.connected=false; vault.needsReauth=true; updateVaultUI(); }
     }
   }catch(e){}
@@ -1777,17 +1770,16 @@ function buildHandoffBundle(sinceTs){
 /* Count marks touched since the last hand-off and say so on the button,
    so the phone itself tells you when there is something worth sending. */
 function updateHandoffBtn(){
-  var setBtn=$("#handoff-btn"), homeBtn=$("#home-handoff"), homeCount=$("#home-handoff-count");
+  var homeBtn=$("#home-handoff"), homeCount=$("#home-handoff-count");
+  if(!homeBtn) return;
   // Handoff is only relevant when the folder is not auto-syncing (phone / browser-only device).
   var showHome = !(typeof vault!=="undefined" && vault && vault.connected) && !(typeof cloudOn==="function" && cloudOn());
-  if(homeBtn) homeBtn.style.display = showHome ? "" : "none";
-  if(!setBtn && !homeBtn) return;
+  homeBtn.style.display = showHome ? "" : "none";
   var since=0; try{ since=+(localStorage.getItem("handoff-at")||0); }catch(e){}
   DB.all("highlights").then(function(rows){
     var n=0;
     (rows||[]).forEach(function(r){ (r.items||[]).forEach(function(h){ if(((h.updated||h.created)||0)>since) n++; }); });
-    if(setBtn) setBtn.textContent = n ? ("Hand off \u00b7 "+n+" new mark"+(n===1?"":"s")) : "Hand off marks (.json)";
-    if(homeBtn) homeBtn.title = n ? ("Hand off "+n+" new mark"+(n===1?"":"s")+" to another device") : "Hand off your marks to another device";
+    homeBtn.title = n ? ("Hand off "+n+" new mark"+(n===1?"":"s")+" to another device") : "Hand off your marks to another device";
     if(homeCount) homeCount.textContent = (showHome && n>0) ? (n>99?"99+":String(n)) : "";
   }).catch(function(){});
 }
@@ -1809,10 +1801,6 @@ function handoffExport(){
     downloadBlob(out,"application/json",name); done();
   });
 }
-/* Consume hand-off bundles left in the folder (root or .reader), merge by id, delete the file. */
-/* Import an EPUB from raw bytes. Mirrors the file-import pipeline: parse metadata,
-   extract cover, dedupe by bookKey via upsertImportedBook. Returns the kept id,
-   or null if unreadable or the book was deliberately deleted (tombstoned). */
 /* Pull the video id and source URL out of an EPUB so notes can name their source.
    Transcript books (built by the Backchat transcript-to-EPUB tool) carry the YouTube id
    in the OPF (backchat:media / dc:source). A normal book has neither, so this resolves to
@@ -1841,6 +1829,9 @@ function bcExtractMediaSource(buf){
     });
   }).catch(function(){ return {videoId:"", sourceUrl:""}; });
 }
+/* Import an EPUB from raw bytes. Mirrors the file-import pipeline: parse metadata,
+   extract cover, dedupe by bookKey via upsertImportedBook. Returns the kept id,
+   or null if unreadable or the book was deliberately deleted (tombstoned). */
 function importEpubBuffer(buf, fallbackName, tomb){
   return epubSafetyReject(buf).then(function(_reason){
   if(_reason){ toast("Skipped a book: "+_reason); return null; }
@@ -1855,17 +1846,12 @@ function importEpubBuffer(buf, fallbackName, tomb){
       return bcExtractMediaSource(buf).then(function(ms){
         m.videoId = ms.videoId || ""; if(ms.sourceUrl) m.sourceUrl = ms.sourceUrl;   // capture the source at import so notes can name it
         return upsertImportedBook(m, buf);
-      }).then(function(keptId){ if(cover) putCover(keptId, cover); try{ indexBook(keptId); markCorpusDirty(); markSearchIndexDirty(); }catch(e){} return keptId; });
+      }).then(function(keptId){ if(cover) putCover(keptId, cover); indexBook(keptId).catch(function(e){ console.warn("index on import", e); }); markCorpusDirty(); return keptId; });
     });
   }).then(function(r){ try{ tmp.destroy(); }catch(e){} return r; })
    .catch(function(err){ console.warn("importEpubBuffer", err); try{ tmp.destroy(); }catch(e){} return null; });
   });
 }
-/* The folder IS the library: any EPUB found in books/ that we do not recognise is
-   imported. Recognised means its filename carries the id suffix of a book we hold.
-   After import the file is renamed to the canonical name (copy first, delete only
-   once the copy verifiably exists), so the next sync sees a known file. A book you
-   deleted stays deleted: its key is tombstoned and the scan skips it. */
 /* Keep a book's note file to exactly one, correctly named copy. When a title is renamed the
    note keeps the book's unique content tag but takes the new title, so any note carrying this
    book's tag under a different name is collapsed onto the current name (books already do this;
@@ -1873,7 +1859,7 @@ function importEpubBuffer(buf, fallbackName, tomb){
    an unlikely shared tag cannot cross-wire two books. Idempotent: once every note is correctly
    named it does nothing. */
 async function vaultHealNotes(dirs){
-  var moved=0, removed=0;
+  var removed=0;
   try{
     var metas=await DB.all("meta")||[];
     var liveNames={}, tagCount={};
@@ -1889,7 +1875,7 @@ async function vaultHealNotes(dirs){
       try{
         var oh=await dirs.hl.getFileHandle(nm);
         var haveCorrect=false; try{ await dirs.hl.getFileHandle(correct); haveCorrect=true; }catch(_e){}
-        if(!haveCorrect){ var txt=await (await oh.getFile()).text(); await writeFileInDir(dirs.hl, correct, txt); moved++; }
+        if(!haveCorrect){ var txt=await (await oh.getFile()).text(); await writeFileInDir(dirs.hl, correct, txt); }
         await dirs.hl.removeEntry(nm); removed++;
       }catch(_e){}
     }
@@ -1908,6 +1894,12 @@ async function vaultHealNotes(dirs){
   }catch(e){ console.warn("heal notes", e); }
   return removed;
 }
+/* The folder IS the library: any EPUB found in books/ that we do not recognise is
+   imported. Recognised means its filename is a book's canonical name, or failing that
+   its content key matches a book we hold. After import the file is renamed to the
+   canonical name (copy first, delete only once the copy verifiably exists), so the next
+   sync sees a known file. A book you deleted stays deleted: its key is tombstoned and
+   the scan skips it. */
 async function vaultScanNewEpubs(dirs, tomb){
   var imported=0;
   try{
@@ -1962,7 +1954,7 @@ async function vaultScanNewEpubs(dirs, tomb){
         imported++;
         var m2=await DB.get("meta", keptId);
         var canon=vaultPathName(m2)+".epub";
-        if(canon!==name){
+        if(canon.toLowerCase()!==name.toLowerCase()){   // case-only differences are the same file on macOS and Windows: removing "the original" would delete the only copy
           var canonOk=false;
           try{ await dirs.books.getFileHandle(canon); canonOk=true; }
           catch(e){ try{ await writeFileInDir(dirs.books, canon, buf); canonOk=true; }catch(e2){} }
@@ -2009,7 +2001,7 @@ async function vaultConsumeHandoffs(dirs, tomb){
           if(!existing) added++;
           if(vault.connected) vaultPushBook(tid);
         }
-        try{ markCorpusDirty(); markSearchIndexDirty(); }catch(e2){}
+        markCorpusDirty();
         try{ await dir.removeEntry(names[n]); }catch(e2){}
         toast("Merged hand-off: "+names[n]);
       }catch(e3){ console.warn("handoff", e3); }
@@ -2151,7 +2143,7 @@ async function mergeConflictCopies(dirs){
         }
       }catch(e){}
     }
-    if(merged){ try{ markCorpusDirty(); markSearchIndexDirty(); }catch(e){} }
+    if(merged) markCorpusDirty();
     return merged;
   }catch(e){ console.warn("auto merge conflicts", e); return 0; }
 }
@@ -2163,7 +2155,7 @@ async function vaultPushBook(id, allowPrompt){
     var hr = await DB.get("highlights", id); var items = (hr && hr.items) || [];
     var dirs = await vaultDirs();
     var base = vaultPathName(m);
-    var _rm = await DB.all("meta").catch(function(){ return []; });
+    var _rm = await (window.bcMetaCache ? bcMetaCache() : DB.all("meta")).catch(function(){ return []; });   // the live cache: a full push no longer re-reads the whole library once per book
     var _byKey={}, _byTitle={};
     (_rm||[]).forEach(function(x){ var k=(bookKeyOf(x)||"").toLowerCase(); if(k) _byKey[k]=x; var tl=(x.title||"").toLowerCase(); if(tl && !_byTitle[tl]) _byTitle[tl]=x; });
     var _linkCtx={ currentKey: bookKeyOf(m),
@@ -2206,9 +2198,8 @@ async function vaultPushEpub(id){
     await writeFileInDir(dirs.books, name, bl.data);
   }catch(e){ console.warn("vault push epub", e); }
 }
-/* ---------------- FOLDER SYNC: PUSH ALL - probe folder once, then every book ---------------- */
-/* A front door for the vault: one note listing every book and trail as a resolvable link, so
-   the folder opens as a navigable commonplace book even with Backchat gone. Rewritten each sync. */
+/* A front door for the vault: one note listing every book as a resolvable link, so the
+   folder opens as a navigable commonplace book even with Backchat gone. Rewritten each sync. */
 async function vaultWriteIndex(dirs, metas){
   try{
     metas = metas || await DB.all("meta");
@@ -2220,6 +2211,7 @@ async function vaultWriteIndex(dirs, metas){
     await writeFileInDir(dirs.hl, "Backchat Library.md", lines.join("\n"));
   }catch(e){ console.warn("index note", e); }
 }
+/* ---------------- FOLDER SYNC: PUSH ALL - probe folder once, then every book ---------------- */
 async function vaultPushAll(){
   if(!vault.connected) return;
   vault.busy = true; updateVaultUI();
@@ -2238,9 +2230,10 @@ async function vaultPushAll(){
   if(vault.connected) stampSync();
   updateVaultUI();
 }
-/* Read the chosen folder back in: import books not present here, and merge the notes for
-   each book by id. The folder is a peer, never authoritative - we only add and merge. */
-/* ---------------- FOLDER SYNC: PULL - merge records, fetch epubs, consume hand-offs ---------------- */
+/* ---------------- FOLDER SYNC: PULL - merge records, fetch epubs, consume hand-offs ----------------
+   Read the chosen folder back in: import books not present here, and merge the notes for
+   each book by id. The folder is a peer, never authoritative: we add and merge, and remove
+   only what a tombstone says was deleted on purpose. */
 async function vaultPull(){
   if(!vault.connected || !vault.handle) return;
   try{
@@ -2259,10 +2252,8 @@ async function vaultPull(){
         if(isTombstoned(tomb, rec.meta.id, bookKeyOf(rec.meta))){
           try{ await dirs.data.removeEntry(entry.name); }catch(e){}
           try{ await vaultRemoveBook(rec.meta); }catch(e){}
-          if(await DB.get("meta", rec.meta.id)){
-            dbgLog("reader.html:vaultPull", "tombstone delete", {id:rec.meta.id, title:rec.meta.title}, "vault");
-            try{ await DB.del("meta",rec.meta.id); await DB.del("blob",rec.meta.id); await DB.del("highlights",rec.meta.id); await DB.del("fulltext",rec.meta.id); await delCover(rec.meta.id); }catch(e){}
-          }
+          var _gone=await DB.get("meta", rec.meta.id);
+          if(_gone){ try{ await removeBookEverywhere(_gone); }catch(e){} }   // every store, the disk search index included, as a delete made here does
           continue;
         }
         var existing = await DB.get("meta", rec.meta.id);
@@ -2317,8 +2308,9 @@ async function vaultPull(){
     if(noEpub){ toast(noEpub+" book"+(noEpub===1?" has":"s have")+" notes here but no EPUB in the folder's books directory"); }
     if(vault.connected) stampSync();
     maybeAutoBackup();
-    renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary();
   }catch(e){ console.warn("vault pull", e); }
+  // Repaint the shelf after every pull, failed or not, so a connect never looks empty.
+  try{ renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); }catch(e){}
 }
 async function vaultWriteOutput(subdir, name, contents){
   var dir = await vault.handle.getDirectoryHandle(subdir, {create:true});
@@ -2394,9 +2386,7 @@ async function vaultPullTombstones(){
     var dirs = await vaultDirs(), fh;
     try{ fh = await dirs.data.getFileHandle("_tombstones.json"); }catch(e){ return; }
     var remote = JSON.parse(await (await fh.getFile()).text()); if(!remote) return;
-    var local = await loadTombstones();
-    ["ids","keys"].forEach(function(g){ remote[g]=remote[g]||{}; local[g]=local[g]||{}; Object.keys(remote[g]).forEach(function(k){ local[g][k]=Math.max(local[g][k]||0, remote[g][k]||0); }); });
-    await saveTombstones(local);
+    await mutateTombstones(function(local){ return foldTombstones(local, remote); });
   }catch(e){ console.warn("vault pull tombstones", e); }
 }
 function updateVaultUI(){
@@ -2480,14 +2470,11 @@ function onSyncChipClick(){
 function vaultToggle(){ if(vault.connected) disconnectVault(); else if(vault.needsReauth) reauthVault(); else connectVault(); }
 
 /* ============================================================
-   Import
-   ============================================================ */
-/* ============================================================
    IMPORT EPUBs & COVER EXTRACTION
    Take dropped/picked .epub files into the library.
    ============================================================ */
 function importFiles(files){
-  var chain = Promise.resolve(), count=0;
+  var chain = Promise.resolve();
   files.forEach(function(file){
     chain = chain.then(function(){
       if(!/\.epub$/i.test(file.name)){ toast("Skipped non-epub: "+file.name); return; }
@@ -2503,7 +2490,7 @@ function importFiles(files){
             var m = { id:id, title:(md&&md.title)||file.name.replace(/\.epub$/i,""), author:(md&&(md.creator||md.author))||"", cover:null, addedAt:Date.now(), progress:0, lastCfi:null, lastOpened:null, readMs:0, tags:[], finished:false, year:(md&&md.pubdate?(""+md.pubdate).slice(0,4):""), publisher:(md&&md.publisher)||"" };
             m.bookKey = ident ? ("id:"+ident) : looseTitleKey(m);
             m.sig = bcContentSig(buf);
-            return bcExtractMediaSource(buf).then(function(ms){ m.videoId = ms.videoId || ""; if(ms.sourceUrl) m.sourceUrl = ms.sourceUrl; return upsertImportedBook(m, buf); }).then(function(keptId){ if(cover) putCover(keptId, cover); count++; indexBook(keptId); if(vault.handle){ vaultPushEpub(keptId).then(function(){ return vaultPushBook(keptId,false); }); } });
+            return bcExtractMediaSource(buf).then(function(ms){ m.videoId = ms.videoId || ""; if(ms.sourceUrl) m.sourceUrl = ms.sourceUrl; return upsertImportedBook(m, buf); }).then(function(keptId){ if(cover) putCover(keptId, cover); indexBook(keptId).catch(function(e){ console.warn("index on import", e); }); if(vault.handle){ vaultPushEpub(keptId).then(function(){ return vaultPushBook(keptId,false); }); } });
           });
         }).then(function(){ try{ tmp.destroy(); }catch(e){} })
           .catch(function(err){ console.error(err); toast("Could not read "+file.name); try{ tmp.destroy(); }catch(e){} });
@@ -2557,9 +2544,6 @@ function makeCoverThumb(src){
     img.src = src;
   });
 }
-
-/* (1.0.5) repairOversizedCovers removed: covers live in the app store as normalized
-   thumbnails, so there is no inline meta.cover left to repair. */
 
 /* ---------- Import safety: script neutralization + zip-bomb guard ---------- */
 /* EPUBs are zipped HTML. The content iframe is already sandboxed without
@@ -2619,15 +2603,14 @@ function extractCoverFromEpub(buf){
   }).catch(function(){ return null; });
 }
 
-/* ---------- Paste text as a document (wrapped into a minimal EPUB) ---------- */
 /* ============================================================
-   PASTE-TO-BOOK
-   Turn pasted Markdown text into a real, highlightable EPUB.
+   GUIDE EPUB BUILDER
+   The built-in guide is Markdown turned into a real, highlightable EPUB.
    ============================================================ */
 function escapeXml(s){ return (s||"").replace(/[&<>]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]; }); }
 function textToBodyHtml(text){
-  // Markdown to well-formed XHTML for the EPUB body. Inline marks reuse inlineMd so the paste
-  // box speaks the same dialect as the scratchpad and comments. Escape first, self-close voids.
+  // Markdown to well-formed XHTML for the EPUB body. Inline marks reuse inlineMd so the guide
+  // speaks the same dialect as the margins and comments. Escape first, self-close voids.
   var lines = (text||"").replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
   var out=[], para=[], i=0;
   function inl(s){ return inlineMd(escapeXml(s), true); }
@@ -2646,17 +2629,6 @@ function textToBodyHtml(text){
   }
   flushPara();
   return out.join("\n") || "<p></p>";
-}
-function buildEpubFromText(title, author, text){
-  var zip = new JSZip();
-  zip.file("mimetype", "application/epub+zip", {compression:"STORE"});
-  zip.file("META-INF/container.xml", '<?xml version="1.0"?>\n<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>');
-  var t = escapeXml(title||"Untitled");
-  zip.file("OEBPS/text.xhtml", '<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>'+t+'</title></head><body><h1>'+t+'</h1>'+textToBodyHtml(text)+'</body></html>');
-  zip.file("OEBPS/nav.xhtml", '<?xml version="1.0" encoding="utf-8"?>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Nav</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">'+t+'</a></li></ol></nav></body></html>');
-  var uuid = "urn:uuid:"+Date.now().toString(36)+Math.random().toString(36).slice(2);
-  zip.file("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">'+uuid+'</dc:identifier><dc:title>'+t+'</dc:title><dc:creator>'+escapeXml(author||"")+'</dc:creator><dc:language>en</dc:language></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="txt" href="text.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="txt"/></spine></package>');
-  return zip.generateAsync({type:"arraybuffer"});
 }
 var GUIDE_ICONS={
   save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
@@ -2695,30 +2667,6 @@ function buildEpubFromChapters(title, author, chapters){
   var uuid="urn:uuid:"+Date.now().toString(36)+Math.random().toString(36).slice(2);
   zip.file("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">'+uuid+'</dc:identifier><dc:title>'+t+'</dc:title><dc:creator>'+escapeXml(author||"")+'</dc:creator><dc:language>en</dc:language></metadata><manifest>'+manifest.join("")+'</manifest><spine>'+spine.join("")+'</spine></package>');
   return zip.generateAsync({type:"arraybuffer"});
-}
-/* Chapter-split any pasted markdown on its top-level headings (# or ##), so a long
-   article or transcript arrives with a real table of contents. Deeper headings stay
-   inside their chapter as in-page structure. Fence-aware, so a # inside a code block
-   never starts a chapter. Returns null when the text has no such headings, and the
-   caller falls back to the single-chapter build. */
-function splitTextChapters(md){
-  var lines=String(md||"").replace(/\r\n?/g,"\n").split("\n");
-  var chapters=[], cur=null, pre=[], inFence=false, found=false;
-  for(var i=0;i<lines.length;i++){
-    var ln=lines[i];
-    if(/^```/.test(ln.trim())) inFence=!inFence;
-    var m=!inFence && ln.match(/^(#{1,2})\s+(.*)$/);
-    if(m){
-      found=true;
-      if(cur) chapters.push(cur); else if(pre.join("").trim()) chapters.push({label:"Beginning", md:pre.join("\n").trim()});
-      cur={label:m[2].trim()||("Chapter "+(chapters.length+1)), md:[]};
-      continue;
-    }
-    if(cur) cur.md.push(ln); else pre.push(ln);
-  }
-  if(cur) chapters.push(cur);
-  if(!found || chapters.length<2) return null;
-  return chapters.map(function(c){ return {label:c.label, md:(Array.isArray(c.md)?c.md.join("\n"):c.md).trim()}; });
 }
 function splitGuideChapters(md){
   var lines=md.split("\n"), chapters=[], cur={label:"Welcome", md:[]};
@@ -2888,7 +2836,7 @@ function ensureGuideFresh(){
           .then(function(){ return DB.put("meta", m); })
           .then(function(){ return DB.put("highlights", {id:GUIDE_ID, items:items, updatedAt:t}); })
           .then(function(){
-            try{ indexBook(GUIDE_ID); markCorpusDirty(); markSearchIndexDirty(); }catch(e){}
+            indexBook(GUIDE_ID).catch(function(e){ console.warn("index guide", e); }); markCorpusDirty();
             if(vault.handle){ vaultPushEpub(GUIDE_ID).then(function(){ vaultPushBook(GUIDE_ID, false); }); }
             return m;
           });
@@ -2910,37 +2858,20 @@ function seedGuide(force){
         var marks=guideSeedMarks(t);
         return DB.put("meta", m).then(function(){ return DB.put("blob", {id:GUIDE_ID, data:buf}); })
           .then(function(){ return DB.put("highlights", {id:GUIDE_ID, items:marks, updatedAt:t}); })
-          .then(function(){ try{ indexBook(GUIDE_ID); markCorpusDirty(); markSearchIndexDirty(); }catch(e){} return m; });
+          .then(function(){ indexBook(GUIDE_ID).catch(function(e){ console.warn("index guide", e); }); markCorpusDirty(); return m; });
       });
     });
   });
 }
-function importPastedText(title, author, text){
-  if(!text || !text.trim()){ toast("Nothing to add"); return Promise.resolve(); }
-  title = (title||"").trim() || "Untitled draft";
-  var chs=splitTextChapters(text);
-  var bake = chs ? buildEpubFromChapters(title, author, chs) : buildEpubFromText(title, author, text);
-  return bake.then(function(buf){
-    var id = uid();
-    var m = { id:id, title:title, author:(author||"").trim(), cover:null, addedAt:Date.now(), progress:0, lastCfi:null, lastOpened:null, readMs:0, tags:["text"], finished:false, year:"", publisher:"", kind:"text", bookKey:"text:"+id };
-    return DB.put("meta", m).then(function(){ return DB.put("blob", {id:id, data:buf}); }).then(function(){ return DB.put("highlights", {id:id, items:[]}); }).then(function(){
-      indexBook(id);
-      if(vault.handle){ vaultPushEpub(id).then(function(){ return vaultPushBook(id,false); }); }
-      renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary();
-      toast("Added “"+title+"”");
-      return id;
-    });
-  }).catch(function(e){ console.error(e); toast("Could not add text"); });
-}
 
-/* ============================================================
-   Home
-   ============================================================ */
-var _homeRenderGen=0;
 /* ============================================================
    HOME & LIBRARY SCREENS
    The shelf, daily highlight, continue-reading, and grid.
+   Trails (composition "pages", kind:"page") were removed in 1.0.44. Any such
+   record left over stays dormant: Home, Library, search and reconcile skip it,
+   and its markdown stays safe in the folder.
    ============================================================ */
+var _homeRenderGen=0;
 /* Badge books whose pages are not on this device: notes are kept, the EPUB
    still needs importing. Runs after each render so it stays true everywhere. */
 function ghostBadge(){
@@ -2980,12 +2911,8 @@ function markGhostCards(){
 function renderHome(){
   var gen=++_homeRenderGen;
   return DB.all("meta").then(function(metas){
-    if(gen!==_homeRenderGen){
-      dbgLog("reader.html:renderHome", "stale skip", {gen:gen, current:_homeRenderGen}, "race");
-      return metas;
-    }
+    if(gen!==_homeRenderGen) return metas;   // a newer render is already on its way
     metas=metas||[];
-    dbgLog("reader.html:renderHome", "render", {count:metas.length, gen:gen, titles:metas.slice(0,3).map(function(m){ return m.title; })}, "boot");
     var byOpened = metas.filter(function(m){ return m.kind!=="page"; }).sort(function(a,b){ return (b.lastOpened||b.addedAt||0)-(a.lastOpened||a.addedAt||0); });
     // continue card = most recently opened that has a position, else most recent
     var cont = byOpened.filter(function(m){ return m.lastCfi; })[0] || byOpened[0];
@@ -2996,7 +2923,7 @@ function renderHome(){
       ch.querySelector(".cont").onclick=function(){ openBook(cont.id); };
     } else { ch.innerHTML=""; }
     // recent row
-    var recent = byOpened.slice(cont?0:0, 5);
+    var recent = byOpened.slice(0, 5);
     var rg=$("#home-recent");
     rg.innerHTML = recent.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
     [].forEach.call(rg.querySelectorAll(".card"), function(el){ el.onclick=function(){ openDetails(el.dataset.id); }; });
@@ -3004,18 +2931,6 @@ function renderHome(){
     wireCardFavs(rg);
     markGhostCards();
     $("#home-library-link").textContent = "Library ("+metas.filter(function(m){ return m.kind!=="page"; }).length+") →";
-    var drop=$("#drop");
-    if(drop){
-      if(metas.length){
-        drop.style.display="none";
-        drop.innerHTML='Drag <strong>.epub</strong> files here, or click &ldquo;Add EPUB&rdquo;.';
-      } else {
-        drop.style.display="";
-        if(localStorage.getItem("reader-device")){
-          drop.innerHTML='Drag <strong>.epub</strong> files here, or click &ldquo;Add EPUB&rdquo;.<div class="hint" style="margin-top:.75rem">Your library was here before but is empty now. Books are stored per browser <em>and</em> URL path &mdash; opening this file from a different folder or preview pane starts fresh. Use the same path each time, or serve via a local web server for stable storage.</div>';
-        }
-      }
-    }
     renderDailyHighlight(metas, gen);
     // Watermark "what awaits" empty state: shown only when the library is empty.
     var ee=$("#home-empty"), rh=$("#home-recent-head"), ct=$("#home-continue"), rr=$("#home-recent");
@@ -3024,7 +2939,6 @@ function renderHome(){
       if(rh) rh.style.display="none";
       if(ct) ct.style.display="none";
       if(rr) rr.style.display="none";
-      if(drop) drop.style.display="none";
     } else {
       if(ee) ee.style.display="none";
       if(rh) rh.style.display="";
@@ -3229,26 +3143,24 @@ function renderLibrary(){
 function scrollTop(){ window.scrollTo(0,0); }
 
 /* ============================================================
-   Search (titles/authors/tags + highlights/notes + full-text)
+   SEARCH
+   Across titles, authors, tags, highlights, notes, and (if indexed)
+   the text inside books.
    ============================================================ */
 var searchSeq=0;
-/* ============================================================
-   SEARCH
-   Across titles, notes, and (if indexed) the text inside books.
-   ============================================================ */
 function runSearch(q, box){
   var mySeq=++searchSeq;
   box = box || $("#search-results");
   q=(q||"").trim();
   if(!q){ box.innerHTML='<div class="searching">Type to search titles, highlights, notes, and inside books.</div>'; return; }
-  var ql=q.toLowerCase(); searchQuery=q;
+  searchQuery=q;
   Promise.all([(window.bcMetaCache||function(){return DB.all("meta");})(), (window.bcHlCache||function(){return DB.all("highlights");})()]).then(function(res){
     if(mySeq!==searchSeq) return;
     var metas=res[0]||[], hls=res[1]||[]; var mmap={}; metas.forEach(function(m){ mmap[m.id]=m; });
     var qTerms=tokenizeQuery(q);
     var parsed=parseSearch(q);
     var rankMap=buildRankMap(metas, hls);
-    var books=metas.filter(function(m){ return matchesParsed((m.title+" "+(m.author||"")+" "+((m.tags||[]).join(" "))), parsed); });
+    var books=metas.filter(function(m){ return m.kind!=="page" && matchesParsed((m.title+" "+(m.author||"")+" "+((m.tags||[]).join(" "))), parsed); });
     books.sort(function(a,b){ return (rankMap[b.id]||1)-(rankMap[a.id]||1); });
     var hlM=[], noteM=[];
     hls.forEach(function(rec){ hlLive(rec.items).forEach(function(h){
@@ -3259,14 +3171,14 @@ function runSearch(q, box){
     html += group("Books", books.map(function(b){ return resBtn("bk", b.id, "", escapeHtml(b.title), escapeHtml(b.author||"")); }));
     html += group("Highlights", hlM.slice(0,50).map(function(x){ return resBtn("hl", x.bookId, x.h.cfiRange, hiTerms(x.h.text,qTerms), (mmap[x.bookId]?escapeHtml(mmap[x.bookId].title):""), x.h.id); }));
     html += group("Notes", noteM.slice(0,50).map(function(x){ return resBtn("hl", x.bookId, x.h.cfiRange, hiTerms(commentPlain(x.h.note),qTerms), (mmap[x.bookId]?escapeHtml(mmap[x.bookId].title):"")+" · highlight", x.h.id); }));
-    html += '<div id="ft-group"><div class="searching">'+(((msBuilding||msDirty)&&indexedCount)?'Building search across your books, one moment…':'Searching inside books…')+'</div></div>';
+    html += '<div id="ft-group"><div class="searching">Searching inside books…</div></div>';
     box.innerHTML = html || '<div class="searching">No matches.</div>';
     wireResults(box, mmap);
     // full-text (cursor, async)
     searchFullText(q, 60, rankMap, parsed, function(){ return mySeq!==searchSeq; }).then(function(ft){
       if(mySeq!==searchSeq) return;
       var g=box.querySelector("#ft-group"); if(!g) return;
-      if(!ft.length){ g.innerHTML='<div class="res-group"><h3>Inside books</h3><div class="searching">No in-text matches'+ (indexedCount===0?' (index not built yet, Settings then Build full-text index)':'') +'.</div></div>'; return; }
+      if(!ft.length){ g.innerHTML='<div class="res-group"><h3>Inside books</h3><div class="searching">No in-text matches'+ (indexedCount===0?' (no books indexed yet: open a book, or favorite one with the heart on its cover)':'') +'.</div></div>'; return; }
       g.innerHTML = group("Inside books", ft.map(function(x){ var jt=jumpTermFor(x.text, qTerms); return resBtn2("ft", x.bookId, x.href, jt, hiTerms(x.text,qTerms), (mmap[x.bookId]?escapeHtml(mmap[x.bookId].title):"")+(x.label?" · "+escapeHtml(x.label):""), x.text); }));
       wireResults(g, mmap);
     });
@@ -3336,19 +3248,16 @@ function wireResults(scope, mmap){
   });
 }
 /* ============================================================
-   SEARCH ENGINE (MiniSearch, inlined)
-   Inverted index + BM25 over prose blocks, built in memory from the
-   fulltext working cache. Exact + prefix by default; fuzzy only as a
-   fallback when nothing matches. Personal relevance (your highlights,
-   notes, reading recency) decides whose passages surface first.
+   SEARCH ENGINE
+   Query parsing, matching and highlighting shared by every search
+   surface. Inside-book text is searched through the disk-backed index
+   below (ftQuery); personal relevance (your highlights, notes, reading
+   recency) decides whose passages surface first.
    ============================================================ */
-var MSI=null, msBuilding=null, msDirty=true;
-function markSearchIndexDirty(){ msDirty=true; scheduleWarmIndex(); }  // flag stale, then rebuild in the background so the next search is instant
 function tokenizeQuery(q){ try{ return (q||"").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean); }catch(e){ return (q||"").toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean); } }
 function tokenMatchAll(hay, terms){ if(!terms||!terms.length) return false; hay=(hay||"").toLowerCase(); for(var i=0;i<terms.length;i++){ if(hay.indexOf(terms[i])<0) return false; } return true; }
 /* Parse a query into "quoted phrases" (matched as an exact contiguous run) and loose
-   terms (matched as tokens, order-free). This is the only query syntax we layer on top
-   of MiniSearch; MiniSearch itself has no phrase parser, so we enforce phrases ourselves. */
+   terms (matched as tokens, order-free). This is the only query syntax there is. */
 function parseSearch(q){
   q=(""+(q||"")).trim();
   var phrases=[], m, re=/"([^"]+)"/g;
@@ -3394,8 +3303,6 @@ function buildRankMap(metas, hls){
   });
   return map;
 }
-/* One MiniSearch document per prose block when the record carries block text
-   (v3), else fall back to one document per section for older records. */
 /* Section-level text for a book's index record. Newer records store each block's text
    only (in anchors) to save storage, so reconstruct the section text by joining its blocks
    in order. Older records that still carry section text are returned as-is. Backward safe. */
@@ -3413,6 +3320,8 @@ function recSectionTexts(rec){
     return { href:o.href, label:o.label, text:list.map(function(a){ return a.text||a.snippet||""; }).join(" ") };
   });
 }
+/* One searchable block per paragraph anchor when the record carries block text (v3 and
+   later), else one per section for older records. The disk index is built from these. */
 function searchDocsFromRecord(rec){
   var docs=[], i, anchors=rec.anchors||[], hasText=false;
   for(i=0;i<anchors.length;i++){ if(anchors[i] && anchors[i].text){ hasText=true; break; } }
@@ -3426,21 +3335,9 @@ function searchDocsFromRecord(rec){
   }
   return docs;
 }
-function newMiniSearch(){
-  return new MiniSearch({
-    fields:["text"],
-    storeFields:["bookId","href","label","text"],
-    idField:"id",
-    processTerm:function(t){ t=(""+t).toLowerCase(); try{ t=t.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }catch(e){} return t.length?t:null; }
-  });
-}
-var SECDOCS=[];
-/* Dev instrument: measure before tuning any cap. Call __bcMem() in the console to see
-   what actually holds JS heap. performance.memory is Chromium-only and coarse, but the
-   SECDOCS/MSI/EPUB-buffer numbers below are exact and are what these caps govern. */
-/* __bcMem(): a full diagnostic of what Backchat is holding, in RAM and on disk. Async — call
-   `await __bcMem()` in the console, or just `__bcMem()` to see the grouped tables. Uses only counts
-   and storage estimates, never a full scan, so it is cheap to run anytime. */
+/* __bcMem(): a full diagnostic of what Backchat is holding, in RAM and on disk. Async: call
+   `await __bcMem()` in the console, or just `__bcMem()` to see the grouped tables. Uses only
+   counts and storage estimates, never a full scan, so it is cheap to run anytime. */
 window.__bcMem=async function(){
   function mb(n){ return Math.round((n||0)/1048576*10)/10+"MB"; }
   async function cnt(store){ try{ return await DB.count(store); }catch(e){ return null; } }
@@ -3459,7 +3356,7 @@ window.__bcMem=async function(){
   var coverCount = appKeys.filter(function(k){ return typeof k==="string" && k.indexOf("cover:")===0; }).length;
   var alldone=false; try{ var fa=await DB.get("app","ft-alldone"); alldone=!!(fa&&fa.done); }catch(e){}
 
-  // The new disk-backed search index (what replaced the in-memory MiniSearch index).
+  // The disk-backed inside-book search index.
   var disk_index = {
     books_searchable_inside: indexedInside,
     inverted_index_segments: await cnt("ftseg"),
@@ -3490,21 +3387,19 @@ window.__bcMem=async function(){
   var cd = (typeof currentData!=="undefined"&&currentData) ? (currentData.byteLength||currentData.length||0) : 0;
   var open_book = { title: (typeof currentBook!=="undefined"&&currentBook&&currentBook.title)||"(none open)", epub_buffer: cd?mb(cd):"none" };
 
-  // The old in-memory index. On the disk path these read ~0; they are only non-zero if FT_DISK is off.
-  var secBytes=0,i; for(i=0;i<SECDOCS.length;i++){ secBytes += (SECDOCS[i]&&SECDOCS[i].text?SECDOCS[i].text.length:0)*2; }
-  var legacy_in_memory = { secdocs_sections: SECDOCS.length, secdocs_text: mb(secBytes), minisearch_docs: (typeof MSI!=="undefined"&&MSI&&MSI.documentCount)||0 };
+  // The marks corpus behind rhymes (the only index kept in memory).
+  var marks_corpus = { documents: (CORP && CORP.documentCount) || 0, stale: !!corpDirty };
 
   var dbv=null; try{ dbv=(await DB.open()).version; }catch(e){}
   var config = {
     version: (typeof BC_VERSION!=="undefined")?BC_VERSION:"?",
     db_version: dbv,
-    search_path: (typeof FT_DISK!=="undefined"&&FT_DISK)?"disk-backed (IndexedDB)":"in-memory (MiniSearch)",
     fulltext_ceiling: (typeof FULLTEXT_MAX!=="undefined")?FULLTEXT_MAX:"?",
     results_per_book_cap: 8,
     folder: (typeof vault!=="undefined") ? (vault.connected?"connected":(vault.needsReauth?"needs reconnect":"not connected")) : "?"
   };
 
-  var report={ heap:heap, disk_index:disk_index, library:library, storage:storage, open_book:open_book, legacy_in_memory:legacy_in_memory, config:config };
+  var report={ heap:heap, disk_index:disk_index, library:library, storage:storage, open_book:open_book, marks_corpus:marks_corpus, config:config };
   try{
     console.group("%cBackchat "+config.version+" — memory & index","font-weight:bold;font-size:13px");
     console.log("Heap (RAM in this tab):"); console.table(heap);
@@ -3512,63 +3407,22 @@ window.__bcMem=async function(){
     console.log("Library:"); console.table(library);
     console.log("On-disk storage:"); console.table(storage);
     console.log("Open book:"); console.table(open_book);
-    console.log("Legacy in-memory index (≈0 on the disk path):"); console.table(legacy_in_memory);
+    console.log("Marks corpus (rhymes):"); console.table(marks_corpus);
     console.log("Config & status:"); console.table(config);
     console.groupEnd();
   }catch(e){ console.log(report); }
   return report;
 };
-/* Add documents to the index without blocking the main thread. MiniSearch.addAll is
-   synchronous and tokenizes every book in one uninterrupted loop, which is the multi-
-   second freeze on the first search. addAllAsync yields between chunks; we fall back to
-   a manual chunked loop so this holds regardless of the MiniSearch build in use. */
-function addDocsAsync(mi, docs){
-  if(mi && typeof mi.addAllAsync==="function"){ return mi.addAllAsync(docs, { chunkSize: 250 }); }
-  return new Promise(function(resolve){
-    var i=0, N=docs.length;
-    (function step(){
-      var end=Math.min(i+250, N);
-      try{ for(; i<end; i++) mi.add(docs[i]); }catch(e){ console.warn("search index add", e); i=end; }
-      if(i<N){ setTimeout(step, 0); } else resolve();
-    })();
-  });
-}
-function buildSearchIndex(){
-  if(msBuilding) return msBuilding;
-  var mi=newMiniSearch(), batch=[], secs=[];
-  msBuilding=DB.cursor("fulltext", function(rec){
-    var docs=searchDocsFromRecord(rec); for(var k=0;k<docs.length;k++) batch.push(docs[k]);
-    var ss=recSectionTexts(rec);
-    // Store original text only. We used to also cache a lowercased copy (tnorm) per section,
-    // which doubled this corpus in memory; the scan now lowercases on demand instead.
-    for(var j=0;j<ss.length;j++){ var s=ss[j]; if(!s||!s.text) continue; secs.push({ bookId:rec.id, href:s.href, label:s.label||"", text:s.text }); }
-    return false;
-  }).then(function(){
-    return addDocsAsync(mi, batch).catch(function(e){ console.warn("search index build", e); });
-  }).then(function(){
-    MSI=mi; SECDOCS=secs; msDirty=false; msBuilding=null; return mi;
-  }).catch(function(e){ console.warn("search index", e); MSI=mi; SECDOCS=secs; msDirty=false; msBuilding=null; return mi; });
-  return msBuilding;
-}
-function ensureSearchIndex(){ if(MSI && !msDirty) return Promise.resolve(MSI); return buildSearchIndex(); }
-/* Keep the cross-library index warm in the background so the first search never waits.
-   Debounced: a burst of imports or edits collapses into one rebuild after things settle,
-   and it builds off the main thread (addDocsAsync), so warming is invisible to the user. */
-var _warmT=null;
-function warmSearchIndex(){ if(FT_DISK) return; if((MSI && !msDirty) || msBuilding) return; if(!indexedCount) return; try{ ensureSearchIndex(); }catch(e){} }
-function scheduleWarmIndex(){ clearTimeout(_warmT); _warmT=setTimeout(function(){ if("requestIdleCallback" in window){ try{ requestIdleCallback(function(){ warmSearchIndex(); }, {timeout:2500}); }catch(e){ warmSearchIndex(); } } else { warmSearchIndex(); } }, 1200); }
-
 /* ============================================================
    DISK-BACKED SEARCH INDEX  (scales cross-book search to a massive library)
-   Two IndexedDB stores replace the resident MiniSearch index:
+   Two IndexedDB stores hold the inside-book search index:
      ftseg  keyPath [b,t]  {b, t, p:[blockNo]}       inverted index, one segment per (book, term); index "t" for cross-book lookup
      ftblk  keyPath [b,n]  {b, n, h:href, x:text}     block store, fetched lazily one block at a time
    A search reads only the postings for its query words, then fetches only the handful of blocks it must
    verify, so resident memory stays flat no matter how large the library grows. Every row is scoped to one
    book, so add/remove touches only that book: delete, re-upload (new id), and folder-refresh each reindex
-   exactly one book, never the whole library. Set FT_DISK=false to fall back to the in-memory path below. */
-var FT_DISK = true;
-function ftFold(s){ s=(""+(s==null?"":s)).toLowerCase(); try{ s=s.normalize("NFD").replace(/[̀-ͯ]/g,""); }catch(e){} return s; }
+   exactly one book, never the whole library. */
+function ftFold(s){ s=(""+(s==null?"":s)).toLowerCase(); try{ s=s.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }catch(e){} return s; }
 function ftToks(s){ return ftFold(s).split(/[^0-9a-z]+/).filter(Boolean); }
 /* Bulk write a book's rows in ONE transaction (thousands of puts per book must not be thousands of txns). */
 function ftBatchPut(store, rows){
@@ -3580,7 +3434,7 @@ function ftBatchPut(store, rows){
     return DB.open().then(function(db){ return new Promise(function(res,rej){
       var t=db.transaction(store,"readwrite"), s=t.objectStore(store);
       for(var k=0;k<part.length;k++) s.put(part[k]);
-      t.oncomplete=function(){ res(); }; t.onerror=function(){ rej(t.error); };
+      txSettle(t, res, rej);
     }); }).then(function(){ return new Promise(function(r){ setTimeout(r,0); }); }).then(chunk);
   })();
 }
@@ -3590,11 +3444,11 @@ function ftDelBook(store, b){
     var t=db.transaction(store,"readwrite"), s=t.objectStore(store);
     var rq=s.openCursor(IDBKeyRange.bound([b],[b,[]]));
     rq.onsuccess=function(e){ var c=e.target.result; if(c){ c.delete(); c.continue(); } };
-    t.oncomplete=function(){ res(); }; t.onerror=function(){ rej(t.error); };
+    txSettle(t, res, rej);
   }); });
 }
 function ftIndexRemoveBook(b){ return Promise.all([ftDelBook("ftseg",b), ftDelBook("ftblk",b)]).then(function(){ return DB.del("app","ftbook:"+b).catch(function(){}); }); }
-/* Blocks come from the same source the old index used: the record's anchors (or sections fallback). */
+/* A book's searchable blocks: the record's paragraph anchors (or its sections, for old records). */
 function ftBlocksFromRecord(rec){
   var docs=searchDocsFromRecord(rec)||[], blocks=[];
   for(var i=0;i<docs.length;i++){ var d=docs[i]; if(!d||!d.text) continue; blocks.push({ h:d.href||"", x:d.text }); }
@@ -3657,7 +3511,7 @@ function ftGetBlocks(refs){
   return DB.open().then(function(db){ return new Promise(function(res,rej){
     var t=db.transaction("ftblk","readonly"), s=t.objectStore("ftblk"), out=new Array(refs.length);
     refs.forEach(function(ref,i){ var rq=s.get(ref); rq.onsuccess=function(){ out[i]=rq.result; }; });
-    t.oncomplete=function(){ res(out); }; t.onerror=function(){ rej(t.error); };
+    txSettle(t, function(){ res(out); }, rej);
   }); });
 }
 /* The query. Seek by the rarest query word (or the trailing prefix), fetch only those blocks, verify the
@@ -3707,7 +3561,6 @@ function ftBookDone(bookId){ return DB.get("app","ftbook:"+bookId).then(function
    by closing the app continues next launch instead of restarting. Cooperative: it yields between books
    and the per-book build yields internally, so a first-time build of a big library stays responsive. */
 function ftBackfillIfNeeded(){
-  if(!FT_DISK) return Promise.resolve();
   return Promise.all([DB.get("app","ft-alldone"), DB.count("ftseg")]).then(function(r){
     var flag=r[0], segN=r[1]||0;
     if(flag && flag.done && segN>0) return;   // fast path: fully built and not wiped
@@ -3727,97 +3580,19 @@ function ftBackfillIfNeeded(){
   }).catch(function(e){ console.warn("ft backfill", e); });
 }
 
-/* Literal pass: scans the COMPLETE section text of every book for the query as a
-   contiguous substring. This is the reliability guarantee. If the words are really
-   there, in any element (p, div, table, anything), they are found, regardless of
-   how the book is marked up or whether a paragraph anchor exists. Case-insensitive.
-   Positions map to the original text because we lowercase without folding length. */
-/* Chunked + cancelable literal scan. Same guarantee as before (find the exact run of
-   text in any book, regardless of markup or anchors), but it walks SECDOCS in slices and
-   yields to the event loop between them, so scanning a large library never blocks typing.
-   isStale() lets a newer keystroke abandon an in-flight scan instead of finishing work the
-   user no longer wants: the app's second purpose, finding a sentence across every book,
-   stays smooth no matter how big the shelf gets. */
-function literalScanChunked(qn, cap, rankMap, parsed, isStale){
-  return new Promise(function(resolve){
-    var out=[], hardCap=Math.max(cap*3, 60);
-    if(qn.length<2){ resolve(out); return; }
-    var phraseMode = parsed && parsed.phrases && parsed.phrases.length;
-    var i=0, N=SECDOCS.length, SLICE=500;
-    (function step(){
-      if(isStale && isStale()){ resolve(out); return; }   // superseded by a newer search; stop scanning
-      var end=Math.min(i+SLICE, N);
-      for(; i<end && out.length<hardCap; i++){
-        var d=SECDOCS[i];
-        // Lowercase this section on demand rather than keeping a permanent lowercased copy.
-        // The cost is one toLowerCase per scanned section, absorbed by the chunked loop and
-        // short-circuited once enough matches are found; the saving is a duplicate of the
-        // whole corpus that is no longer resident in memory.
-        var tlow=d.text.toLowerCase();
-        if(phraseMode && !matchesParsed(tlow, parsed)) continue;
-        var t=tlow, from=0, pos, hits=0;
-        while(hits<8 && (pos=t.indexOf(qn, from))>=0){
-          var s=Math.max(0,pos-70), e=Math.min(d.text.length, pos+qn.length+140);
-          out.push({ bookId:d.bookId, href:d.href, label:d.label, text:d.text.slice(s,e), _rank:(rankMap&&rankMap[d.bookId])||1 });
-          hits++; from=pos+qn.length;
-          if(out.length>=hardCap) break;
-        }
-      }
-      if(i<N && out.length<hardCap){ setTimeout(step, 0); } else resolve(out);  // yield, then continue
-    })();
-  });
-}
 function searchFullText(q, cap, rankMap, parsed, isStale){
-  cap=cap||80;
-  parsed = parsed || parseSearch(q);
-  if(FT_DISK) return ftQuery(q, cap, rankMap, parsed, isStale);
-  var qn = parsed.phrases[0] || (q||"").replace(/"/g," ").trim().toLowerCase();
-  return ensureSearchIndex().then(function(mi){
-    if(!qn && !parsed.terms.length) return [];
-    if(isStale && isStale()) return [];
-    // Literal pass first (chunked, cancelable), then the ranked MiniSearch pass. mi.search
-    // queries the prebuilt index and is cheap (cost scales with matches, not corpus), so it
-    // stays synchronous; only the corpus-wide literal walk needed chunking.
-    return literalScanChunked(qn, cap, rankMap, parsed, isStale).then(function(lit){
-      if(isStale && isStale()) return [];
-      lit.sort(function(a,b){ return (b._rank||1)-(a._rank||1); });
-      var ms=[];
-      if(mi){
-        var boost=function(id, term, sf){ return (rankMap && rankMap[sf.bookId]) || 1; };
-        var pfilter = parsed.phrases.length ? function(r){ return matchesParsed(r.text, parsed); } : null;
-        var opts={ prefix:true, combineWith:"AND", boostDocument:boost }; if(pfilter) opts.filter=pfilter;
-        var res=mi.search(q, opts);
-        if(!res.length){ var opts2={ prefix:true, fuzzy:0.2, combineWith:"AND", boostDocument:boost }; if(pfilter) opts2.filter=pfilter; res=mi.search(q, opts2); }
-        for(var k=0;k<res.length;k++){ var r=res[k]; ms.push({ bookId:r.bookId, href:r.href, label:r.label, text:r.text }); }
-      }
-      var out=[], seen={}, perBook={};
-      function push(x){
-        var key=x.bookId+"|"+x.href+"|"+((x.text||"").slice(0,44));
-        if(seen[key]) return; seen[key]=1;
-        var pb=perBook[x.bookId]=(perBook[x.bookId]||0)+1; if(pb>8) return;
-        out.push({ bookId:x.bookId, href:x.href, label:x.label, text:x.text });
-      }
-      var a; for(a=0;a<lit.length && out.length<cap;a++) push(lit[a]);
-      for(a=0;a<ms.length && out.length<cap;a++) push(ms[a]);
-      return out;
-    });
-  }).catch(function(e){ console.warn("search", e); return []; });
+  return ftQuery(q, cap||80, rankMap, parsed || parseSearch(q), isStale);
 }
-
-
 
 /* ============================================================
-   Full-text + passage anchor index
-   Anchors give stable paragraph IDs for links (independent of CFIs).
+   FULL-TEXT INDEX & DURABLE TEXT ANCHORS
+   A per-book record of paragraph anchors: stable paragraph IDs for location
+   links (independent of CFIs), and the text the disk search index is built from.
    ============================================================ */
 var BLOCK_SEL = "p, li, blockquote, h1, h2, h3, h4, h5, h6, dd, pre, figcaption";
 var indexedCount=0;
 function refreshIndexedCount(){ return DB.keys("fulltext").then(function(k){ indexedCount=(k||[]).length; return indexedCount; }); }
 function hrefTail(h){ return (h||"").split("#")[0].split("/").pop(); }
-/* ============================================================
-   FULL-TEXT INDEX & DURABLE TEXT ANCHORS
-   Optional per-book index; anchors let cross-references survive re-rendering.
-   ============================================================ */
 /* A deterministic, stable id for one block of prose: an FNV-1a hash of
    bookKey + section file + block index + the first 80 chars of normalized text.
    Determinism is what makes anchors durable - the SAME block always hashes to the
@@ -3833,8 +3608,8 @@ function makeAnchorId(bookKey, href, blockIdx, text){
   return "a"+(h>>>0).toString(36);
 }
 /* Read a book once and produce two parallel things:
-     sections[] = { href, label, full text } per spine file        -> powers search
-     anchors[]  = one per prose block { id, href, label, snippet(100), block }
+     sections[] = { href, label } per spine file, in reading order
+     anchors[]  = one per prose block { id, href, label, snippet(100), text, block }
    cleanText() strips style/script so CSS is never indexed as prose; hasProse() drops
    decorative rules, bare numbers and symbol soup so an anchor only lands on real text.
    block (bi) is the position among BLOCK_SEL elements in the section and is half of
@@ -3869,7 +3644,7 @@ function extractBookIndex(epb, bookKey){
       chain=chain.then(function(){
         return it.load(epb.load.bind(epb)).then(function(doc){
           var body=(doc && doc.body) ? doc.body : doc;
-          sections.push({ href:it.href, label:chapLabel(it.href), text:cleanText(body) });
+          sections.push({ href:it.href, label:chapLabel(it.href) });   // section text is rebuilt from the anchors when needed (recSectionTexts)
           if(body && body.querySelectorAll){
             var blocks=body.querySelectorAll(BLOCK_SEL);
             var els=blocks.length ? [].slice.call(blocks) : [body];
@@ -3887,10 +3662,10 @@ function extractBookIndex(epb, bookKey){
   });
 }
 /* Build, or rebuild with opts.force, the fulltext record for one book and store it:
-   { id, sections, anchors, at, v:2 }. Skips the work if anchors already exist unless
-   forced. The EPUB is opened from its stored blob, read, then destroyed - the book
-   bytes are never touched. This record is the working cache that location links and
-   search resolve against. */
+   { id, sections, anchors, at, v:4 }, then rebuild that book's disk search index. Skips
+   the work if anchors already exist unless forced. The EPUB is opened from its stored blob
+   (or fetched from the folder), read, then destroyed - the book bytes are never touched.
+   This record is the working cache that location links and search resolve against. */
 function indexBook(id, opts){
   opts=opts||{};
   return DB.get("fulltext", id).then(function(ex){
@@ -3908,8 +3683,11 @@ function indexBook(id, opts){
         var bkey=bookKeyOf(meta)||("id:"+id);
         return extractBookIndex(epb, bkey).then(function(idx){
           try{ epb.destroy(); }catch(e){}
-          var rec={ id:id, sections:idx.sections.map(function(s){ return { href:s.href, label:s.label||"" }; }), anchors:idx.anchors, at:Date.now(), v:4 };
-          return DB.put("fulltext", rec).then(function(){ refreshIndexedCount(); markSearchIndexDirty(); return (FT_DISK?ftIndexReplaceFromRecord(rec):Promise.resolve()).then(function(){ return rec; }); });
+          var rec={ id:id, sections:idx.sections, anchors:idx.anchors, at:Date.now(), v:4 };
+          return DB.get("meta", id).then(function(still){
+            if(!still) return null;   // deleted while it was being read: write nothing, so no orphan index is left behind
+            return DB.put("fulltext", rec).then(function(){ refreshIndexedCount(); return ftIndexReplaceFromRecord(rec).then(function(){ return rec; }); });
+          });
         }).catch(function(e){
           try{ epb.destroy(); }catch(e2){}
           console.warn("indexBook failed for", id, e);
@@ -3926,8 +3704,7 @@ function ensureBookAnchors(bookId){
     return indexBook(bookId);
   });
 }
-// Quietly index every book that has none yet (e.g. a background pass after import).
-/* Inside-text index is a bounded, rebuildable cache. Keep the pinned books first, then the
+/* Inside-text index is a bounded, rebuildable cache. Keep the favorited books first, then the
    most-recently-opened, up to a ceiling; evict the rest. This only ever deletes the DERIVED
    index (re-made on open), never a book, a highlight, a note, or any of your own data. */
 var FULLTEXT_MAX = 150;
@@ -3938,7 +3715,7 @@ function enforceFulltextCache(){
     if(keys.length<=FULLTEXT_MAX) return 0;
     keys.sort(function(a,b){
       var pa=(mmap[a]&&(mmap[a].indexPin||mmap[a].fav))?1:0, pb=(mmap[b]&&(mmap[b].indexPin||mmap[b].fav))?1:0;
-      if(pa!==pb) return pb-pa;                                  // pinned kept first
+      if(pa!==pb) return pb-pa;                                  // favorites kept first
       return ((mmap[b]&&mmap[b].lastOpened)||0)-((mmap[a]&&mmap[a].lastOpened)||0);
     });
     var evict=keys.slice(FULLTEXT_MAX), chain=Promise.resolve(), n=0;
@@ -3946,9 +3723,10 @@ function enforceFulltextCache(){
       if(currentBook && currentBook.id===id) return;            // never trim the open book
       chain=chain.then(function(){ return DB.del("fulltext", id).then(function(){ n++; }, function(){}); });
     });
-    return chain.then(function(){ if(n){ refreshIndexedCount(); markSearchIndexDirty(); } return n; });
+    return chain.then(function(){ if(n) refreshIndexedCount(); return n; });
   }).catch(function(){ return 0; });
 }
+// Quietly index every favorited book that has no record yet (a background pass after boot or restore).
 function backfillAnchors(){
   // At scale we never index the whole library. Only favorited books are kept searchable inside;
   // everything else indexes on demand when opened.
@@ -3978,27 +3756,24 @@ function buildAllIndex(){
     list.forEach(function(m){ chain=chain.then(function(){
       return ftBookDone(m.id).then(function(isDone){
         done++;
-        if(isDone){ $("#index-info").textContent="Checking pinned books · "+done+" / "+list.length+"…"; return; }
+        if(isDone){ $("#index-info").textContent="Checking favorite books · "+done+" / "+list.length+"…"; return; }
         return indexBook(m.id).then(function(rec){
           return ftBookDone(m.id).then(function(d2){ if(!d2 && rec && rec.id) return ftIndexReplaceFromRecord(rec); });
-        }).then(function(){ built++; $("#index-info").textContent="Indexing pinned books · "+done+" / "+list.length+" (built "+built+")…"; });
+        }).then(function(){ built++; $("#index-info").textContent="Indexing favorite books · "+done+" / "+list.length+" (built "+built+")…"; });
       });
     }); });
     return chain.then(function(){ return enforceFulltextCache(); }).then(function(){ return refreshIndexedCount(); }).then(function(n){
-      $("#index-info").textContent="Inside-text search ready · "+n+" book"+(n===1?"":"s")+" indexed"+(over?(" · pinned set exceeds the "+FULLTEXT_MAX+"-book ceiling, so the oldest pins are not indexed"):"")+".";
+      $("#index-info").textContent="Inside-text search ready · "+n+" book"+(n===1?"":"s")+" indexed"+(over?(" · more than "+FULLTEXT_MAX+" favorites, so the least recently opened are not indexed"):"")+".";
       toast(built? ("Indexed "+built+" book"+(built===1?"":"s")+" for inside-text search") : "All favorites already indexed");
     });
   });
 }
 
 /* ============================================================
-   Reader
-   ============================================================ */
-var readTimer=null;
-/* ============================================================
    READER: open / navigate / close
    Open a book into the epub.js rendition and track reading time.
    ============================================================ */
+var readTimer=null;
 function startReadTimer(){ stopReadTimer(); readTimer=setInterval(function(){ if(currentBook && document.visibilityState==="visible" && !$("#reader").classList.contains("hidden")){ currentBook.readMs=(currentBook.readMs||0)+10000; saveProgress(currentBook); } },10000); }
 function stopReadTimer(){ if(readTimer){ clearInterval(readTimer); readTimer=null; } }
 
@@ -4108,16 +3883,19 @@ function openBookAt(id, target){
     return Promise.resolve();
   }
   return Promise.all([DB.get("meta", id), DB.get("blob", id), DB.get("highlights", id)]).then(function(res){
-    currentBook=res[0]; currentData=res[1]&&res[1].data;
-    if(!currentBook){ toast("Could not open book"); return; }
-    if(!currentData){
+    // Nothing is adopted as the open book until its bytes are in hand: a book that cannot be
+    // opened must never take over currentBook while another book is still on screen (its page
+    // turns and read timer would then save that book's position into this one).
+    var meta=res[0], data=res[1]&&res[1].data;
+    if(!meta){ toast("Could not open book"); return; }
+    if(!data){
       // The EPUB bytes are not stored under this id. Before fetching from the folder or
       // giving up, check whether the SAME book exists under another id in the library (a
       // re-import, or a marks-only ghost from a hand-off) and open that copy instead. This
       // is why opening from the shelf works while an older search or link id does not.
-      var _key=bookKeyOf(currentBook);
+      var _key=bookKeyOf(meta);
       return DB.all("meta").then(function(_metas){
-        var _sibs=(_metas||[]).filter(function(m){ return m && m.id!==id && (bookKeyOf(m)===_key || looksSameBook(m, currentBook)); })
+        var _sibs=(_metas||[]).filter(function(m){ return m && m.id!==id && (bookKeyOf(m)===_key || looksSameBook(m, meta)); })
                               .sort(function(a,b){ return (b.lastOpened||b.addedAt||0)-(a.lastOpened||a.addedAt||0); });
         return (function _tryNext(_i){
           if(_i>=_sibs.length) return Promise.resolve(null);
@@ -4126,7 +3904,7 @@ function openBookAt(id, target){
           if(_betterId) return openBookAt(_betterId, target);
           if(vault.handle){
             toast("Fetching the book from your folder\u2026");
-            return fetchEpubFromFolder(currentBook).then(function(buf){
+            return fetchEpubFromFolder(meta).then(function(buf){
               if(!buf){ toast(vault.connected ? "This book's file is not in the folder or on this device. Put the EPUB in the folder's books directory." : "Folder access was not granted, so the book could not be fetched. Use Reconnect in the Library panel."); return; }
               return DB.put("blob", {id:id, data:buf}).then(function(){ return openBookAt(id, target); });
             });
@@ -4135,7 +3913,8 @@ function openBookAt(id, target){
         });
       });
     }
-    highlights=(res[2]&&res[2].items)||[]; _highlightsOwnerId=(currentBook&&currentBook.id)||null;
+    currentBook=meta; currentData=data;
+    highlights=(res[2]&&res[2].items)||[]; _highlightsOwnerId=currentBook.id;
     try{ localStorage.setItem("reader-last-book", id); }catch(e){}
     setTimeout(function(){ try{ enforceBlobCache(); }catch(e){} }, 3000);
     currentBook.lastOpened=Date.now(); if(currentBook.readMs===undefined) currentBook.readMs=0;
@@ -4187,17 +3966,9 @@ function openBookAt(id, target){
 }
 function chapterFor(cfi){ if(!book||!book.navigation) return ""; try{ var si=book.spine.get(cfi); if(!si) return ""; var tail=si.href.split("#")[0].split("/").pop(); var m=(book.navigation.toc||[]).filter(function(t){ return t.href && t.href.split("#")[0].split("/").pop()===tail; })[0]; return m?m.label.trim():""; }catch(e){ return ""; } }
 function updateProgress(){ var p=Math.round((currentBook.progress||0)*100); $("#progress-bar").style.width=p+"%"; var lf=fmtLeft(currentBook); $("#pct-label").textContent=p+"%"+(lf?" · "+lf:""); }
-function reflectFlowButton(){
-  var b=document.getElementById("flow-btn"); if(!b) return;
-  var scrolled = settings.flow==="scrolled";
-  b.innerHTML = scrolled
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg>';
-  b.title = scrolled ? "Reading: scroll (tap for pages)" : "Reading: pages (tap for scroll)";
-}
 function setReadFlow(f){
   f = (f==="scrolled") ? "scrolled" : "paginated";
-  settings.flow=f; saveSettings(); reflectFlowButton();
+  settings.flow=f; saveSettings();
   if(!rendition) return;
   try{ ttsStop(); }catch(e){}
   var cfi=null;
@@ -4238,10 +4009,6 @@ function closeBook(){
   clearTimeout(_rebindT); _rebindDirty=false;   // cancel any pending rebind save so it cannot fire after the marks are cleared below
   highlights=[]; lastSelection=null; noteContext=null; _highlightsOwnerId=null;
   book=rendition=null; currentData=null;
-  // Deliberately keep the cross-library search index resident. Searching inside every book
-  // is a core purpose of the app, the index is text-only and cheap, and dropping it here
-  // would reintroduce a rebuild (and a first-search wait) every time you leave a book.
-  // If __bcMem() ever shows the index is genuinely large, bound it by bytes rather than drop it.
   bcBackOrHome();
 }
 /* ============================================================
@@ -4309,14 +4076,9 @@ function bcApplyReaderColors(){
     });
   }catch(e){}
 }
-var _SUN='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-var _MOON='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
-function updateThemeToggle(){ var dark=resolvedTheme()==="dark"; [].forEach.call(document.querySelectorAll(".theme-toggle"),function(b){ b.innerHTML=dark?_SUN:_MOON; b.title=dark?"Switch to light":"Switch to dark"; }); }
-function toggleTheme(){ settings.theme = (resolvedTheme()==="dark") ? "light" : "dark"; saveSettings(); applyTheme(); syncSettingsUI(); }
 function applyTheme(){
   var rt=resolvedTheme();
   document.documentElement.dataset.theme = rt;
-  updateThemeToggle();
   if(!rendition) return;
   if(currentBook && currentBook.faithful){ bcSyncBookScheme();
     // Original styling keeps the book's own fonts/colours/sizes, but in scroll mode let the
@@ -4382,19 +4144,25 @@ function bcSyncBookScheme(){
   }catch(e){}
 }
 
-/* ---------- find in current book ---------- */
 /* ============================================================
    FIND IN BOOK
-   In-book text search via epub.js.
+   Searches the open book's own text (its fulltext record), indexing it once if needed.
    ============================================================ */
 function openFind(){ $("#findbar").classList.remove("hidden"); setTimeout(function(){ $("#find-input").focus(); },50); }
 function closeFind(){ $("#findbar").classList.add("hidden"); $("#find-results").classList.add("hidden"); $("#find-results").innerHTML=""; $("#find-count").textContent=""; var fi=$("#find-input"); if(fi) fi.value=""; }
-function doFind(q){
+function doFind(q, triedIndex){
   q=(q||"").trim(); var box=$("#find-results");
   if(!q || !currentBook){ box.classList.add("hidden"); box.innerHTML=""; $("#find-count").textContent=""; return; }
-  var ql=q.toLowerCase();
-  DB.get("fulltext", currentBook.id).then(function(rec){
-    if(!rec){ indexBook(currentBook.id).then(function(){ doFind(q); }); $("#find-count").textContent="indexing…"; return; }
+  var ql=q.toLowerCase(), forId=currentBook.id;
+  DB.get("fulltext", forId).then(function(rec){
+    if(!currentBook || currentBook.id!==forId) return;
+    if(!rec){
+      // Index once. A book that cannot be read for indexing says so instead of retrying forever.
+      if(triedIndex){ $("#find-count").textContent="cannot search this book"; return; }
+      $("#find-count").textContent="indexing…";
+      indexBook(forId).then(function(){ doFind(q, true); }, function(){ $("#find-count").textContent="cannot search this book"; });
+      return;
+    }
     var matches=[];
     recSectionTexts(rec).forEach(function(s){
       var t=(s.text||"").toLowerCase(), from=0, idx;
@@ -4408,9 +4176,6 @@ function doFind(q){
   });
 }
 
-/* ============================================================
-   Highlights (CSS Custom Highlight API)
-   ============================================================ */
 /* ============================================================
    HIGHLIGHT RENDERING & RE-ANCHORING
    CSS Custom Highlight API; re-find quote text each render so marks stay put.
@@ -4711,7 +4476,7 @@ function bcQuoteMd(text){
   return lines.join("\n");
 }
 // Lift the current selection into the clipboard as a markdown blockquote. Creates no
-// highlight: the lightweight path for dropping a memorable line into the Scratchpad.
+// highlight: the lightweight path for dropping a memorable line into the margins.
 function copyQuoteFromSelection(){
   var sel=lastSelection;   // grab now; hiding the popup may clear the native selection
   if(!sel || !sel.text || !sel.text.trim()){ toast("Nothing selected"); hideSelPop(); return; }
@@ -4975,7 +4740,7 @@ function followBcAnchor(m, ref){
       var href=(sec && sec.href) || null;
       return Promise.resolve(openBookAt(m.id, href)).then(function(){ return new Promise(function(res){ setTimeout(function(){ try{ jumpToTextInBook(ref.quote); }catch(e){} res(); }, 500); }); });
     }
-    toast("Location not found — try rebuilding the index in settings");
+    toast("That passage was not found in this book. Opening the book instead.");
     return openBookAt(m.id, null);
   });
 }
@@ -5046,19 +4811,7 @@ function _bcEnsurePeek(){
     +"#bc-conns-ov .bc-conns-t{font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
     +"#bc-conns-ov .bc-conns-n{font-size:.85rem;font-weight:600;color:var(--accent);white-space:nowrap}"
     +"#bc-conns-ov .bc-conns-io{font-weight:400;color:var(--muted);font-size:.72rem}"
-    +"#bc-conns-ov .bc-conns-empty,#bc-conns-ov .bc-conns-loading{color:var(--muted);font-size:.92rem;line-height:1.6;padding:.8rem 0}"
-    +"#bc-ep{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:1.2rem}"
-    +"#bc-ep .bc-ep-card{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;max-width:460px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.4)}"
-    +"#bc-ep .bc-ep-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 1.1rem;border-bottom:1px solid var(--line);font-weight:600;font-size:.9rem}"
-    +"#bc-ep .bc-ep-x{background:none;border:0;color:var(--muted);font-size:1.5rem;line-height:1;cursor:pointer;padding:0 .1rem}"
-    +"#bc-ep .bc-ep-new{display:flex;gap:.5rem;padding:.8rem 1.1rem;border-bottom:1px solid var(--line)}"
-    +"#bc-ep .bc-ep-new input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:.5rem .7rem;color:var(--ink);font:inherit;min-width:0}"
-    +"#bc-ep .bc-ep-new button{background:var(--accent);color:#fff;border:0;border-radius:9px;padding:.5rem .9rem;font-weight:600;cursor:pointer;flex:0 0 auto;white-space:nowrap}"
-    +"#bc-ep .bc-ep-body{overflow:auto;padding:.5rem 1.1rem 1rem}"
-    +"#bc-ep .bc-ep-list{display:flex;flex-direction:column;gap:.2rem}"
-    +"#bc-ep .bc-ep-row{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:.55rem;cursor:pointer;color:var(--ink);font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
-    +"#bc-ep .bc-ep-row:hover{background:var(--bg)}"
-    +"#bc-ep .bc-ep-empty{color:var(--muted);font-size:.9rem;line-height:1.6;padding:.8rem .2rem}";
+    +"#bc-conns-ov .bc-conns-empty,#bc-conns-ov .bc-conns-loading{color:var(--muted);font-size:.92rem;line-height:1.6;padding:.8rem 0}";
   (document.head||document.documentElement).appendChild(st);
   var ov=document.createElement("div"); ov.id="bc-peek";
   ov.addEventListener("click", function(e){ if(e.target===ov) bcPeekClose(); });
@@ -5145,9 +4898,6 @@ function bcOpenConnections(){
     [].forEach.call(body.querySelectorAll(".bc-conns-row"), function(btn){ btn.onclick=function(){ bcCloseConns(); openDetails(btn.dataset.id).then(function(){ $("#details").scrollTop=0; }); }; });
   }).catch(function(e){ console.warn("connections overview", e); body.innerHTML='<div class="bc-conns-empty">Could not read connections.</div>'; });
 }
-/* Composition "pages" (Trails) removed in 1.0.44: Backchat is a reader you mark up, not a dedicated
-   writer. Margins are the writing surface. Any existing kind:"page" record goes dormant — excluded
-   from Home, Library and reconcile — and its markdown stays safe in your folder. */
 function bcRefClick(ev){
   ev.preventDefault(); ev.stopPropagation();
   followBcRef(bcRefFromEl(ev.currentTarget));
@@ -5178,11 +4928,12 @@ function bcRefLinkHtml(ref){
 
 /* ============================================================
    MARKDOWN RENDERERS
-   One shared inline dialect used by comments, scratchpad, and paste.
+   One shared inline dialect used by comments, the margins and the guide.
    ============================================================ */
-/* The shared inline dialect: inline code, bold, italic, and http links only. It runs on
-   already-escaped text and is deliberately tiny, so a note reads the same in a comment, in
-   the scratchpad, and on export. Block structure (lists, headings) is added by the callers. */
+/* The shared inline dialect: inline code, bold, italic, strike, ==highlight==, http links,
+   images and video cards. It runs on already-escaped text and is deliberately small, so a
+   note reads the same in a comment, in the margins, and on export. Block structure (lists,
+   headings) is added by the callers. */
 /* ---------------- MARGINS RENDERER: markdown, links, images, safe video cards ---------------- */
 function inlineMd(s, forEpub){
   s=s.replace(/`([^`]+)`/g,"<code>$1</code>");
@@ -5202,12 +4953,12 @@ function inlineMd(s, forEpub){
   // self-close the img: book chapters are strict XHTML and an unclosed void breaks the parse.
   function vidCard(id,url){
     var safe=url.replace(/"/g,"%22");
-    if(forEpub) return '<a href="'+safe+'" target="_blank" rel="noopener"><img loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video" style="max-width:100%"/></a>';
-    return '<span class="md-video" data-vid="'+id+'" role="button" tabindex="0"><img loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video"/><span class="md-video-play">&#9658;</span><a class="md-video-ext" href="'+safe+'" target="_blank" rel="noopener" title="Open on YouTube">&#8599;</a></span>';
+    if(forEpub) return '<a href="'+safe+'" target="_blank" rel="noopener">\x3cimg loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video" style="max-width:100%"/></a>';
+    return '<span class="md-video" data-vid="'+id+'" role="button" tabindex="0">\x3cimg loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video"/><span class="md-video-play">&#9658;</span><a class="md-video-ext" href="'+safe+'" target="_blank" rel="noopener" title="Open on YouTube">&#8599;</a></span>';
   }
   s=s.replace(/&lt;iframe\b.*?youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{6,20}).*?&lt;\/iframe&gt;/g, function(_,id){ return vidCard(id, "https://www.youtube.com/watch?v="+id); });
   s=s.replace(/&lt;iframe\b.*?youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{6,20}).*?&gt;/g, function(_,id){ return vidCard(id, "https://www.youtube.com/watch?v="+id); });
-  s=s.replace(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g,function(_,alt,u){ return '<img class="md-img" loading="lazy" src="'+u.replace(/"/g,"%22").replace(/'/g,"%27")+'" alt="'+alt+'"/>'; });
+  s=s.replace(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g,function(_,alt,u){ return '\x3cimg class="md-img" loading="lazy" src="'+u.replace(/"/g,"%22").replace(/'/g,"%27")+'" alt="'+alt+'"/>'; });
   s=s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,function(_,t,u){ return '<a href="'+u.replace(/"/g,"%22").replace(/'/g,"%27")+'" target="_blank" rel="noopener">'+t+'</a>'; });
   // Bare-URL passes run on plain text only: never inside a tag the passes above built
   // (an alt or href holding a space or "(" would otherwise be split open), and never
@@ -5250,14 +5001,14 @@ function commentPopHtml(text){
   return text.replace(/\u0001\d+\u0001/g, "\u21AA location");
 }
 
-/* Block-level markdown for the scratchpad: headings, bullet lists, blockquotes and
+/* Block-level markdown for the margins: headings, lists, tasks, blockquotes, code and
    paragraphs, with inlineMd applied inside each line. Same placeholder trick as commentHtml:
    location tokens are stashed behind sentinel characters before escaping and restored as
    clickable links at the very end. No raw HTML is ever passed through. */
 function scratchHtml(md){
   md=md||"";
   var toks=[];
-  md=md.replace(BC_LINK_RE, function(m){ toks.push(m); return ""+(toks.length-1)+""; });
+  md=md.replace(BC_LINK_RE, function(m){ toks.push(m); return "\u0001"+(toks.length-1)+"\u0001"; });
   md=escapeHtml(md);
   function inline(x){ return inlineMd(x); }
   var lines=md.split(/\n/), html=[], listType=null, inQuote=false;
@@ -5280,7 +5031,7 @@ function scratchHtml(md){
   }
   closeList(); closeQuote();
   var out=html.join("\n");
-  return out.replace(/(\d+)/g, function(_,n){ var ref=bcParseAny(toks[Number(n)]); return ref?bcRefLinkHtml(ref):escapeHtml(toks[Number(n)]); });
+  return out.replace(/\u0001(\d+)\u0001/g, function(_,n){ var ref=bcParseAny(toks[Number(n)]); return ref?bcRefLinkHtml(ref):escapeHtml(toks[Number(n)]); });
 }
 
 function handleRefHash(){
@@ -5422,7 +5173,8 @@ function notesToMarkdown(text, ctx){
    becomes a node in Obsidian's graph, then metadata, tags, rating, summary, notes and related
    books, then every highlight as a blockquote with its chapter and any comment. Each
    user-written field passes through notesToMarkdown, so location tokens become readable
-   references and a raw token never reaches the file. linkCtx resolves cross-book links. */
+   references and a raw token never reaches the file. linkCtx resolves cross-book links;
+   linkCtx.selfFile names this note's own file when it is not the folder's (manual exports). */
 /* ---------------- OBSIDIAN EXPORT: readable md per book, export-only by design ---------------- */
 function tagRelatedTitles(bk, metas){
   if(!bk || !bk.tags || !bk.tags.length || !metas) return [];
@@ -5442,7 +5194,7 @@ function buildHighlightMarkdown(bk, hls, linkCtx, relatedExtra){
     var meta=[]; if(bk.author) meta.push("Author: [["+mdNoteName(bk.author)+"]]"); if(bk.year) meta.push("Year: "+bk.year); meta.push("Progress: "+Math.round((bk.progress||0)*100)+"%"); if(bk.finished) meta.push("Finished");
     var _srcName=(title+(bk.author?" - "+bk.author:"")).replace(/[\[\]]/g,"");   // source name, brackets stripped so it is a safe link label
     if(!bk.videoId){                                                             // non-video book: link the book's own note and its author as Obsidian wikilinks that resolve and never break
-      var _tf=vaultPathName(bk), _td=mdNoteName(title);                          // _tf is the real note filename; mdNoteName strips wikilink-breaking chars (| # : etc.) for the display
+      var _tf=(linkCtx && linkCtx.selfFile) || vaultPathName(bk), _td=mdNoteName(title);   // _tf is the note's real filename (the folder's, or the export's own); mdNoteName strips wikilink-breaking chars (| # : etc.) for the display
       var _srcLink=(_tf===_td)?("[["+_td+"]]"):("[["+_tf+"|"+_td+"]]");          // same file|display pattern as Related books, so the title resolves to the actual file
       if(bk.author) _srcLink+=" - [["+mdNoteName(bk.author)+"]]";
       meta.push("Source: "+_srcLink);
@@ -5498,9 +5250,11 @@ function buildNotesBundle(){
     };
   });
 }
-// Resume position resolves by furthest read; counters by max; tags by union. Never destructive.
-// Field-level merge of two meta records: newest 'updated' wins, furthest progress wins.
-/* ---------------- MERGE CORE: meta newest-wins, margins conflicts preserved ---------------- */
+/* ---------------- MERGE CORE: field-level merge of two meta records ----------------
+   Position resolves by furthest read; counters by max; tags by the newer tag edit (a plain
+   union for legacy records); content fields (summary, margins, rating...) by the newer
+   'updated'. Fields derived from the EPUB bytes (source, signature) come from an incoming
+   re-import. Marks are merged separately, item by item (mergeHighlights). */
 function mergeMeta(local, inc){
   if(!local){ var c=Object.assign({}, inc||{}); if(c.readMs===undefined) c.readMs=0; if(!c.tags) c.tags=[]; return c; }
   if(!inc) return local;
@@ -5516,28 +5270,29 @@ function mergeMeta(local, inc){
   else { var tg={}; (local.tags||[]).concat(inc.tags||[]).forEach(function(t){ if(t) tg[t]=1; }); out.tags=Object.keys(tg); }   // legacy records without a tag timestamp: keep the old additive union
   ["title","author","cover","year","publisher","kind"].forEach(function(k){ if(!out[k] && inc[k]) out[k]=inc[k]; });
   var newer = ((inc.updated||0) > (local.updated||0)) ? inc : local;
-  var older = (newer===inc) ? local : inc;
   ["summary","scratch","rating","related","bookmarkCfi","bookmarkAt","fav","faithful"].forEach(function(k){ if(newer[k]!==undefined) out[k]=newer[k]; });
-  // Margins (scratch) are newest-wins by the updated timestamp, exactly like every other meta
-  // field above. An earlier build appended the other device's older margin under a divider to
-  // avoid losing it, but that resurrected text the instant you deleted the appended block: the
-  // next sync no longer saw the old text "contained" in the newer copy and re-added it, so a
-  // deletion could never stick across devices. Newest-wins lets edits AND deletions hold.
-  // Granular marks (highlights and their notes) are still merged item by item and never lost.
+  // Margins (scratch) are newest-wins by the updated timestamp, like every field above. Keeping
+  // the older text under a divider was tried and dropped: it resurrected deleted text on the
+  // next sync, so a deletion could never stick across devices. Newest-wins lets edits AND
+  // deletions hold. Granular marks (highlights and their notes) are merged item by item.
   ["title","author","cover","year","publisher"].forEach(function(k){ if(newer[k]!==undefined && newer[k]!==null && newer[k]!=="") out[k]=newer[k]; });
   ["videoId","sourceUrl","sig"].forEach(function(k){ if(inc[k]) out[k]=inc[k]; });   // source and content signature are derived from the EPUB bytes: an incoming (re)import/refresh is authoritative, a notes-only merge (field absent) keeps the local value
   out.updated=Math.max(local.updated||0, inc.updated||0);
   return out;
 }
 // Merge an exported notes bundle in by id (meta + highlights), additively - nothing deleted.
+// A book deleted here is skipped, so an old notes file in the folder cannot bring it back;
+// an explicit restore clears those tombstones first (importNotesFile), so it still restores.
 function importNotesBundle(bundle){
   if(!bundle || !bundle.books || !bundle.books.length) return Promise.resolve({books:0, added:0});
-  var chain=Promise.resolve(), books=0, added=0;
+  var chain=loadTombstones(), tomb=null, books=0, added=0;
+  chain=chain.then(function(t){ tomb=t; });
   bundle.books.forEach(function(entry){
     var meta=(entry && entry.meta) ? entry.meta : entry;
     var id=meta && meta.id; if(!id) return;
     var incHl=(entry && entry.highlights) || [];
     chain=chain.then(function(){
+      if(isTombstoned(tomb, id, bookKeyOf(meta))) return;
       return Promise.all([DB.get("meta", id), DB.get("highlights", id)]).then(function(r){
         var localMeta=r[0], localHl=r[1], localItems=(localHl&&localHl.items)||[];
         if(bcKeyMismatch(localMeta, meta)){ return; }   // id maps to a different book here: refuse the merge
@@ -5589,7 +5344,7 @@ function importNotesFile(file){
       // An explicit import is a deliberate restore: un-delete (clear the tombstone for) every book
       // it contains, so reconcile keeps the freshly-imported notes instead of purging them on the
       // next boot. Automatic folder sync calls importNotesBundle directly and is unaffected.
-      Promise.all((data.books||[]).map(function(e){ var m=(e&&e.meta)?e.meta:e; return (m&&m.id)? clearTombstone(m.id, bookKeyOf(m)) : Promise.resolve(); })).then(function(){ return importNotesBundle(data); }).then(function(r){
+      clearTombstones((data.books||[]).map(function(e){ var m=(e&&e.meta)?e.meta:e; return (m&&m.id)? [m.id, bookKeyOf(m)] : null; })).then(function(){ return importNotesBundle(data); }).then(function(r){
         toast("Merged "+r.books+" book"+(r.books===1?"":"s")+", "+r.added+" new highlight"+(r.added===1?"":"s"));
         renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); updateStorageInfo(); scheduleNotesSnapshot();
       }).catch(function(e){ console.error(e); toast("Import failed"); });
@@ -5597,7 +5352,7 @@ function importNotesFile(file){
       if(!confirm("Restore "+data.books.length+" book"+(data.books.length===1?"":"s")+" from this backup? Existing notes are merged, nothing is deleted.")) return;
       // Explicit restore: un-delete (clear the tombstone for) each book so a delete-backup can bring it
       // back; restoreFromObject then rebuilds the book and reconciles, so there is no duplicate to flush.
-      Promise.all((data.books||[]).map(function(b){ return (b&&b.id)? clearTombstone(b.id, bookKeyOf(b)) : Promise.resolve(); })).then(function(){ return restoreFromObject(data); }).then(function(r){ var n=r.restored; toast("Restored "+n+" book"+(n===1?"":"s")+(r.ghosts? (" \u00b7 "+r.ghosts+" without a file") : "")); renderHome(); renderLibrary(); updateStorageInfo(); }).catch(function(e){ console.error(e); toast("Import failed"); });
+      clearTombstones((data.books||[]).map(function(b){ return (b&&b.id)? [b.id, bookKeyOf(b)] : null; })).then(function(){ return restoreFromObject(data); }).then(function(r){ var n=r.restored; toast("Restored "+n+" book"+(n===1?"":"s")+(r.ghosts? (" \u00b7 "+r.ghosts+" without a file") : "")); renderHome(); renderLibrary(); updateStorageInfo(); }).catch(function(e){ console.error(e); toast("Import failed"); });
     } else { toast("Not a valid backup file"); }
   };
   fr.readAsText(file);
@@ -5651,13 +5406,7 @@ function restoreFromObject(data){
   if(!data || !data.books) return Promise.resolve(0);
   var chain=Promise.resolve(), tomb={ids:{},keys:{}};
   // fold the backup's tombstones in first so a deleted book is not resurrected
-  chain=chain.then(function(){ return loadTombstones(); }).then(function(local){
-    tomb=local;
-    if(data.tombstones){
-      ["ids","keys"].forEach(function(g){ var src=(data.tombstones[g])||{}; tomb[g]=tomb[g]||{}; Object.keys(src).forEach(function(k){ tomb[g][k]=Math.max(tomb[g][k]||0, src[k]||0); }); });
-      return saveTombstones(tomb);
-    }
-  });
+  chain=chain.then(function(){ return mutateTombstones(function(local){ return data.tombstones ? foldTombstones(local, data.tombstones) : false; }); }).then(function(r){ tomb=r.tomb; });
   var restored=0, ghosts=0, _preKey={}, _incKey={};
   (data.books||[]).forEach(function(b){ if(b&&b.id) _incKey[b.id]=bookKeyOf(b); });
   chain=chain.then(function(){ return DB.all("meta").then(function(ms){ (ms||[]).forEach(function(m){ if(m&&m.id) _preKey[m.id]=bookKeyOf(m); }); }); });
@@ -5681,11 +5430,10 @@ function restoreFromObject(data){
   return chain.then(function(){ if(data.settings){ try{ settings=cleanSettings(settings, data.settings); saveSettings(); syncSettingsUI(); }catch(e){} } })
     .then(function(){ return reconcileLibrary(); })
     .then(function(){
-      try{ markCorpusDirty(); markSearchIndexDirty(); setTimeout(function(){ try{ backfillAnchors().then(function(){ markSearchIndexDirty(); }); }catch(e){} }, 400); }catch(e){}
+      markCorpusDirty(); setTimeout(backfillAnchors, 400);
       return { restored:restored, ghosts:ghosts };
     });
 }
-/* restoreBackup removed: dead code, superseded by importNotesFile (the universal Load) */
 function updateStorageInfo(){ Promise.all([DB.all("meta"), DB.keys("blob")]).then(function(r){ var metas=r[0]||[]; var bytes=0, chain=Promise.resolve(); metas.forEach(function(m){ chain=chain.then(function(){ return DB.get("blob", m.id).then(function(b){ if(b&&b.data) bytes+=b.data.byteLength; }); }); }); chain.then(function(){ var mb=(bytes/1048576).toFixed(1); var el=$("#storage-info"); if(el) el.textContent=metas.length+" book"+(metas.length===1?"":"s")+" · ~"+mb+" MB stored in this browser."; }); }); }
 function safeName(s){ return ((s||"book").replace(/[^\w\- ]+/g,"").replace(/\s+/g,"-").slice(0,60))||"book"; }
 function downloadBlob(content, type, filename){ var blob=new Blob([content],{type:type}); var url=URL.createObjectURL(blob); var a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1500); }
@@ -5706,8 +5454,7 @@ function downloadFullBackup(){
 }
 function purgeEverything(){
   if(_notesSnapTimer){ clearTimeout(_notesSnapTimer); _notesSnapTimer=null; }
-  Object.keys(_metaPushTimers).forEach(function(k){ clearTimeout(_metaPushTimers[k]); delete _metaPushTimers[k]; });
-  var stores=["meta","blob","highlights","fulltext","app"], chain=Promise.resolve();
+  var stores=["meta","blob","highlights","fulltext","app","ftseg","ftblk"], chain=Promise.resolve();   // the disk search index too, or it would outlive the books it indexes
   stores.forEach(function(s){ chain=chain.then(function(){ return DB.clear(s).catch(function(){}); }); });
   return chain.then(function(){
     try{ localStorage.removeItem("reader-last-book"); }catch(e){}
@@ -5730,9 +5477,6 @@ function deleteEverything(){
     .catch(function(e){ console.error(e); toast("Could not complete the reset"); });
 }
 
-/* ============================================================
-   Details
-   ============================================================ */
 /* ============================================================
    DETAILS PAGE
    Per-book metadata, notes, ratings, related books, exports.
@@ -5885,8 +5629,8 @@ function renderMarginsSection(b){
     ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit'
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add')+'</button>';
   var count=hasScratch ? '<span class="det-notes-count">'+wc+' word'+(wc===1?'':'s')+'</span>' : '';
-  box.innerHTML='<section id="det-notes-sec"><div class="margins-head"><h2>'+(b.kind==="page"?"Trail":"Margins")+'</h2>'+count+editBtn+'</div>'
-    +'<div class="scratch-view margins-view" id="details-scratch">'+(hasScratch?scratchHtml(b.scratch):'<span class="det-notes-empty">'+(b.kind==="page"?"This trail is empty. Gather marks from across your library, or just start writing. Markdown works, and any connection you paste becomes a live link.":"Nothing in the margins yet. This is where you talk back to the book, in your own words, separate from highlights. Click here to start. Markdown works: headings, lists, quotes, ==highlight==, ~~strikethrough~~, images, and YouTube links.")+'</span>')+'</div>'
+  box.innerHTML='<section id="det-notes-sec"><div class="margins-head"><h2>Margins</h2>'+count+editBtn+'</div>'
+    +'<div class="scratch-view margins-view" id="details-scratch">'+(hasScratch?scratchHtml(b.scratch):'<span class="det-notes-empty">Nothing in the margins yet. This is where you talk back to the book, in your own words, separate from highlights. Click here to start. Markdown works: headings, lists, quotes, ==highlight==, ~~strikethrough~~, images, and YouTube links.</span>')+'</div>'
     +'<div id="det-notes-editor" style="display:none">'
     +'<textarea id="det-notes-area" class="det-notes-area bc-write" placeholder="Write anything about this book. Markdown: # heading, **bold**, *italic*, ==highlight==, ~~strike~~, - list, 1. list, - [ ] task, > quote, ![alt](image url), and paste a YouTube link."></textarea>'
     +'<div class="actions"><button class="btn-ghost" id="det-notes-cancel">Cancel</button><button class="btn-primary" id="det-notes-save">Save notes</button></div>'
@@ -5995,12 +5739,12 @@ function exportLibraryMarkdown(){
     }
     var zip = new JSZip(), used = {};
     metas.forEach(function(m){
-      var md = buildHighlightMarkdown(m, hlById[m.id] || [], ctxFor(m), tagRelatedTitles(m, metas));
       var base = mdNoteName(m.title) || ("book-" + String(m.id || "").slice(0, 6));
       var name = base + ".md", n = 2;
       while(used[name]){ name = base + "-" + (n++) + ".md"; }
       used[name] = 1;
-      zip.file(name, md);
+      var ctx = ctxFor(m); ctx.selfFile = name.slice(0, -3);   // the Source link resolves to this note inside the zip
+      zip.file(name, buildHighlightMarkdown(m, hlById[m.id] || [], ctx, tagRelatedTitles(m, metas)));
     });
     return zip.generateAsync({ type: "blob" }).then(function(blob){
       downloadBlob(blob, "application/zip", "backchat-library-" + new Date().toISOString().slice(0, 10) + ".zip");
@@ -6014,14 +5758,15 @@ function detailsExport(){
   var hasScratch=detailsBook.scratch && detailsBook.scratch.trim();
   if(!detailsItems.length && !hasScratch && !detailsBook.summary){ toast("Nothing to export yet"); return; }
   DB.all("meta").catch(function(){ return []; }).then(function(_ms){
-    downloadBlob(buildHighlightMarkdown(detailsBook, detailsItems, null, tagRelatedTitles(detailsBook, _ms)), "text/markdown;charset=utf-8", safeName(detailsBook.title)+"-notes.md");
+    var _base=safeName(detailsBook.title)+"-notes";
+    downloadBlob(buildHighlightMarkdown(detailsBook, detailsItems, {selfFile:_base}, tagRelatedTitles(detailsBook, _ms)), "text/markdown;charset=utf-8", _base+".md");
     var bits=[]; if(detailsItems.length) bits.push(detailsItems.length+" highlight"+(detailsItems.length===1?"":"s")); if(hasScratch) bits.push("notes");
     toast("Exported "+(bits.length?bits.join(" and "):"this book"));
   });
 }
 function detailsBackup(){ if(!detailsBook) return; DB.get("blob", detailsBook.id).then(function(bl){ var blobs={}; if(bl) blobs[detailsBook.id]=bl.data; var out=JSON.stringify(buildBackup([detailsBook], blobs, [{id:detailsBook.id,items:detailsItems}])); saveOrDownload(safeName(detailsBook.title)+"-backup.json", out, "application/json", "backups").then(function(){ if(!vault.connected) toast("Backed up this book"); }); }); }
 var metaDraftCover=null, metaDraftRating=0, metaDraftRelated=[];
-function renderMetaCover(){ var _cu=safeCoverUrl(metaDraftCover); $("#meta-cover").innerHTML = _cu ? '<img src="'+_cu+'" alt="">' : '<div class="ph">No cover</div>'; }
+function renderMetaCover(){ var _cu=safeCoverUrl(metaDraftCover); $("#meta-cover").innerHTML = _cu ? '\x3cimg src="'+_cu+'" alt="">' : '<div class="ph">No cover</div>'; }
 function renderMetaStars(){ [].forEach.call(document.querySelectorAll("#meta-stars [data-r]"), function(s){ s.classList.toggle("on", Number(s.dataset.r) <= metaDraftRating); }); }
 function renderMetaRelated(){ $("#meta-related-chips").innerHTML = metaDraftRelated.map(function(t,i){ return '<span class="rel-chip">'+escapeHtml(t)+' <b data-i="'+i+'" title="Remove">&times;</b></span>'; }).join(""); [].forEach.call(document.querySelectorAll("#meta-related-chips b"), function(b){ b.onclick=function(){ metaDraftRelated.splice(Number(b.dataset.i),1); renderMetaRelated(); if(metaRelatedCbx) metaRelatedCbx.refresh(); }; }); }
 function addRelated(v){ var inp=$("#meta-related-input"); if(v==null) v=inp?inp.value:""; v=(v||"").trim(); if(!v) return; var t=v.replace(/^\[\[|\]\]$/g,"").trim(); if(t && metaDraftRelated.map(function(x){return x.toLowerCase();}).indexOf(t.toLowerCase())<0) metaDraftRelated.push(t); if(inp){ inp.value=""; inp.focus(); } renderMetaRelated(); if(metaRelatedCbx) metaRelatedCbx.refresh(); }
@@ -6099,9 +5844,9 @@ function detailsRemoveLocal(){
   if(currentBook && currentBook.id===id && rendition){ toast("Close the book first"); return; }
   DB.get("blob", id).then(function(bl){
     var bytes=(bl && bl.data && bl.data.byteLength) || 0;
-    return Promise.all([DB.del("blob", id), DB.del("fulltext", id), (FT_DISK?ftIndexRemoveBook(id):Promise.resolve())]).then(function(){ return bytes; });
+    return Promise.all([DB.del("blob", id), DB.del("fulltext", id), ftIndexRemoveBook(id)]).then(function(){ return bytes; });
   }).then(function(bytes){
-    try{ refreshIndexedCount(); markSearchIndexDirty(); }catch(e){}
+    refreshIndexedCount();
     var mb=bytes/1048576;
     toast("Removed from this device"+(bytes?(" \u00b7 freed "+(mb>=1?mb.toFixed(1)+" MB":Math.max(1,Math.round(bytes/1024))+" KB")):""));
     renderDetails(); renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary();
@@ -6126,23 +5871,20 @@ function detailsDelete(){
   }).then(function(){
     return addTombstone(id, bookKeyOf(dm));
   }).then(function(){
-    return Promise.all([DB.del("meta",id), DB.del("blob",id), DB.del("highlights",id), DB.del("fulltext",id), delCover(id), (FT_DISK?ftIndexRemoveBook(id):Promise.resolve())]);
+    return Promise.all([DB.del("meta",id), DB.del("blob",id), DB.del("highlights",id), DB.del("fulltext",id), delCover(id), ftIndexRemoveBook(id)]);
   }).then(function(){
     try{ if(localStorage.getItem("reader-last-book")===id) localStorage.removeItem("reader-last-book"); }catch(e){}
     if(vault.handle) try{ vaultRemoveBook(dm); }catch(e){}
-    try{ markSearchIndexDirty(); markCorpusDirty(); }catch(e){}
+    markCorpusDirty();
     detailsBook=null; detailsItems=[]; refreshIndexedCount(); goHome(); toast("Deleted \u00b7 full backup saved");
   }).catch(function(e){ console.error("delete", e); toast("Delete failed"); });
 }
 
 /* ============================================================
-   Read aloud (Web Speech API) — audio bar built dynamically
+   READ-ALOUD (Web Speech API)
+   Off by default; tap-to-read and an audio bar (built on first use) when enabled.
    ============================================================ */
 var synth=window.speechSynthesis;
-/* ============================================================
-   READ-ALOUD (Web Speech API)
-   Off by default; tap-to-read and an audio bar when enabled.
-   ============================================================ */
 function ttsSupported(){ return !!synth && typeof window.SpeechSynthesisUtterance==="function"; }
 function ensureAudioBar(){
   var bar=$("#audiobar");
@@ -6462,10 +6204,7 @@ function ttsNextSection(){
 function ttsStop(){ tts.token++; ttsWatchStop(); ttsEstStop(); if(synth) try{ synth.cancel(); }catch(e){} ttsClearHighlight(); tts.state="idle"; tts.chunks=[]; tts.cidx=0; tts.curSentIdx=-1; tts.contents=null; ttsSetUI(); }
 
 /* ============================================================
-   Panels & navigation
-   ============================================================ */
-/* ============================================================
-   PANELS, SCRATCHPAD, HELP & NAV
+   PANELS, MARGINS, HELP & NAV
    Slide-over panels and top-level screen switching.
    ============================================================ */
 var marksCache=null, marksBookCbx=null;
@@ -6505,14 +6244,13 @@ function openMarks(){
       minChars:0,
       maxItems:80
     });
-    // Clear "All books" placeholder text on focus so user can type immediately
-    sel.addEventListener("focus", function(){
-      if(sel.value==="All books" && !sel.dataset.bookId) sel.value="";
-    }, {once:false});
-    // Restore "All books" text on blur if no book was selected
-    sel.addEventListener("blur", function(){
-      if(!sel.value && !sel.dataset.bookId) sel.value="All books";
-    }, {once:false});
+    if(!sel.dataset.wired){   // bound once, not again on every opening of the panel
+      sel.dataset.wired="1";
+      // Clear "All books" placeholder text on focus so user can type immediately
+      sel.addEventListener("focus", function(){ if(sel.value==="All books" && !sel.dataset.bookId) sel.value=""; });
+      // Restore "All books" text on blur if no book was selected
+      sel.addEventListener("blur", function(){ if(!sel.value && !sel.dataset.bookId) sel.value="All books"; });
+    }
     renderMarksFilter();
     renderMarks();
   });
@@ -6602,8 +6340,11 @@ function openToc(){
   else { renderTocList([]); }
 }
 function closePanels(){ $("#overlay").classList.remove("open"); flushScratch(); ["settings-panel","hl-panel","lib-panel","toc-panel","scratch-panel","marks-panel"].forEach(function(id){ var p=$("#"+id); if(p) p.classList.remove("open"); }); marksCache=null; if(marksBookCbx) marksBookCbx.close(); }
-/* ---------- Scratchpad: a per-book markdown notepad, beside notes & highlights ---------- */
-var _scratchTimer=null;
+/* ---------- Margins: a per-book markdown notepad, beside notes & highlights ----------
+   The editor's text belongs to the book it was loaded for (_scratchOwnerId). A late save
+   (the typing debounce, or a blur) that fires after another book has opened is dropped,
+   so one book's margins can never be written over another's. */
+var _scratchTimer=null, _scratchOwnerId=null;
 function openScratch(){
   if(!currentBook){ return; }
   $("#scratch-panel").classList.remove("editing");
@@ -6620,6 +6361,7 @@ function toggleScratchEdit(){
   var panel=$("#scratch-panel"), editing=panel.classList.toggle("editing");
   if(editing){
     $("#scratch-edit-area").value=(currentBook&&currentBook.scratch)||"";
+    _scratchOwnerId=currentBook?currentBook.id:null;
     $("#scratch-toggle").textContent="Done";
     setTimeout(function(){ var _ta=$("#scratch-edit-area"); _ta.focus(); bcAutoGrow(_ta); },40);
   } else {
@@ -6630,7 +6372,8 @@ function toggleScratchEdit(){
   try{ updateScratchWc(); }catch(e){}
 }
 function saveScratch(){
-  if(!currentBook) return;
+  clearTimeout(_scratchTimer);
+  if(!currentBook || currentBook.id!==_scratchOwnerId) return;
   var val=$("#scratch-edit-area").value;
   if(val===(currentBook.scratch||"")) return;
   currentBook.scratch=val; currentBook.updated=Date.now();
@@ -6672,7 +6415,7 @@ function appendToMargins(entry){
   currentBook.scratch=cur+entry;
   currentBook.updated=Date.now();
   saveProgress(currentBook);
-  var ta=$("#scratch-edit-area"); if(ta) ta.value=currentBook.scratch;
+  var ta=$("#scratch-edit-area"); if(ta){ ta.value=currentBook.scratch; _scratchOwnerId=currentBook.id; }
   try{ renderScratchView(); }catch(e){}
   toast("Added to margins");
 }
@@ -6681,7 +6424,7 @@ function flushScratch(){
   var panel=$("#scratch-panel");
   if(panel && panel.classList.contains("editing")) saveScratch();
 }
-/* ---- Writing surface behavior (shared by margins & Trails) ---- */
+/* ---- Writing surface behavior (both margins editors: the reader's panel and the book page) ---- */
 function bcInsertText(ta, text){
   ta.focus(); var ok=false;
   try{ ok=document.execCommand("insertText", false, text); }catch(e){}
@@ -6754,7 +6497,7 @@ function openHelp(){
 }
 function closeHelp(){ var m=$("#help-modal"); if(m) m.style.display="none"; }
 function goHome(){ _bcStack=[]; _bcSetBackLabel(); show("home"); return renderHome(); }
-function showLibrary(mode){ if(mode) lib.mode=mode; _bcStack=[]; _bcSetBackLabel(); show("library"); lib.page=0; renderLibrary(); }
+function showLibrary(){ _bcStack=[]; _bcSetBackLabel(); show("library"); lib.page=0; renderLibrary(); }
 /* Library-wide search as an overlay ON TOP of the reader. The reader is never torn
    down, so closing returns to the exact same position. Reuses runSearch + the copy-
    link icons; clicking a result body navigates and closes, the link icon copies and stays. */
@@ -6898,15 +6641,14 @@ function cloudSig(b){
 function cloudApplyBundle(b){
   if(!b || b.app!=="backchat-sync" || !Array.isArray(b.books)) return Promise.resolve(0);
   var changed=0, tombChanged=false;
-  return loadTombstones().then(function(local){
+  return mutateTombstones(function(local){
     var rt=b.tombstones||{}, dirty=false;
     ["ids","keys"].forEach(function(g){
-      local[g]=local[g]||{}; var src=rt[g]||{};
+      var src=rt[g]||{};
       Object.keys(src).forEach(function(k){ var v=+src[k]||0; if(!local[g][k]){ local[g][k]=v||Date.now(); dirty=true; tombChanged=true; } else if(v>local[g][k]){ local[g][k]=v; dirty=true; } });
     });
-    if(!dirty) return local;
-    return saveTombstones(local).then(function(){ if(vault.handle){ try{ vaultPushTombstones(); }catch(e){} } return local; });
-  }).then(function(tomb){
+    return dirty;
+  }).then(tombPushIfChanged).then(function(tomb){
     return DB.all("meta").then(function(metas){
       metas=metas||[];
       var chain=Promise.resolve();
@@ -7033,7 +6775,7 @@ function cloudPull(){
     return chain.then(function(){ if(!mine) cloudSetSig(""); cloudMarkOk(); return changed; });   // our slot missing on the relay: upload afresh
   }).then(function(n){
     if(n){
-      try{ markCorpusDirty(); markSearchIndexDirty(); }catch(e){}
+      markCorpusDirty();
       try{ if(!$("#home").classList.contains("hidden")) renderHome(); }catch(e){}
       try{ if(!$("#library").classList.contains("hidden")) renderLibrary(); }catch(e){}
     }
@@ -7257,14 +6999,17 @@ $("#home-load").onclick=function(){ var i=$("#restore-input"); if(i) i.click(); 
 $("#home-handoff").onclick=handoffExport;
 $("#file-input").onchange=function(e){ importFiles([].slice.call(e.target.files)); e.target.value=""; };
 (function(){ var c=$("#bc-empty-cta"); if(c) c.onclick=function(){ $("#file-input").click(); }; var g=$("#bc-empty-guide"); if(g) g.onclick=function(){ seedGuide(true).then(function(){ renderHome(); }); }; })();
-var drop=$("#drop");
-["dragover","dragenter"].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add("over"); }); });
-["dragleave","drop"].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
-drop.addEventListener("drop", function(e){ importFiles([].slice.call(e.dataTransfer.files)); });
-document.addEventListener("dragover",function(e){ if($("#reader").classList.contains("hidden")) e.preventDefault(); });
-document.addEventListener("drop",function(e){ if($("#reader").classList.contains("hidden") && $("#search").classList.contains("hidden")){ e.preventDefault(); importFiles([].slice.call(e.dataTransfer.files)); } });
+// Drop EPUB files anywhere outside the reader and search to add them. A file dropped on the
+// reader or search is ignored, never opened by the browser in place of the app.
+function _bcDraggingFiles(e){ var t=e.dataTransfer && e.dataTransfer.types; return !!t && [].indexOf.call(t,"Files")>=0; }
+document.addEventListener("dragover",function(e){ if(_bcDraggingFiles(e)) e.preventDefault(); });
+document.addEventListener("drop",function(e){
+  if(!_bcDraggingFiles(e)) return;
+  e.preventDefault();
+  if($("#reader").classList.contains("hidden") && $("#search").classList.contains("hidden")) importFiles([].slice.call(e.dataTransfer.files));
+});
 
-$("#home-library-link").onclick=function(){ showLibrary("books"); };
+$("#home-library-link").onclick=function(){ showLibrary(); };
 (function(){ var c=$("#home-connections-link"); if(c) c.onclick=bcOpenConnections; })();
 $("#lib-home").onclick=goHome;
 $("#home-search").addEventListener("focus", function(){ openSearch($("#home-search").value); });
@@ -7278,7 +7023,7 @@ $("#lib-sort").addEventListener("change", function(e){ lib.sort=e.target.value; 
 $("#lib-dir").onclick=function(){ lib.dir=lib.dir==="asc"?"desc":"asc"; renderLibrary(); };
 $("#lib-fav").onclick=function(){ lib.fav=!lib.fav; lib.page=0; this.classList.toggle("fav-on", lib.fav); this.title=lib.fav?"Showing favorites only. Tap to show all":"Show favorites only"; renderLibrary(); };
 
-$("#home-settings").onclick=function(){ showSettingsView(false); try{ cloudRenderUI(); }catch(e){} updateStorageInfo(); updateVaultUI(); syncSettingsUI(); var hf=$("#handoff-field"); if(hf) hf.style.display=(vault.connected?"none":""); if(!vault.connected) updateHandoffBtn(); refreshIndexedCount().then(function(n){ $("#index-info").textContent = n? ("Inside-text search ready · "+n+" book"+(n===1?"":"s")+" indexed.") : "Pin books (open a book, tap the search-pin) to search inside them. Titles, tags, highlights and notes are always searchable across your whole library."; }); openPanel($("#lib-panel")); };
+$("#home-settings").onclick=function(){ showSettingsView(false); try{ cloudRenderUI(); }catch(e){} updateStorageInfo(); updateVaultUI(); syncSettingsUI(); if(!vault.connected) updateHandoffBtn(); refreshIndexedCount().then(function(n){ $("#index-info").textContent = n? ("Inside-text search ready · "+n+" book"+(n===1?"":"s")+" indexed.") : "Favorite books (the heart on a cover) to search inside them. Titles, tags, highlights and notes are always searchable across your whole library."; }); openPanel($("#lib-panel")); };
 $("#settings-adv-toggle").onclick=function(){ showSettingsView($("#settings-advanced").classList.contains("hidden")); };
 (function(){ var v=document.getElementById("bc-version-line"); if(v) v.textContent="Backchat build "+BC_VERSION; })();
 document.addEventListener("click", function(e){
@@ -7289,7 +7034,7 @@ document.addEventListener("click", function(e){
   var id=(card.dataset.vid||"").replace(/[^A-Za-z0-9_-]/g,"");
   if(!id) return;
   card.dataset.playing="1";
-  card.innerHTML='<iframe class="md-embed" src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1" title="Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+  card.innerHTML='\x3ciframe class="md-embed" src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1" title="Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
 });
 $("#folder-check-btn").onclick=function(){ folderCheck(); };
 /* Inspect the connected folder's health: every notes record should have its book file,
@@ -7449,19 +7194,18 @@ $("#hl-btn").onclick=function(){ renderHlControls(); renderHighlightList(); open
 $("#scratch-btn").onclick=openScratch;
 $("#scratch-toggle").onclick=toggleScratchEdit;
 $("#scratch-edit-area").addEventListener("input", function(){ clearTimeout(_scratchTimer); _scratchTimer=setTimeout(saveScratch, 800); updateScratchWc(); });
-// Markdown flow for every writing surface (margins + Trails), via delegation so dynamically-rendered editors get it too.
+// Markdown flow for every writing surface (both margins editors), via delegation so dynamically-rendered editors get it too.
 document.addEventListener("keydown", function(e){ var t=e.target; if(t && t.classList && t.classList.contains("bc-write")) bcWriterKeydown(e); }, true);
 document.addEventListener("input", function(e){ if(e.target && e.target.classList && e.target.classList.contains("bc-write")) bcAutoGrow(e.target); }, true);
 document.addEventListener("focusin", function(e){ if(e.target && e.target.classList && e.target.classList.contains("bc-write")) bcAutoGrow(e.target); }, true);
 $("#scratch-edit-area").addEventListener("blur", saveScratch);
 $("#toc-btn").onclick=openToc;
-$("#export-md").onclick=function(e){ e.stopPropagation(); if(!currentBook){ toast("Open a book first"); return; } if(!highlights.length){ toast("No highlights"); return; } DB.all("meta").catch(function(){ return []; }).then(function(_ms){ downloadBlob(buildHighlightMarkdown(currentBook, highlights, null, tagRelatedTitles(currentBook, _ms)), "text/markdown;charset=utf-8", safeName(currentBook.title)+"-highlights.md"); toast("Exported"); }); };
+$("#export-md").onclick=function(e){ e.stopPropagation(); if(!currentBook){ toast("Open a book first"); return; } if(!hlLive(highlights).length){ toast("No highlights"); return; } DB.all("meta").catch(function(){ return []; }).then(function(_ms){ var _base=safeName(currentBook.title)+"-highlights"; downloadBlob(buildHighlightMarkdown(currentBook, highlights, {selfFile:_base}, tagRelatedTitles(currentBook, _ms)), "text/markdown;charset=utf-8", _base+".md"); toast("Exported"); }); };
 $("#overlay").onclick=closePanels;
 [].forEach.call(document.querySelectorAll("[data-close]"), function(b){ b.onclick=closePanels; });
 
 $("#seg-theme").onclick=function(e){ var b=e.target.closest("[data-theme]"); if(!b) return; settings.theme=b.dataset.theme; segActive("#seg-theme",b); saveSettings(); applyTheme(); };
 $("#seg-theme-app").onclick=function(e){ var b=e.target.closest("[data-theme]"); if(!b) return; settings.theme=b.dataset.theme; segActive("#seg-theme-app",b); saveSettings(); applyTheme(); syncSettingsUI(); };
-[].forEach.call(document.querySelectorAll(".theme-toggle"),function(b){ b.onclick=toggleTheme; });
 $("#meta-stars").onclick=function(e){ var s=e.target.closest("[data-r]"); if(!s) return; metaDraftRating=Number(s.dataset.r); renderMetaStars(); };
 $("#meta-rating-clear").onclick=function(){ metaDraftRating=0; renderMetaStars(); };
 $("#meta-related-add").onclick=function(){ addRelated(); };   // the combobox handles Enter/Tab/picks; this button commits the typed text
@@ -7498,7 +7242,7 @@ $("#det-fav").onclick=function(){
   saveProgress(detailsBook, {immediate:true});
   if(detailsBook.fav){
     toast("Favorited · indexing for inside-text search…");
-    indexBook(detailsBook.id, {force:true}).then(function(){ try{ enforceFulltextCache(); markSearchIndexDirty(); }catch(e){} toast("Favorited · searchable inside"); }, function(){ toast("Favorited (index will retry)"); });
+    indexBook(detailsBook.id, {force:true}).then(function(){ try{ enforceFulltextCache(); }catch(e){} toast("Favorited · searchable inside"); }, function(){ toast("Favorited (index will retry)"); });
   } else { toast("Removed from favorites"); try{ enforceFulltextCache(); }catch(e){} }
 };
 $("#det-continue").onclick=function(){ if(!detailsBook) return; if(this.dataset.mode==="add"){ $("#file-input").click(); return; } openBook(detailsBook.id); };
@@ -7541,22 +7285,16 @@ function syncSettingsUI(){
   syncTtsControls();
 }
 
-/* window.__reader debug export removed for production */
-
-/* ============================================================
-   Boot
-   ============================================================ */
-// Collapse duplicate / ghost book records into one, and honour tombstones.
-// Conservative: a record is only removed after its notes and progress are
-// merged into a surviving twin, or because the user deleted it. A lone
-// note-only record (file missing, no twin) is intentional and is kept.
 /* ============================================================
    LIBRARY RECONCILIATION
-   Collapse duplicate copies of a book without losing marks.
+   Collapse duplicate / ghost book records into one, and honour tombstones.
+   Conservative: a record is only removed after its notes and progress are
+   merged into a surviving twin, or because the user deleted it. A lone
+   note-only record (file missing, no twin) is intentional and is kept.
    ============================================================ */
 function removeBookEverywhere(m){
   var id=m.id;
-  return Promise.all([DB.del("meta",id), DB.del("blob",id), DB.del("highlights",id), DB.del("fulltext",id), delCover(id), (FT_DISK?ftIndexRemoveBook(id):Promise.resolve())]).then(function(){
+  return Promise.all([DB.del("meta",id), DB.del("blob",id), DB.del("highlights",id), DB.del("fulltext",id), delCover(id), ftIndexRemoveBook(id)]).then(function(){
     try{ if(localStorage.getItem("reader-last-book")===id) localStorage.removeItem("reader-last-book"); }catch(e){}
     if(vault.handle) try{ vaultRemoveBook(m); }catch(e){}
   });
@@ -7628,7 +7366,6 @@ function reconcileLibrary(){
       return chain;
     }).then(function(){
       if(removed||mergedN) console.warn("reconcile: removed "+removed+", merged "+mergedN);
-      dbgLog("reader.html:reconcileLibrary", "done", {removed:removed, merged:mergedN}, "reconcile");
       refreshIndexedCount();
       if(removed||mergedN){
         if(!$("#home").classList.contains("hidden")) return renderHome();
@@ -7662,9 +7399,7 @@ function boot(){
   // paint, in the background, and re-render Home if they changed anything. This keeps
   // the old empty-shelf race fixed (we still re-render post-reconcile) while no longer
   // chaining first paint to a cold-mobile consistency sweep.
-  dbSnapshot("boot-start").then(function(){
-    return DB.open();
-  }).then(function(){
+  DB.open().then(function(){
     return DB.keys("meta").then(function(k){ if(!k || !k.length) return seedGuide(false); }).catch(function(){});
   }).then(function(){
     return goHome();                                    // paint now; do not wait on the consistency passes
@@ -7672,18 +7407,16 @@ function boot(){
     Promise.resolve()
       .then(function(){ return integrityCheck(); })
       .then(function(){ return reconcileLibrary(); })
-      .then(function(){ return dbSnapshot("boot-after-reconcile"); })
       .then(function(){ return ensureGuideFresh(); })
       .then(function(){ return goHome(); })             // re-render so any dedup/merge/guide refresh shows
       .then(function(){
-        setTimeout(function(){ try{ backfillAnchors().then(function(){ markSearchIndexDirty(); }); }catch(e){} }, 800);
-        if(FT_DISK){ try{ ftBackfillIfNeeded(); }catch(e){} } else { try{ scheduleWarmIndex(); }catch(e){} }
-        try{ cloudStart(); }catch(e){ console.warn("device sync start", e); }   // 1.0.52: catch up with other devices once the library is settled   // disk index: one-time backfill; legacy path: warm MiniSearch
+        setTimeout(backfillAnchors, 800);
+        ftBackfillIfNeeded();                            // disk index: one-time backfill, self-heals after a storage wipe
+        try{ cloudStart(); }catch(e){ console.warn("device sync start", e); }   // catch up with other devices once the library is settled
       })
-      .catch(function(e){ console.error("boot bg", e); dbgLog("reader.html:boot", "background reconcile failed", {err:String(e)}, "boot"); });
+      .catch(function(e){ console.error("boot bg", e); });
   }).catch(function(e){
     console.error("boot", e);
-    dbgLog("reader.html:boot", "boot chain failed", {err:String(e)}, "boot");
     goHome();
   });
   try{ reconnectVault(); }catch(e){}
@@ -7693,7 +7426,7 @@ boot();
 </script>
 
 <!-- ==================================================================
-     Video transcript player  (build 2026.07.24a)
+     Video transcript player
      Persistent YouTube player docked above the reader; timestamp tap
      seeks without scrolling; TTS-style follow highlight on the spoken
      line. Reads backchat:media / data-t from transcript epubs and stays
@@ -7701,18 +7434,8 @@ boot();
      ================================================================== -->
 <style id="bcp-css">
 /* backchat-player.css
-   Colours come from custom properties so this inherits Backchat's tokens.
-   Override --bcp-* at :root to retheme without touching this file. */
-
-:root {
-  --bcp-bg:    var(--bc-surface,  #12171d);
-  --bcp-fg:    var(--bc-text,     #e6ebf0);
-  --bcp-dim:   var(--bc-muted,    #93a3b3);
-  --bcp-rule:  var(--bc-border,   #29333d);
-  --bcp-key:   var(--bc-accent,   #7fd1c1);
-  --bcp-on-key:var(--bc-on-accent,#0b1216);
-  --bcp-now:   var(--bc-mark,     rgba(127,209,193,0.18));
-}
+   Colours come from custom properties mapped onto Backchat's own tokens (bottom of
+   this sheet), so the player follows the app's light, sepia and dark themes. */
 
 .bcp {
   position: sticky;
@@ -7728,11 +7451,6 @@ boot();
   top: 0; left: 0; right: 0;
 }
 .bcp-idle { display: none; }
-
-/* optional shell: player and scroller as siblings. cleaner than fixed, but
-   only usable if Backchat owns the full-height layout. mount(host,{sticky:true}) */
-.bc-shell  { display: flex; flex-direction: column; height: 100dvh; }
-.bc-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
 /* video is collapsed by default: this is a listening tool first */
 .bcp-stage {
@@ -7822,7 +7540,7 @@ boot();
 
 :root{
   --bcp-bg: var(--bg, var(--panel, #14181d));
-  --bcp-fg: var(--fg, var(--text, #e6ebf0));
+  --bcp-fg: var(--ink, #e6ebf0);
   --bcp-dim: var(--muted, #90a0b0);
   --bcp-rule: var(--line, var(--border, #2a333d));
   --bcp-key: var(--accent, #7fd1c1);
@@ -7841,14 +7559,13 @@ boot();
    whole book. That is the entire reason this lives in Backchat rather than in
    the EPUB.
 
-   Wiring:
-     BackchatPlayer.mount(document.getElementById('bc-player-host'));
-     // when a book opens:
-     BackchatPlayer.attach(BackchatPlayer.readBook(opfDoc));   // or {provider,id,duration}
-     // every time chapter content is swapped in:
-     BackchatPlayer.observe(document.getElementById('reader-content'));
-     // when the book closes:
-     BackchatPlayer.detach();
+   Wiring (Backchat does this in bcp-wire below):
+     BackchatPlayer.mount(hostEl, {sticky:true});   // once, above the reader
+     // every time a chapter renders: find the media and attach it
+     BackchatPlayer.attach(BackchatPlayer.readBook(opfDoc, chapterDoc));   // or {provider,id,duration}
+     BackchatPlayer.observe(chapterDoc);
+     // when the book closes, or before wiring a new one:
+     BackchatPlayer.release();
 
    Contract it reads from the book:
      OPF   <meta property="backchat:media">youtube:VIDEO_ID</meta>
@@ -8116,7 +7833,7 @@ window.BackchatPlayer = (function () {
     e.preventDefault();
     e.stopPropagation();
     var t = parseInt(a.getAttribute("data-t"), 10);
-    if (!isNaN(t)) { if (!open) { /* stay in audio mode */ } seek(t, true); }
+    if (!isNaN(t)) seek(t, true);   // seeking keeps the current mode: audio stays audio
   }
 
   /* binary search for the cue that contains the playhead */
@@ -8140,8 +7857,7 @@ window.BackchatPlayer = (function () {
   function reveal(node) {
     var box = node.getBoundingClientRect();
     var top = root ? root.getBoundingClientRect().bottom : 0;
-    if (box.top < top + 8) { /* hidden behind the player */ }
-    if (box.top >= top + 8 && box.bottom <= window.innerHeight - 8) return;
+    if (box.top >= top + 8 && box.bottom <= window.innerHeight - 8) return;   // already in view, clear of the player
     node.scrollIntoView({
       behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
       block: "center"
@@ -8253,11 +7969,12 @@ window.BackchatPlayer = (function () {
 </script>
 
 <!-- ==================================================================
-     Scale hardening (build 2026.07.24b)
+     Scale hardening
      - Storage-full guard: warns via a banner instead of a save failing
        silently, plus a proactive quota check.
      - Highlights + meta kept in a live in-memory cache (fresh on every
-       write) so search never reloads all marks from IndexedDB.
+       write) so search, sync and export never reload every record from
+       IndexedDB.
      ================================================================== -->
 <script id="bcp-hardening">
 (function(){
@@ -8334,37 +8051,6 @@ window.BackchatPlayer = (function () {
 })();
 </script>
 
-<!-- ==================================================================
-     Shelf refresh after folder sync (build 2026.07.24d)
-     A folder connect / pull imports books into IndexedDB but did not
-     re-render the home shelf, so a fresh connect looked empty until you
-     opened the Library. Wrap vaultPull() once (it is the common pull path
-     for connect, reconnect-on-boot and manual sync) to repaint the home
-     shelf, and the library grid if it is on screen, after every pull.
-     ================================================================== -->
-<script id="bcp-syncrefresh">
-(function(){
-  "use strict";
-  function refresh(){
-    try{ if(typeof renderHome==="function") renderHome(); }catch(e){}
-    try{
-      var lib=document.getElementById("library");
-      if(typeof renderLibrary==="function" && lib && !lib.classList.contains("hidden")) renderLibrary();
-    }catch(e){}
-  }
-  if(typeof vaultPull==="function" && !vaultPull.__bcWrapped){
-    var orig=vaultPull;
-    window.vaultPull=function(){
-      var r;
-      try{ r=orig.apply(this,arguments); }
-      catch(e){ refresh(); throw e; }
-      return Promise.resolve(r).then(function(v){ refresh(); return v; },
-                                     function(err){ refresh(); throw err; });
-    };
-    window.vaultPull.__bcWrapped=true;
-  }
-})();
-</script>
 
 </body>
 </html>
