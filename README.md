@@ -24,7 +24,7 @@ Setup takes about 15 minutes in a browser: [docs/SYNC-SETUP.md](docs/SYNC-SETUP.
 
 ## Host your own copy
 
-Fork this repository and turn on GitHub Pages, or copy its files to any static host, keeping `lib/` beside `index.html`. Nothing else is needed. If you change any inline script in `index.html`, run `python3 tools/csp.py index.html` to refresh the security policy, or the browser will refuse to run the edited script. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`.
+Fork this repository and turn on GitHub Pages, or copy its files to any static host, keeping `lib/` beside `index.html`. Nothing else is needed. If you change any inline script in `index.html`, run `python3 tools/csp.py index.html` to refresh the security policy, or the browser will refuse to run the edited script. Before merging any change, run `python3 tools/check/check.py`: it drives the page in a headless browser and checks the behaviours that must never break, such as marks and margins that must not be lost and deletes that must stick. The same check runs on every pull request. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`.
 
 ## Security
 

@@ -24,6 +24,7 @@ A durability pass, with no new features. Each fix below was reproduced in a real
 **Changed**
 - Removed code that no longer ran: the in-memory search the disk index replaced in 1.0.35, the paste-to-book builder, an unused drop box, a theme switch and a layout button that no longer appeared, debug stubs, and styles left from Trails and other retired features. The page is about 28 KB smaller.
 - A full push to the folder reads the library once instead of once per book.
+- **A regression check** now lives in `tools/check/check.py` and runs on every pull request. It drives the page in a headless browser and fails if any of the problems fixed here, or the earlier ones it covers, come back.
 - Comments throughout the code now describe how it works today, and messages that pointed at old buttons name the current ones.
 
 ## 1.0.56 (13 October 2026)
