@@ -36,8 +36,23 @@ def make_epub(path, title, author, ident, chapters):
     z.writestr("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">%s</dc:identifier><dc:title>%s</dc:title><dc:creator>%s</dc:creator><dc:language>en</dc:language></metadata><manifest>%s</manifest><spine>%s</spine></package>' % (ident, title, author, "".join(man), "".join(spine)))
     z.close()
 
+def make_transcript_epub(path, title, vid):
+    """A book as the Video Book builder writes it: the video id in the OPF and a media
+    element in each chapter, a data-t time on every caption line and timestamp button."""
+    z = zipfile.ZipFile(path, "w")
+    z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", compress_type=zipfile.ZIP_STORED)
+    z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
+    rows = "".join('<div class="transcript-entry" id="e-%d"><button class="ts timestamp" type="button" data-t="%d">0:%02d</button><p><span class="c" id="t-%d" data-t="%d">Line %d of the talk, spoken at second %d.</span></p></div>' % (t, t, t, t, t, i, t) for i, t in enumerate(range(0, 60, 6)))
+    z.writestr("OEBPS/ch01.xhtml", '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Talk</title></head><body><div id="backchat-media" data-provider="youtube" data-id="%s" data-duration="60" data-next="" hidden="hidden"></div><h1 class="ch" id="c1" data-t="0">Talk</h1>%s</body></html>' % (vid, rows))
+    z.writestr("OEBPS/nav.xhtml", '<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Nav</title></head><body><nav epub:type="toc"><ol><li><a href="ch01.xhtml">Talk</a></li></ol></nav></body></html>')
+    z.writestr("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:video-%s</dc:identifier><dc:title>%s</dc:title><dc:creator>Speaker</dc:creator><dc:language>en</dc:language><dc:source>https://www.youtube.com/watch?v=%s</dc:source><meta property="backchat:media">youtube:%s</meta><meta property="backchat:duration">60</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="c1" href="ch01.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/></spine></package>' % (vid, title, vid, vid))
+    z.close()
+
 TMP = tempfile.mkdtemp(prefix="backchat-check-")
 ALPHA, BETA = os.path.join(TMP, "alpha.epub"), os.path.join(TMP, "beta.epub")
+GONE, LIVE = os.path.join(TMP, "gone.epub"), os.path.join(TMP, "live.epub")
+make_transcript_epub(GONE, "Removed Talk", "deadvideo01")
+make_transcript_epub(LIVE, "Playing Talk", "livevideo01")
 make_epub(ALPHA, "Alpha Testing Book", "Ann Author", "urn:isbn:9780000000001", [
     ("Chapter One", ["The quick brown fox jumps over the lazy dog near the riverbank.",
                      "Call me Ishmael. Some years ago, never mind how long precisely, I went to sea.",
@@ -207,7 +222,37 @@ with sync_playwright() as p:
     expect("delete everything clears the search index", ev(page, "Promise.all([DB.count('ftseg'),DB.count('ftblk')])"), [0, 0], "no derived index outlives the books")
     ctx.close()
 
-    # 3. Folder sync against an in-memory, case-insensitive folder (how macOS and Windows disks behave).
+    # 3. A transcript book whose video YouTube refuses. YouTube is stubbed: the embed for
+    #    "deadvideo01" answers with onError 150, as YouTube does for a removed video or one
+    #    its owner keeps on YouTube only. The player must say so, stay quiet, and leave the book alone.
+    vctx = browser.new_context(bypass_csp=True); vp = vctx.new_page(); watch(vp, "video")
+    def youtube_stub(route):
+        dead = "deadvideo01" in route.request.url
+        body = ("<!doctype html><title>player</title><script>"
+                "var say=function(m){parent.postMessage(JSON.stringify(m),'*');};"
+                "say({event:'onReady'});" + ("setTimeout(function(){say({event:'onError',info:150});},300);" if dead else "") +
+                "</script>")
+        route.fulfill(status=200, content_type="text/html", body=body)
+    vctx.route(re.compile(r"https://www\.youtube\.com/embed/.*"), youtube_stub)
+    vp.goto(URL)
+    wait(vp, "typeof DB!=='undefined' && typeof openBook==='function'"); settle(1.2)
+    vp.set_input_files("#file-input", [GONE, LIVE])
+    wait(vp, "DB.all('meta').then(ms=>window.__v=ms.filter(m=>m.videoId).length), window.__v>=2")
+    vids = vp.evaluate("DB.all('meta').then(ms=>Object.fromEntries(ms.filter(m=>m.videoId).map(m=>[m.videoId,m.id])))")
+    vp.evaluate("(id)=>openBook(id)", vids["deadvideo01"])
+    wait(vp, "!!document.querySelector('.bcp.bcp-dead')")
+    note = ev(vp, "document.querySelector('.bcp-gone').textContent")
+    expect("a refused video says so", note, lambda t: "The video is unavailable." in t and "your marks are all still here" in t, "the reader is told the book is unaffected")
+    expect("the refused video links to YouTube", ev(vp, "document.querySelector('.bcp-gone a').href"), "https://www.youtube.com/watch?v=deadvideo01", "a way to check on YouTube itself")
+    expect("the dead player is folded away", ev(vp, "getComputedStyle(document.querySelector('.bcp-stage')).display"), "none", "no black box where the video was")
+    vp.evaluate("()=>{ const d=rendition.getContents()[0].document; d.querySelector('button.ts[data-t=\"18\"]').click(); }"); settle(1.5)
+    expect("tapping a time does not fake playback", ev(vp, "[BackchatPlayer.isPlaying, Math.round(BackchatPlayer.time)]"), [False, 18], "no clock running against a video that cannot play")
+    vp.evaluate("()=>{ closeBook(); }"); settle(0.5)
+    vp.evaluate("(id)=>openBook(id)", vids["livevideo01"]); settle(2.5)
+    expect("a playable video after a refused one is not marked unavailable", ev(vp, "[!!document.querySelector('.bcp.bcp-dead'), !!document.querySelector('.bcp:not(.bcp-idle)')]"), [False, True], "the refused state belongs to one video, not the player")
+    vctx.close()
+
+    # 4. Folder sync against an in-memory, case-insensitive folder (how macOS and Windows disks behave).
     fctx = browser.new_context(bypass_csp=True); fp = fctx.new_page(); watch(fp, "folder")
     fp.goto(URL); wait(fp, "typeof vaultPull==='function'"); settle(1.5)
     fp.evaluate(open(os.path.join(HERE, "mockfs.js"), encoding="utf-8").read())

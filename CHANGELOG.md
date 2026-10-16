@@ -2,6 +2,15 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.58 (16 October 2026)
+
+**Added**
+- **A transcript book whose video has gone now says so.** When YouTube refuses to play a book's video (removed, made private, or kept on YouTube only by its owner), the player folds away and a short note takes its place: the video is unavailable, and the book, its times and your marks are all still here. The note links to the video on YouTube, so you can see YouTube's own reason, and offers Try again. Before, the player showed YouTube's black error box, and tapping a time started a clock that ran against a video that could not play; it no longer does.
+
+**Changed**
+- The player now listens only to the YouTube frame it created, so another YouTube embed on the page, such as a video card in the margins, can never move or stop it.
+- The regression check covers a refused video and a playable one opened after it.
+
 ## 1.0.57 (16 October 2026)
 
 A durability pass, with no new features. Each fix below was reproduced in a real browser first, then checked again after the change.
