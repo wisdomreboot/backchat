@@ -4,12 +4,12 @@
 
 - **Your books and notes** live in your browser's storage for this one address, and in the folder you connect, if you connect one. No other website can read either. Neither is on the internet: there is no address anyone can connect to.
 - **The folder** is the one you pick, and only while Backchat is open in a tab. You can revoke it at any time in the browser's site settings.
-- **Nothing is sent anywhere** unless you turn on sync. Sync sends your notes, encrypted on your device with AES-256 and a key from your passphrase, to a relay you set up and own. The passphrase is never stored or sent. Book files never travel.
-- **Outside requests** are limited to YouTube, when you play a video in a transcript book, and images a book or note links to on the web.
+- **Your books and notes are sent nowhere** unless you turn on sync. Sync sends your notes, encrypted on your device with AES-256 and a key from your passphrase, to a relay you set up and own. The passphrase is never stored or sent. Book files never travel.
+- **Outside requests** are limited to a page-view count sent to GoatCounter when the page opens (the address without anything after `#`, the referring site, the page title and the screen size; see the [README](README.md#page-view-count)), YouTube, when you play a video in a transcript book, and images a book or note links to on the web.
 
 ## What protects it
 
-- **Only this repository's code runs.** The page's Content-Security-Policy lets the browser run scripts from this site and the inline scripts whose fingerprints it lists, and nothing else. The three libraries are stored in [lib/](lib/), unchanged from their published versions.
+- **Only this repository's code runs.** The page's Content-Security-Policy lets the browser run scripts from this site and the inline scripts whose fingerprints it lists, and nothing else. The four libraries, the page-view counter included, are stored in [lib/](lib/), unchanged from their published versions. A script linked from another site is refused, which is why the counter is kept here rather than loaded from GoatCounter's server.
 - **Books can't run code.** Book pages render in a sandboxed frame with scripts off, and scripts, plug-ins and event handlers are stripped before display.
 - **Imported data is treated as untrusted.** Notes, records, backups, hand-off files and synced bundles are escaped before display. Settings from a backup are checked key by key.
 
