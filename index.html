@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-3Fv42ZgrvOlluN/QydtDwDjw2Gvyd4k9NY8m7z7qFfg=' 'sha256-JdINcH+UzxVihuYNN1wSP0slWUOMxNknOYhcQ85vyKI=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-bRf5mJ5IUVCaFBsaowh6LmHetkSeUuDnn26mTF+B1L4=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -1147,7 +1147,7 @@ var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.57";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.58";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -7529,6 +7529,22 @@ boot();
 /* the cue currently being spoken */
 .bcp-now { background: var(--bcp-now); border-radius: 3px; }
 
+/* YouTube refused to play the video: the controls give way to a plain note.
+   The book underneath is untouched, and the note says so. */
+.bcp-gone {
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 9px 12px;
+  font: 500 13px/1.45 var(--bc-font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+.bcp-gone-text { flex: 1 1 20rem; min-width: 0; }
+.bcp-gone-text b { font-weight: 700; }
+.bcp-gone a.bcp-btn { text-decoration: none; }
+.bcp-dead .bcp-gone { display: flex; }
+.bcp-dead .bcp-bar, .bcp-dead .bcp-stage { display: none; }
+
 @media (max-width: 430px) {
   .bcp-clock { min-width: 0; }
   .bcp-btn:last-child { display: none; }   /* follow is on by default on phones */
@@ -7580,6 +7596,7 @@ window.BackchatPlayer = (function () {
 
   var host = null, root = null, stage = null, frame = null;
   var btn, clock, scrub, fill, foldBtn, followBtn;
+  var gone, goneText, goneLink, goneRetry, dead = false;
   var media = null;                       // {provider, id, duration}
   var content = null, cues = [], active = null;
   var pos = 0, dur = 0, playing = false, open = false, follow = true, poll = null;
@@ -7666,10 +7683,25 @@ window.BackchatPlayer = (function () {
     scrub.appendChild(fill);
     [btn, clock, scrub, foldBtn, followBtn].forEach(function (n) { bar.appendChild(n); });
 
+    gone      = el("div", "bcp-gone");
+    goneText  = el("span", "bcp-gone-text");
+    goneLink  = el("a", "bcp-btn", "Watch on YouTube");
+    goneRetry = el("button", "bcp-btn", "Try again");
+    goneLink.target = "_blank"; goneLink.rel = "noopener";
+    goneRetry.type = "button";
+    gone.setAttribute("role", "status");
+    [goneText, goneLink, goneRetry].forEach(function (n) { gone.appendChild(n); });
+
     root.appendChild(stage);
     root.appendChild(bar);
+    root.appendChild(gone);
     host.appendChild(root);
 
+    goneRetry.addEventListener("click", function () {
+      var m = media;
+      if (!m) return;
+      detach(); attach(m); setOpen(true);
+    });
     btn.addEventListener("click", function () { playing ? pause() : play(); });
     foldBtn.addEventListener("click", function () { setOpen(!open); });
     followBtn.addEventListener("click", function () { setFollow(!follow); });
@@ -7696,7 +7728,7 @@ window.BackchatPlayer = (function () {
   }
 
   function setOpen(v) {
-    open = !!v;
+    open = !!v && !dead;                  // a video YouTube refused stays folded away
     root.classList.toggle("bcp-open", open);
     foldBtn.textContent = open ? "Hide video" : "Video";
     foldBtn.classList.toggle("bcp-on", open);
@@ -7743,8 +7775,32 @@ window.BackchatPlayer = (function () {
   function detach() {
     if (poll) { clearInterval(poll); poll = null; }
     if (frame && frame.parentNode) frame.parentNode.removeChild(frame);
-    frame = null; media = null; playing = false; pos = 0; dur = 0;
-    if (root) { root.classList.add("bcp-idle"); root.classList.remove("bcp-open"); pin(); }
+    frame = null; media = null; playing = false; pos = 0; dur = 0; dead = false;
+    if (root) { root.classList.add("bcp-idle"); root.classList.remove("bcp-open", "bcp-dead"); pin(); }
+  }
+
+  /* YouTube answered with an error instead of a video. It reports 150 both for a
+     video that no longer exists and for one its owner keeps on YouTube only, so
+     the note names the likely causes rather than guessing one. The transcript,
+     its times and the reader's marks live in the book, not in the video, so
+     nothing else is affected. */
+  function unavailable(code) {
+    if (!media || dead) return;
+    dead = true; playing = false;
+    var why = code === 2 ? "This book's video address isn't one YouTube recognises."
+            : code === 5 ? "YouTube couldn't play the video in this browser."
+            : "YouTube won't play it here: it may have been removed or made private, or its owner may allow it only on YouTube.";
+    goneText.textContent = "";
+    var b = el("b", null, "The video is unavailable. ");
+    goneText.appendChild(b);
+    goneText.appendChild(document.createTextNode(why + " The book, its times and your marks are all still here; only playback has stopped."));
+    goneLink.href = "https://www.youtube.com/watch?v=" + encodeURIComponent(media.id) + (pos > 1 ? "&t=" + Math.floor(pos) + "s" : "");
+    goneLink.hidden = code === 2;
+    setOpen(false);
+    root.classList.add("bcp-dead");
+    face();
+    emit("unavailable", { code: code, id: media.id });
+    setTimeout(pin, 0);
   }
 
   /* release(): drop every reference that points into a book's (now detached)
@@ -7765,15 +7821,18 @@ window.BackchatPlayer = (function () {
     if (!frame || !frame.contentWindow) return;
     try { frame.contentWindow.postMessage(JSON.stringify(msg), "*"); } catch (e) {}
   }
-  function listen() { post({ event: "listening", id: 1, channel: "widget" }); }
+  function listen() {
+    post({ event: "listening", id: 1, channel: "widget" });
+    post({ event: "command", func: "addEventListener", args: ["onError"], id: 1, channel: "widget" });
+  }
   function cmd(fn, args) { post({ event: "command", func: fn, args: args || [] }); }
 
-  function play()  { emit("play"); cmd("playVideo");  playing = true;  face(); }
+  function play()  { if (dead) return; emit("play"); cmd("playVideo");  playing = true;  face(); }
   function pause() { cmd("pauseVideo"); playing = false; face(); }
   function seek(t, andPlay) {
     pos = Math.max(0, t);
     cmd("seekTo", [pos, true]);
-    if (andPlay !== false) { emit("play"); cmd("playVideo"); playing = true; }
+    if (andPlay !== false && !dead) { emit("play"); cmd("playVideo"); playing = true; }
     face(); paint(); markActive(true);
   }
   function face() {
@@ -7789,7 +7848,10 @@ window.BackchatPlayer = (function () {
     if (!/^https:\/\/(www\.)?youtube(-nocookie)?\.com$/.test(String(e.origin))) return;
     var d;
     try { d = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch (err) { return; }
-    if (!d || !d.info) return;
+    if (!d) return;
+    if (frame && e.source !== frame.contentWindow) return;   // only the player this module made
+    if (d.event === "onError") { unavailable(+d.info); return; }
+    if (!d.info) return;
     var st = d.info.playerState;
     if (typeof st === "number") { playing = st === 1; face(); }
     if (typeof d.info.duration === "number" && d.info.duration > 0) dur = d.info.duration;
