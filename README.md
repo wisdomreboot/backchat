@@ -30,7 +30,11 @@ Setup takes about 15 minutes in a browser: [docs/SYNC-SETUP.md](docs/SYNC-SETUP.
 
 ## Host your own copy
 
-Fork this repository and turn on GitHub Pages, or copy its files to any static host, keeping `lib/` beside `index.html`. Nothing else is needed. If you change any inline script in `index.html`, run `python3 tools/csp.py index.html` to refresh the security policy, or the browser will refuse to run the edited script. Before merging any change, run `python3 tools/check/check.py`: it drives the page in a headless browser and checks the behaviours that must never break, such as marks and margins that must not be lost and deletes that must stick. The same check runs on every pull request. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`, and change or remove the `data-goatcounter` address in `index.html`, or your visitors are counted on mine.
+Fork this repository and turn on GitHub Pages, or copy its files to any static host, keeping `lib/` and `guide/` beside `index.html`. Nothing else is needed. If you change any inline script in `index.html`, run `python3 tools/csp.py index.html` to refresh the security policy, or the browser will refuse to run the edited script. Before merging any change, run `python3 tools/check/check.py`: it drives the page in a headless browser and checks the behaviours that must never break, such as marks and margins that must not be lost and deletes that must stick. The same check runs on every pull request. If you host it elsewhere, change the address in the page's `canonical`, `og:url` and `og:image` tags, and in `robots.txt` and `sitemap.xml`, and change or remove the `data-goatcounter` address in `index.html`, or your visitors are counted on mine.
+
+## The built-in guide
+
+New readers start with a short book, *How to talk back to your books*, written in [guide/guide.md](guide/guide.md) with its cover in `guide/`. Edit it like any document; the notes at the top of the file explain the format. After a change, raise its `revision` number by one, and readers who already have the guide get the new text the next time they open it. The page fetches the guide only on a first run, when a reader asks for it, or when they open it.
 
 ## Security
 

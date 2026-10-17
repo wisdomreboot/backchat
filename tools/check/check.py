@@ -523,6 +523,63 @@ with sync_playwright() as p:
             home(); click_result("#search-results", '"paragraph 66 of chapter 2"', "Highlights", "paragraph 66")
             expect("a mark from an older copy of the book opens the current copy on it", landed(np_, "Paragraph 66 of chapter 2"), True, "ids change when a book is added again")
         nctx.close()
+
+    # 6. The built-in guide lives in guide/, is fetched only when needed, arrives whole, and updates
+    #    itself when guide.md's revision rises. Web links inside a book open in a new tab.
+    gctx = browser.new_context(bypass_csp=True); gp = gctx.new_page(); watch(gp, "guide")
+    guide_reqs = []
+    gctx.on("request", lambda r: guide_reqs.append(r.url) if "/guide/" in r.url else None)
+    gp.goto(URL); wait(gp, "typeof DB!=='undefined' && typeof seedGuide==='function'")
+    wait(gp, "DB.get('meta','bcguide001').then(m=>window.__g=m), !!window.__g")
+    settle(1.5)
+    expect("a first run adds the guide from guide/ with its sample marks", ev(gp, """(async()=>{
+      const m=await DB.get('meta','bcguide001'), h=await DB.get('highlights','bcguide001'), b=await DB.get('blob','bcguide001');
+      return [m.guideRev===GUIDE_SRC.rev, /^data:image\\/jpeg/.test(m.cover||''), !!(b&&b.data), hlLive(h.items).length===GUIDE_SRC.marks.length]; })()""".replace("GUIDE_SRC", "(await fetchGuide())")),
+           [True, True, True, True], "the book, its cover and every sample mark")
+    expect("every icon the guide names is drawn", ev(gp, """(async()=>{ const src=await fetchGuide(); const names=[...new Set([...src.body.matchAll(/\\{\\{icon:([a-z-]+)\\}\\}/g)].map(m=>m[1]))]; return names.filter(n=>!guideIcon(n)); })()"""), [],
+           "an unknown icon name would leave a gap in the sentence")
+    expect("every sample mark is in the guide's text", ev(gp, """(async()=>{ const src=await fetchGuide(), flat=src.body.replace(/\\s+/g,' '); return src.marks.filter(m=>flat.indexOf(m.text.replace(/\\s+/g,' '))<0).map(m=>m.text); })()"""), [],
+           "a mark whose words are missing could never be shown")
+    gp.evaluate("()=>openBook('bcguide001')")
+    wait(gp, "rendition && rendition.getContents().length>0"); settle(2)
+    gp.evaluate("async ()=>{ const src=await fetchGuide(); await bcGoTo(currentBook.id,{quote:src.marks[0].text,flash:false}); }"); settle(1.5)
+    expect("the guide's sample marks are painted", ev(gp, "(()=>{ const c=rendition.getContents()[0]; return Object.keys(c._hlRanges||{}).length; })()"), lambda n: n >= 2,
+           "the chapter holding the first sample marks paints them")
+    gp.evaluate("()=>closeBook()"); settle(0.5)
+    guide_reqs.clear()
+    gp.reload(); wait(gp, "typeof DB!=='undefined' && typeof renderHome==='function'"); wait(gp, "document.querySelectorAll('#home-recent .card').length>0"); settle(2)
+    expect("an ordinary page load never fetches the guide", guide_reqs, [], "the guide is fetched on a first run, on request, or when it is opened")
+    # A newer guide.md: opening the guide rebuilds it, keeps the reader's own marks, adds the new text.
+    gp.evaluate("""async ()=>{ const r=await DB.get('highlights','bcguide001'); r.items.push({id:'mine1',text:'Most reading apps store books.',color:'green',note:'my own note',created:1,updated:1,cfiRange:''}); await DB.put('highlights',r); }""")
+    gtext = open(os.path.join(SITE, "guide", "guide.md"), encoding="utf-8").read()
+    newer = re.sub(r"revision:\s*(\d+)", lambda m: "revision: %d" % (int(m.group(1)) + 1), gtext, count=1).replace("## The bargain", "## A brand new chapter\n\nThis chapter arrived with a newer revision.\n\n## The bargain")
+    gp.route(re.compile(r".*/guide/guide\.md$"), lambda route: route.fulfill(status=200, content_type="text/markdown; charset=utf-8", body=newer))
+    gp.reload(); wait(gp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.5)
+    gp.evaluate("()=>openBook('bcguide001')"); wait(gp, "rendition && rendition.getContents().length>0"); settle(2)
+    expect("a newer guide.md updates the guide when it is opened, keeping your own marks", ev(gp, """(async()=>{
+      const m=await DB.get('meta','bcguide001'), h=await DB.get('highlights','bcguide001'), ft=await indexBook('bcguide001',{force:true}).then(()=>DB.get('fulltext','bcguide001'));
+      const text=recSectionTexts(ft).map(s=>s.text).join(' ');
+      return [m.guideRev, /arrived with a newer revision/.test(text), hlLive(h.items).some(x=>x.id==='mine1' && x.note==='my own note')]; })()"""),
+           [int(re.search(r"revision:\s*(\d+)", gtext).group(1)) + 1, True, True], "revision rises, new text in, the reader's mark kept")
+    gp.unroute(re.compile(r".*/guide/guide\.md$"))
+    # Web links inside a book open in a new tab (the book's frame cannot open one itself).
+    gctx.route(re.compile(r"^https://github\.com/.*"), lambda route: route.fulfill(status=200, content_type="text/html", body="<title>ok</title>"))
+    gp.evaluate("()=>bcGoTo(currentBook.id,{quote:'Its code is public on GitHub',flash:false})"); settle(2)
+    fr = [f for f in gp.frames if f != gp.main_frame]
+    try:
+        with gctx.expect_page(timeout=5000) as newtab:
+            fr[0].click('a[href^="https://github.com"]')
+        opened = newtab.value.url
+    except Exception as e:
+        opened = "no new tab: " + str(e).splitlines()[0][:120]
+    expect("a web link in a book opens in a new tab", opened, lambda u: u.startswith("https://github.com/wisdomreboot/backchat"), "the guide's GitHub link, and any link in a book")
+    # A guide that cannot be fetched says so instead of failing silently.
+    gp.evaluate("()=>{ closeBook(); }"); settle(0.5)
+    gp.route(re.compile(r".*/guide/guide\.md$"), lambda route: route.fulfill(status=200, content_type="text/html", body="<html>a captive portal page, not the guide</html>"))
+    expect("a guide that cannot be fetched says so", ev(gp, """(async()=>{ _guideSrc=null; await DB.del('meta','bcguide001'); let msg='';
+      const t=window.toast; window.toast=function(m){ msg=m; t(m); }; document.querySelector('#guide-btn').click(); await new Promise(r=>setTimeout(r,1200)); window.toast=t; return msg; })()"""),
+           lambda m: "could not be fetched" in m, "a toast, not a silent failure")
+    gctx.close()
     browser.close()
 
 httpd.shutdown()
