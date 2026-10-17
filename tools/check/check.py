@@ -3,7 +3,8 @@
 
 Drives the real page in headless Chromium and checks the behaviours that have broken
 before: data that must never be lost, deletes that must stick, the security policy,
-search, exports and folder sync. Run it before merging any change to index.html.
+search, exports, folder sync, and every way back to a place in a book landing on it.
+Run it before merging any change to index.html.
 
     pip install playwright && python3 -m playwright install chromium
     python3 tools/check/check.py            # checks the copy in this repository
@@ -48,6 +49,21 @@ def make_transcript_epub(path, title, vid):
     z.writestr("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:video-%s</dc:identifier><dc:title>%s</dc:title><dc:creator>Speaker</dc:creator><dc:language>en</dc:language><dc:source>https://www.youtube.com/watch?v=%s</dc:source><meta property="backchat:media">youtube:%s</meta><meta property="backchat:duration">60</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="c1" href="ch01.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/></spine></package>' % (vid, title, vid, vid))
     z.close()
 
+def make_long_epub(path):
+    """Four chapters long enough to run many pages each, so a jump that lands on the wrong page
+    is caught. One quote is unique; another appears twice in one chapter, and the second copy
+    is the one marked, so a jump must tell the two apart."""
+    words = "river stone lantern harbor meadow copper window orchard thunder pencil garden mirror candle valley silver forest compass ladder ribbon anchor".split()
+    chapters = []
+    for c in range(4):
+        ps = ["Paragraph %d of chapter %d: %s." % (i, c, " ".join(words[(c * 7 + i * 3 + k) % len(words)] for k in range(38))) for i in range(80)]
+        if c == 1:
+            ps[5] = ps[55] = "The process comes in three stages, and each one asks something different."
+        if c == 2:
+            ps[60] = "Become who you are by learning who you are, as the Greek poet Pindar wrote."
+        chapters.append(("Chapter %d" % (c + 1), ps))
+    make_epub(path, "Long Landing Book", "Test Author", "urn:isbn:9780000000777", chapters)
+
 TMP = tempfile.mkdtemp(prefix="backchat-check-")
 ALPHA, BETA = os.path.join(TMP, "alpha.epub"), os.path.join(TMP, "beta.epub")
 GONE, LIVE = os.path.join(TMP, "gone.epub"), os.path.join(TMP, "live.epub")
@@ -63,6 +79,8 @@ make_epub(ALPHA, "Alpha Testing Book", "Ann Author", "urn:isbn:9780000000001", [
 make_epub(BETA, "Beta Second Book", "Bob Writer", "urn:isbn:9780000000002", [
     ("Opening", ["Another quick brown fox appears in a second book to test rhymes across books.",
                  "Zygomorphic symmetry is a botanical term used by careful readers."])])
+LONG = os.path.join(TMP, "long.epub")
+make_long_epub(LONG)
 
 
 # ---------- local server ----------
@@ -108,6 +126,56 @@ def ev(pg, js, *args):
 
 def settle(seconds=0.6):
     time.sleep(seconds)
+
+# Is the nth copy of a quote on the page now showing (and, when asked, is it the passage the
+# landing flashed)? Answers true or a short reason.
+LANDED_JS = r"""(args)=>{ const [quote, nth, flash] = args;
+  if(!rendition || $('#reader').classList.contains('hidden')) return 'reader not showing';
+  for(const c of rendition.getContents()){
+    const tm=secTextMap(c), re=quoteRegex(quote); let m, hits=[]; while((m=re.exec(tm.full))) hits.push(m.index);
+    if(hits.length<=nth) continue;
+    const i=hits[nth], a=mapLocate(tm.map,i), b=mapLocate(tm.map,i+10);
+    const r=c.document.createRange(); r.setStart(a.node,a.offset); r.setEnd(b.node,b.offset);
+    if(bcRangeSide(c, r)!==0) return 'the words are on another page';
+    if(flash){
+      const g=c.window.CSS.highlights.get('goto'); if(!g) return 'nothing flashed';
+      const fr=[...g][0], sp=rangeSpan(tm, fr);
+      if(sp.start!==i) return 'flashed the wrong copy of the words';
+    }
+    return true;
+  }
+  return 'the words are not in the section showing ('+((rendition.currentLocation()||{}).start||{}).href+')';
+}"""
+
+# Is the saved reading position (a CFI) on the page now showing? True or a short reason.
+ON_PAGE_JS = r"""(cfi)=>{
+  if(!rendition || $('#reader').classList.contains('hidden')) return 'reader not showing';
+  const idx=bcSectionIndex({cfi:cfi}), c=bcContentsFor(idx); if(!c) return 'its section is not showing';
+  const r=bcRangeAt(c, {cfi:cfi}); if(!r) return 'position not found';
+  return bcRangeSide(c, r)===0 ? true : 'the position is on another page';
+}"""
+
+def on_page(pg, cfi, timeout=8.0):
+    end, got = time.time() + timeout, None
+    while time.time() < end:
+        got = ev(pg, ON_PAGE_JS, cfi)
+        if got is True: break
+        time.sleep(0.15)
+    if got is not True: return got
+    time.sleep(1.2)
+    return ev(pg, ON_PAGE_JS, cfi)
+
+def landed(pg, quote, nth=0, flash=True, timeout=8.0):
+    """Wait for a jump to land on the nth copy of quote; then confirm it stays there once the
+    section has finished laying out."""
+    end, got = time.time() + timeout, None
+    while time.time() < end:
+        got = ev(pg, LANDED_JS, [quote, nth, flash])
+        if got is True: break
+        time.sleep(0.15)
+    if got is not True: return got
+    time.sleep(1.2)
+    return ev(pg, LANDED_JS, [quote, nth, False])
 
 
 # 0. Every script the page loads is a file in this repository. The security policy refuses
@@ -321,6 +389,140 @@ with sync_playwright() as p:
           return [!(await DB.get('meta',id)), (await searchFullText('zygomorphic',60,{},parseSearch('zygomorphic'))).length];
         }""", res["id"]), [True, 0], "a remote delete removes the record and its search rows")
     fctx.close()
+
+    # 5. Every way back to a place lands on it: the page showing holds the words, and the words
+    #    flashed are the ones that were marked (the second of two identical sentences, when that
+    #    is the one marked). Run in pages and in scroll mode.
+    for flow in ("paginated", "scrolled"):
+        nctx = browser.new_context(bypass_csp=True, viewport={"width": 1280, "height": 860}); np_ = nctx.new_page(); watch(np_, "landing-" + flow)
+        np_.goto(URL); wait(np_, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.2)
+        np_.evaluate("(f)=>{ settings.flow=f; saveSettings(); }", flow)
+        np_.set_input_files("#file-input", [LONG])
+        wait(np_, "DB.all('meta').then(ms=>window.__lb=ms.find(m=>m.title==='Long Landing Book')), !!window.__lb")
+        lid = np_.evaluate("window.__lb.id")
+        wait(np_, "DB.get('app','ftbook:%s').then(v=>window.__lx=!!v), window.__lx===true" % lid, 40000)
+        np_.evaluate("(id)=>openBook(id)", lid); settle(1.5)
+        def mark_nth(href, quote, nth, note=None):
+            np_.evaluate("(h)=>bcGoTo(currentBook.id,{href:h,flash:false})", href); settle(1.2)
+            return np_.evaluate(r"""(a)=>{ const [quote,nth,note]=a; const c=bcContentsFor(bcSectionIndex({href:currentBook && rendition.currentLocation().start.href})); const tm=secTextMap(c), re=quoteRegex(quote); let m, hits=[]; while((m=re.exec(tm.full))) hits.push(m.index);
+              const s=mapLocate(tm.map,hits[nth]), e=mapLocate(tm.map,hits[nth]+quote.length-1), r=c.document.createRange(); r.setStart(s.node,s.offset); r.setEnd(e.node,e.offset+1);
+              lastSelection={cfiRange:c.cfiFromRange(r), text:quote, contents:c};
+              return createHighlight('yellow', note||undefined).then(()=>highlights.filter(h=>!h.deleted).slice(-1)[0].id); }""", [quote, nth, note])
+        BECOME, STAGES = "Become who you are by learning who you are", "The process comes in three stages"
+        h1 = mark_nth("c2.xhtml", BECOME, 0, "Greek poet Pindar wrote")
+        h2 = mark_nth("c1.xhtml", STAGES, 1)
+        key = np_.evaluate("bookKeyOf(currentBook)")
+        def home():
+            np_.evaluate("()=>{ closeBook(); return goHome(); }"); settle(0.4)
+        def click_result(box, q, group, has):
+            np_.evaluate("(a)=>a[0]==='#search-results' ? openSearch(a[1]) : openReaderSearch(a[1])", [box, q])
+            wait(np_, "/Inside books \\(|No in-text/.test(document.querySelector('%s').textContent)" % box)
+            return ev(np_, """(a)=>{ const [box,g,has]=a; const grp=[...document.querySelectorAll(box+' .res-group')].find(x=>x.querySelector('h3').textContent.startsWith(g));
+              const el=grp && [...grp.querySelectorAll('.res')].find(e=>e.textContent.toLowerCase().includes(has.toLowerCase())); if(!el) return 'no such result'; el.click(); return true; }""", [box, group, has])
+        F = " (%s)" % flow
+
+        home(); click_result("#search-results", "becom", "Highlights", BECOME)
+        expect("search: a highlight opens the book on it" + F, landed(np_, BECOME), True, "the reported bug: the result opened the right chapter on the wrong page")
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c0.xhtml',flash:false})"); settle(1)
+        click_result("#rs-results", "becom", "Highlights", BECOME)
+        expect("search over the open book lands on the highlight" + F, landed(np_, BECOME), True, "searching from inside the reader, the book already open elsewhere")
+        home(); click_result("#search-results", "three stages", "Highlights", "three stages")
+        expect("search: the marked copy of a repeated sentence" + F, landed(np_, STAGES, 1), True, "the same words appear twice; the jump goes to the one that was marked")
+        home(); click_result("#search-results", "pindar wrote", "Notes", "pindar")
+        expect("search: a comment opens its passage" + F, landed(np_, BECOME), True, "a comment result lands on the words it comments on")
+        home(); click_result("#search-results", '"paragraph 70 of chapter 3"', "Inside books", "paragraph 70")
+        expect("search: an inside-book match lands on the words" + F, landed(np_, "Paragraph 70 of chapter 3"), True, "the found passage, not its chapter's first page")
+
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml',flash:false})"); settle(1)
+        np_.evaluate("(id)=>{ renderHlControls(); renderHighlightList(); openPanel($('#hl-panel')); [...document.querySelectorAll('#hl-list .hl-item .txt')].find(e=>/three stages/.test(e.textContent)).click(); }", h2)
+        expect("highlights panel lands on the marked copy" + F, landed(np_, STAGES, 1), True, "tapping a mark in the panel")
+        home(); np_.evaluate("()=>openMarks()"); settle(0.8)
+        np_.evaluate("(id)=>document.querySelector('#marks-list .mark-row[data-id=\"'+id+'\"]').click()", h2)
+        expect("all marks lands on the marked copy" + F, landed(np_, STAGES, 1), True, "the all-marks view")
+        home(); np_.evaluate("(a)=>{ dailyMmap[a[0]]=window.__lb; return DB.get('highlights',a[0]).then(r=>{ showDailyPick({bookId:a[0], h:r.items.find(h=>h.id===a[1])}); document.querySelector('#home-daily .m').click(); }); }", [lid, h1])
+        expect("the daily highlight opens on its passage" + F, landed(np_, BECOME), True, "the home page highlight")
+        home(); np_.evaluate("(a)=>openMarkById(a[0], a[1], '', '')", [lid, h2])
+        expect("a rhyme opens on its mark" + F, landed(np_, STAGES, 1), True, "rhymes jump by mark id")
+        home(); np_.evaluate("(a)=>followBcRef({bookKey:a[0],kind:'highlight',highlightId:a[1]})", [key, h2]); settle(0.6)
+        np_.evaluate("()=>document.querySelector('#bc-peek .bc-peek-open').click()")
+        expect("a highlight link opens on the marked copy" + F, landed(np_, STAGES, 1), True, "a [[bc|...]] highlight link, then Open in book")
+
+        # A location link copied from a paragraph, and a raw position link.
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml',quote:'Paragraph 40 of chapter 3',flash:false})"); settle(1.5)
+        ref = np_.evaluate(r"""()=>{ const c=bcContentsFor(bcSectionIndex({href:'c3.xhtml'})); const r=findQuoteRange(c,secTextMap(c),'Paragraph 40 of chapter 3'); lastSelection={cfiRange:c.cfiFromRange(r), text:'Paragraph 40 of chapter 3', contents:c}; return bcPassageRef(bookKeyOf(currentBook), lastSelection.cfiRange, lastSelection); }""")
+        home(); np_.evaluate("(r)=>followBcRef(bcParseAny(bcMakeToken(r)))", ref)
+        expect("a location link lands on its paragraph" + F, [ref and ref.get("kind"), landed(np_, "Paragraph 40 of chapter 3")], ["anchor", True], "Copy location, pasted, followed later")
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c0.xhtml',quote:'Paragraph 50 of chapter 0',flash:false})"); settle(1.5)
+        pcfi = np_.evaluate(r"""()=>{ const c=bcContentsFor(0); const r=findQuoteRange(c,secTextMap(c),'Paragraph 50 of chapter 0'); return c.cfiFromRange(r); }""")
+        home(); np_.evaluate("(a)=>followBcRef({bookKey:a[0],kind:'passage',cfi:a[1]})", [key, pcfi])
+        expect("a position link lands on its passage" + F, landed(np_, "Paragraph 50 of chapter 0"), True, "a raw position (CFI) link")
+
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml',flash:false})"); settle(1)
+        np_.evaluate("()=>{ openFind(); $('#find-input').value='three stages'; doFind('three stages'); }"); settle(1.2)
+        np_.evaluate("()=>document.querySelectorAll('#find-results .fr')[1].click()")
+        expect("find in book: the second match lands on the second copy" + F, landed(np_, "three stages", 1), True, "each match lands on its own occurrence")
+
+        np_.evaluate("(c)=>{ currentBook.bookmarkCfi=c; ttsBookmarkGo(); }", pcfi)
+        expect("the saved listening spot returns to its sentence" + F, landed(np_, "Paragraph 50 of chapter 0"), True, "Go to saved spot")
+
+        # Where you were reading: closing and reopening, and the Return button after a link.
+        bad = []
+        for n in (1, 3, 6):
+            np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml',flash:false})"); settle(1)
+            for _ in range(n):
+                if flow == "paginated": np_.evaluate("()=>rendition.next()")
+                else: np_.evaluate("()=>{ rendition.manager.container.scrollTop += 500; }")
+                settle(0.35)
+            settle(0.5)
+            at, page = np_.evaluate("()=>{ const s=rendition.currentLocation().start; return [s.cfi, s.displayed.page]; }")
+            np_.evaluate("()=>closeBook()"); settle(0.3); np_.evaluate("(id)=>openBook(id)", lid)
+            got = on_page(np_, at)
+            if got is True and flow == "paginated":
+                now = np_.evaluate("()=>rendition.currentLocation().start.displayed.page")
+                if now != page: got = "page %s, left on page %s" % (now, page)
+            if got is not True: bad.append([n, at, got])
+        expect("reopening a book returns to the same page" + F, bad, [], "the first words of the page you left are on the page you come back to")
+        # Changing how the page is laid out keeps you on the words you were reading.
+        def slide(sel, value):
+            return "()=>{ const i=document.querySelector('%s'); i.value='%s'; i.dispatchEvent(new Event('input')); }" % (sel, value)
+        changes = [("a bigger font", slide("#fs", 140)), ("a smaller font", slide("#fs", 90)), ("wider line spacing", slide("#lh", 2.0)),
+                   ("wider margins", slide("#mg", 3)), ("a smaller window", "resize"), ("the font family", "()=>document.querySelector('#seg-font [data-font]:not(.active)').click()")]
+        if flow == "paginated": changes += [("switching to scroll", "()=>setReadFlow('scrolled')"), ("switching back to pages", "()=>setReadFlow('paginated')")]
+        bad = []
+        for what, how in changes:
+            if what != "switching back to pages":
+                np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml',quote:'Paragraph 37 of chapter 3',flash:false})"); settle(1.5)
+            else: settle(2)   # read a while in scroll mode first; the page you return to holds the top line you left
+            at = np_.evaluate("()=>rendition.currentLocation().start.cfi")
+            if how == "resize": np_.set_viewport_size({"width": 1000, "height": 760})
+            else: np_.evaluate(how)
+            got = on_page(np_, at)
+            if got is not True: bad.append([what, got])
+            if how == "resize": np_.set_viewport_size({"width": 1280, "height": 860}); settle(1.5)
+        np_.evaluate("()=>{ settings.fs=100; settings.lh=1.6; settings.mg=2.2; settings.font='serif'; saveSettings(); syncSettingsUI(); applyTheme(); }"); settle(1)
+        expect("changing the layout keeps your place" + F, bad, [], "font size, spacing, margins, font, window size and scroll mode all reflow the book; the words you were reading stay on screen")
+
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c1.xhtml',quote:'Paragraph 30 of chapter 1',flash:false})"); settle(1.5)
+        at = np_.evaluate("()=>{ const s=rendition.currentLocation().start; _bcReadJump.push(s.cfi); return s.cfi; }")
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml'})"); settle(1.5)
+        np_.evaluate("()=>_bcJumpBack()")
+        expect("Return goes back to the page you left" + F, on_page(np_, at), True, "after following a link inside a book")
+
+        # Places that moved or were never pinned down, and a newer jump overtaking an older one.
+        np_.evaluate("(a)=>DB.get('highlights',a[0]).then(r=>{ r.items.push({id:'stale1',text:'Become who you are by learning',color:'blue',created:1,updated:1,href:'c0.xhtml',cfiRange:'epubcfi(/6/2!/4/10/1:0)'}, {id:'bare1',text:'The process comes in three stages',color:'blue',created:1,updated:1}); return DB.put('highlights',r); })", [lid])
+        home(); np_.evaluate("(id)=>openMarkById(id,'stale1','','')", lid)
+        expect("a mark whose saved place went stale still lands on its words" + F, landed(np_, BECOME), True, "an EPUB edited after marking: the words are found in their new section")
+        home(); np_.evaluate("(id)=>openMarkById(id,'bare1','','')", lid)
+        expect("a mark saved without a position lands on its words" + F, landed(np_, STAGES), True, "imported marks carry only their words")
+        np_.evaluate("()=>{ bcGoTo(currentBook.id,{href:'c3.xhtml',quote:'Paragraph 75 of chapter 3'}); bcGoTo(currentBook.id,{href:'c0.xhtml',quote:'Paragraph 20 of chapter 0'}); }")
+        expect("the latest jump wins" + F, landed(np_, "Paragraph 20 of chapter 0"), True, "two quick taps: the reader ends on the second")
+
+        # A mark kept under an older copy's id (the book was deleted and added again).
+        if flow == "paginated":
+            np_.evaluate("(a)=>DB.put('meta',{id:'oldcopy',title:'Long Landing Book',author:'Test Author',bookKey:a[0],addedAt:1,progress:0,tags:[]}).then(()=>DB.put('highlights',{id:'oldcopy',items:[{id:'old1',text:'Paragraph 66 of chapter 2',color:'green',created:1,updated:1,href:'c2.xhtml'}]}))", [key])
+            home(); click_result("#search-results", '"paragraph 66 of chapter 2"', "Highlights", "paragraph 66")
+            expect("a mark from an older copy of the book opens the current copy on it", landed(np_, "Paragraph 66 of chapter 2"), True, "ids change when a book is added again")
+        nctx.close()
     browser.close()
 
 httpd.shutdown()
