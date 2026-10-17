@@ -2,6 +2,25 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.60 (17 October 2026)
+
+Every way of going back to a place in a book now lands on the place itself. Each case below was reproduced in a real browser first and is now part of the regression check, in page mode and in scroll mode.
+
+**Fixed**
+- **A highlight found in search opened the right chapter on the wrong page.** Clicking a highlight or a comment in the library search sent the reader to a position that epub.js could not place exactly, so it stopped pages short of the mark. It now lands on the mark, the same way the highlights panel does.
+- **The same words twice in a chapter.** When a sentence appears twice and you marked the second, the highlights panel, all marks, search, rhymes and highlight links went to the first. They now go to the one you marked, using the bit of text saved on either side of it.
+- **Find in book** went to the first match in the chapter whichever match you chose. Each match now lands on its own occurrence.
+- **Reopening a book could put you one page before where you stopped.** The reader now checks that the first words of the page you left are on screen, and turns forward if they are not.
+- **Changing the font size, line spacing, margins or font, resizing the window, or turning a phone moved you to another page.** The words you were reading now stay on screen, including while you drag a slider. Switching between pages and scrolling keeps them on screen too, and in scroll mode a saved position goes back to the top of the view instead of drifting a line each time.
+- **A position link** (a raw position rather than a paragraph) landed on its chapter, not its passage. It lands on the passage now.
+- A mark imported without a position, or one whose chapter changed after the EPUB was edited, now lands on its words wherever they are in the book. If the words are gone, the reader says so.
+- The flash that shows where you landed no longer clears read-aloud's highlight of the sentence being spoken.
+
+**Changed**
+- All of these go through one function, `bcGoTo`, in place of the separate routines that had grown up with their own guesses at timing. It opens the chapter and waits for it, finds the words the way a highlight is painted, turns to their page, checks they are on screen, and keeps checking for a few seconds while the chapter finishes laying out. It stops correcting as soon as you touch a key, tap, click or scroll (the display settings excepted), or read-aloud is turning the pages.
+- Opening a book no longer attaches its page-turn and selection handlers a second time when it opens another copy of the same book, or attaches them to the book already on screen when the new one cannot be opened.
+- The regression check gains 41 landing checks: search (highlight, comment, inside-book, from inside the reader), the highlights panel, all marks, the daily highlight, rhymes, highlight, paragraph and position links, find in book, the saved listening spot, reopening a book, the Return button, every layout change, a stale mark, a mark with no position, a mark from an older copy of the book, and two quick jumps in a row.
+
 ## 1.0.59 (17 October 2026)
 
 **Added**
