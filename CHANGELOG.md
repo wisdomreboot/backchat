@@ -2,6 +2,23 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.61 (18 October 2026)
+
+The built-in guide, *How to talk back to your books*, is rewritten as the way in for someone who has never seen Backchat, and it now lives in its own files.
+
+**Changed**
+- **The guide covers everything a new reader meets.** It opens with a five-step start. Then it walks through every button on the home screen, in the reader and on a book's page, what each highlight colour means, comments, the highlights panel, links between passages, search, read aloud, video books, the folder, sync between devices and setting up a phone. It ends with where Backchat's code lives on GitHub and how to report a problem. Its icons are drawn from the app's own buttons, so the picture in the guide always matches the button on screen.
+- **The guide moved out of the page,** into `guide/guide.md` and `guide/cover.jpg`. The page is 82 KB lighter on every load. The guide is fetched only on a first run, when you ask for it, or when you open it to see whether a newer version exists. It can now be edited like any document, without touching the app's code or its security fingerprint. Raise `revision` in guide.md and readers get the new text the next time they open the guide, with their own marks on it kept.
+- The selection menu, the highlight menu and the guide draw their icons from one table.
+
+**Fixed**
+- **The guide's sample highlights never appeared on the page.** A mark saved without a position was tied to the first chapter, where its words are not, so it showed in the highlights panel but never in the text. Such marks now find the chapter that holds their words. The same goes for any mark imported without a position.
+- **Web links inside a book did nothing.** A link to a website in a book's text, such as a footnote's source or the guide's own links, was blocked, because books are shown in a frame that may not open windows. These links now open in a new tab.
+- Add the guide book now says when the guide cannot be fetched, instead of failing silently.
+
+**Checks**
+- The regression check now covers the guide: it arrives whole from `guide/` with its sample marks painted, every icon it names is drawn, an ordinary page load never fetches it, a newer guide.md updates it on opening while keeping the reader's marks, a failed fetch is reported, and a web link in a book opens a new tab.
+
 ## 1.0.60 (17 October 2026)
 
 Every way of going back to a place in a book now lands on the place itself. Each case below was reproduced in a real browser first and is now part of the regression check, in page mode and in scroll mode.
