@@ -265,7 +265,24 @@ with sync_playwright() as p:
     page.evaluate("""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Call me Ishmael'); lastSelection={cfiRange:c.cfiFromRange(r),text:'Call me Ishmael',contents:c}; pushSelectionToMargins(); }""")
     wait(page, "/> Call me Ishmael/.test(currentBook.scratch||'')")
     expect("send to margins writes quote and link", ev(page, "/\\[\\[bc\\|/.test(currentBook.scratch||'')"), True, "the margins entry carries a location link")
-    expect("margins keep numbers and links", ev(page, """(()=>{ const h=scratchHtml('Numbers 42 and 1984 stay. '+bcMakeToken({bookKey:'id:x',kind:'book'})); return /42/.test(h) && /1984/.test(h) && /bc-ref/.test(h); })()"""), True, "the token sentinels must not eat digits")
+    expect("margins show pipe tables", ev(page, r"""(()=>{
+      const md=['Before the table.','','| Western Efficacy | Chinese Efficacy |','|:---|---:|','| Means / Ends | Conditions / Consequences |',
+        '| Actions / Heroic (loud, direct) | **Transformation** (quiet) |','| a \\| pipe | '+bcMakeToken({bookKey:'id:x',kind:'book'})+' |','After the table.','','a | line with a pipe but no table'].join('\n');
+      const d=document.createElement('div'); d.innerHTML=scratchHtml(md); const t=d.querySelector('table');
+      if(!t) return 'no table';
+      const cell=(r,c)=>t.rows[r].cells[c];
+      return { rows:t.rows.length, cols:t.rows[0].cells.length, head:cell(0,0).tagName+':'+cell(0,0).textContent, right:cell(1,1).style.textAlign, left:cell(1,0).style.textAlign,
+        bold:!!cell(2,1).querySelector('strong'), pipe:cell(3,0).textContent, link:!!cell(3,1).querySelector('.bc-ref'),
+        after:[...d.querySelectorAll('p')].map(p=>p.textContent) };
+    })()"""), {"rows": 4, "cols": 2, "head": "TH:Western Efficacy", "right": "right", "left": "left", "bold": True, "pipe": "a | pipe", "link": True,
+                "after": ["Before the table.", "After the table.", "a | line with a pipe but no table"]},
+           "rows, alignment, formatting and links inside cells; a stray pipe is not a table")
+    expect("a link inside an exported table keeps the table whole", ev(page, r"""(()=>{
+      const tok=bcMakeToken({bookKey:'id:o',kind:'book'}), ctx={title:()=>'Other Book', file:()=>'other-book-1', quote:()=>'', currentKey:'id:me'};
+      return notesToMarkdown(['| A | B |','|---|---|','| x | '+tok+' |','','Outside '+tok].join('\n'), ctx).split('\n'); })()"""),
+           ["| A | B |", "|---|---|", "| x | see [[other-book-1\\|Other Book]] |", "", "Outside see [[other-book-1|Other Book]]"],
+           "Obsidian splits a table cell at an unescaped pipe, so a wikilink's pipe is written as \\| inside a table")
+    expect("margins keep numbers and links",ev(page, """(()=>{ const h=scratchHtml('Numbers 42 and 1984 stay. '+bcMakeToken({bookKey:'id:x',kind:'book'})); return /42/.test(h) && /1984/.test(h) && /bc-ref/.test(h); })()"""), True, "the token sentinels must not eat digits")
 
     page.evaluate("""DB.put('meta',{id:'ghost1',title:'Ghost Book',author:'Nobody',bookKey:'id:ghost',addedAt:Date.now(),progress:0,tags:[]})""")
     page.evaluate("()=>{ openBookAt('ghost1', null); }"); settle(1)

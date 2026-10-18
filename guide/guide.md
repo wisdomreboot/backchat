@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 15
+revision: 16
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -149,7 +149,7 @@ There is a method worth stealing here, and it comes from Tim Ferriss. He reads w
 
 The margins are those blank front pages, and the method carries over with one upgrade. Paper needs page numbers; you have locations. Mark and comment while you read. When you finish, open the margins and write your index: a line per idea, with the passage's location link pasted beside it. Or let the Margins button under any highlight write the entry for you: quote, link, and a blank line for your words. Where his index says page 212, yours is a live link that jumps straight to the passage. Then let the second pass happen in the marks themselves: star the highlights you find yourself using, and the stars become your distillation.
 
-Tap Edit to write and Done to read. Quotes you copied paste cleanly, and markdown works: headings, bold, lists, block quotes, highlighted and struck-through text. Links become tappable, an image link shows the image, and a YouTube link becomes a small card that plays right there in the margins. Paste the plain video link; that is all it takes. The book's page shows its margins in full, with room to write.
+Tap Edit to write and Done to read. Quotes you copied paste cleanly, and markdown works: headings, bold, lists, block quotes, tables, highlighted and struck-through text. A table is rows of cells between pipes, with a line of dashes under the first row, as Obsidian writes it. Links become tappable, an image link shows the image, and a YouTube link becomes a small card that plays right there in the margins. Paste the plain video link; that is all it takes. The book's page shows its margins in full, with room to write.
 
 ## Links between passages
 
