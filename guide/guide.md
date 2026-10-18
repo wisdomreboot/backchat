@@ -56,7 +56,7 @@ Below the bar sit the daily highlight, a Continue card for the book you are read
 
 Backchat reads EPUB, the open format most ebooks come in. Tap + Add EPUB, or drop the files anywhere on the home screen. A book locked to one shop's app (DRM) will not open here; an unlocked EPUB opens in any reader, this one included.
 
-To turn a video or a PDF into a book, use the Backchat EPUB builders, then add the finished file here. For any other format, convert it to EPUB first with any converter.
+To turn a video into a book, use the [Video Epub Creator for Backchat](https://jonathandutoit.com/video-epub-book-for-backchat/), then add the finished file here. For any other format, convert it to EPUB first with any converter.
 
 **Library** on the home screen shows every book. Type to filter it. Sort by last opened, date added, title, author or progress, and flip the order with {{icon:sort}}. The heart {{icon:heart}} shows only the books you love.
 
@@ -198,7 +198,7 @@ The sentence being spoken is highlighted, and the tracking learns each voice's p
 
 ## Video books
 
-A book made from a video with the Backchat video builder carries the video with it. A player sits above the text: play, pause, and drag along the bar, while the line being spoken is marked as it plays. Tap any time in the text to play from there. Follow keeps the page turning with the talk, and the player folds away when you only want to read. Mark and comment as in any book.
+A book made from a video with the [Video Epub Creator for Backchat](https://jonathandutoit.com/video-epub-book-for-backchat/) carries the video with it. A player sits above the text: play, pause, and drag along the bar, while the line being spoken is marked as it plays. Tap any time in the text to play from there. Follow keeps the page turning with the talk, and the player folds away when you only want to read. Mark and comment as in any book.
 
 If the video is taken down, the player says so and folds away. The book, its times and your marks all stay.
 
