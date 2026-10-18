@@ -2,6 +2,33 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.63 (18 October 2026)
+
+A pass over Backchat on phones, with real touch input on iPhone and Android screen sizes from 320px up, upright and sideways.
+
+**Fixed**
+- **Back left Backchat.** Android's Back button or gesture, an iPhone's swipe from the left edge, and a browser's Back button all left the site, because Backchat added nothing to the browser's history. Back now works as it does in an app: it closes the innermost open thing (a dialog, a panel, the find bar), then the book or page, and only leaves once you are home with nothing open. A comment you were typing is saved, not thrown away, and the margins on a book's page are saved as they are on any click away.
+- **A tap on the edge of the page did nothing on a phone.** The guide and the help both say it turns the page, but below 600px wide only a swipe worked. On a touch screen in page mode, a tap on the outer quarter of either side now turns the page. The middle stays free for tapping marks and for read aloud, and a mouse click never turns.
+- **Scroll mode stranded you at the end of each chapter.** Scrolling stopped at a chapter's end, and the only ways on were a sideways swipe nobody would guess, the arrow keys, or Contents. A Next button now waits at the end of each chapter, with room left under the last line so it covers nothing. Pulling down at the top of a chapter offers the chapter before, and arrives at its end.
+- **Find in book on a phone.** On a 320px screen the close button was pushed off the edge, so the bar could not be closed. On every phone the matches were listed below the search box, exactly where the keyboard covers them. They now sit above the box, and the keyboard's Search key puts the keyboard away.
+- **Scrolling a panel to its end then scrolled the page behind it.** Panels, lists and dialogs now stop at their end. While a book or a book's page is open, pulling down no longer reloads the page.
+- **An iPhone zoomed in when you tapped a search box or the sync fields,** and stayed zoomed, because their text was under 16px. On touch screens these boxes now use 16px text.
+- **The Handoff button showed a count on a brand-new install.** It counted the guide's sample marks, which arrive with the guide on every device.
+- **On iPhone the keyboard sometimes did not open** for search, Find, a comment or the margins, because the box was focused a moment after the tap rather than during it. Focus is now immediate. Edit details no longer raises the keyboard over the form on a phone, and a search started from selected words shows its results without a keyboard over them.
+- Four screenshots taken while checking 1.0.62 were committed by mistake and published with the site. They are removed.
+
+**Changed**
+- **The selection menu on a touch screen** sits below the selected words, clear of the phone's own Copy menu above them and its drag handles below. Its buttons are larger.
+- **Bigger targets for fingers:** the reader's sync dot, Connections and Library on the home screen, Shuffle, the close buttons on Connections and link previews, Edit and Advanced, the colour and filter chips in the highlights panels, and the links under each mark.
+- **The notch and the home bar.** Sideways, or as an app on the home screen, the page is drawn edge to edge, and nothing now sits under the notch or the home bar: the top bars, the side arrows, the reading area, the bottom bar, the panels and the messages all keep clear.
+- **The home header scrolls away on a phone** instead of covering a third of a small screen.
+- The comment box opens in the top half of a phone screen, so Save stays above the keyboard. The highlights panel's header, the star rating in Edit details, the selection menu and the read-aloud controls all fit a 320px screen.
+- A quick second tap is never read as a double-tap zoom, and turning a phone sideways no longer enlarges the text.
+- The guide says how Back works on a phone and how to move between chapters in scroll mode (revision 17).
+
+**Checks**
+- The regression check now drives a phone with real touch input: a swipe and an edge tap turn the page, a mouse click at the edge does not, no text box is small enough to make an iPhone zoom, a panel scrolled to its end leaves the page behind still, Back closes a panel, the find bar and then the book and keeps a comment being typed, the app's own close buttons keep history in step, the selection menu sits clear of the selection, scroll mode offers the next and previous chapter, the find bar fits 320px with its matches above it, nothing sits under an emulated notch or home bar, and the Handoff count leaves out the guide's marks.
+
 ## 1.0.62 (18 October 2026)
 
 **Added**

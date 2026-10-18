@@ -597,6 +597,123 @@ with sync_playwright() as p:
       const t=window.toast; window.toast=function(m){ msg=m; t(m); }; document.querySelector('#guide-btn').click(); await new Promise(r=>setTimeout(r,1200)); window.toast=t; return msg; })()"""),
            lambda m: "could not be fetched" in m, "a toast, not a silent failure")
     gctx.close()
+
+    # 7. Phones: real touch input on a phone-sized screen. Pages turn by swipe and by a tap on either
+    #    edge; text boxes are large enough that an iPhone never zooms; the phone's Back steps back
+    #    inside Backchat; scroll mode never strands you at a chapter's end; nothing hides under the
+    #    notch or the home bar.
+    phone = dict(p.devices["iPhone 13"]); phone.pop("default_browser_type", None)
+    PW, PH = phone["viewport"]["width"], phone["viewport"]["height"]
+    mctx = browser.new_context(**phone, bypass_csp=True); mp = mctx.new_page(); watch(mp, "phone")
+    cdp = mctx.new_cdp_session(mp)
+    def touch(kind, pts): cdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [{"x": x, "y": y} for x, y in pts]})
+    def swipe(x0, y0, x1, y1, steps=6, dur=0.08):
+        touch("touchStart", [(x0, y0)])
+        for i in range(1, steps + 1):
+            touch("touchMove", [(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps)]); time.sleep(dur / steps)
+        touch("touchEnd", [])
+    def tap_at(x, y): touch("touchStart", [(x, y)]); time.sleep(0.05); touch("touchEnd", [])
+    def tap(sel):
+        try: mp.tap(sel, timeout=4000); return True
+        except Exception: return False
+    def page_no(): return ev(mp, "()=>{ const l=rendition.currentLocation(); return l&&l.start ? [l.start.index,(l.start.displayed||{}).page] : null }")
+    def back_state(): return ev(mp, "()=>[bcScreen(), bcLayers(), bcBackDepth()]")
+    def back():
+        """The phone's Back. True while Backchat is still the page showing; otherwise it reopens it."""
+        mp.go_back(); settle(0.7)
+        if mp.url.split("#")[0] == URL: return True
+        mp.goto(URL); wait(mp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+        return False
+    try:
+        mp.goto(URL); wait(mp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1.5)
+        expect("the Handoff count leaves out the guide's sample marks", ev(mp, "()=>document.querySelector('#home-handoff-count').textContent"), "",
+               "a first visit has nothing of the reader's own to hand off")
+        mp.set_input_files("#file-input", [LONG, ALPHA])
+        wait(mp, "DB.count('meta').then(n=>window.__pn=n), window.__pn>=3", 30000); settle(1.5)
+        mp.evaluate("()=>goHome()"); settle(0.8)
+        expect("on a phone no text box is under 16px, so an iPhone never zooms in", ev(mp, r"""()=>[...document.querySelectorAll('input,textarea,select')]
+            .filter(e=>!['range','checkbox','radio','file','hidden'].includes((e.type||'').toLowerCase()))
+            .map(e=>[e.id||e.className, parseFloat(getComputedStyle(e).fontSize)]).filter(x=>x[1]<16)"""), [], "Safari zooms the page into any text box under 16px")
+        mp.evaluate("()=>window.scrollTo(0, 400)"); settle(0.3)
+        expect("the home header scrolls away on a phone", ev(mp, "()=>Math.round(document.querySelector('#home .topbar').getBoundingClientRect().bottom)"), lambda b: b <= 0,
+               "pinned, the search and Add rows cover a third of a small screen")
+        mp.evaluate("()=>window.scrollTo(0, 0)")
+        tap("#home-settings"); settle(0.5)
+        for _ in range(10): swipe(PW * 0.7, PH * 0.8, PW * 0.7, PH * 0.2); time.sleep(0.12)
+        settle(0.6)
+        expect("a panel scrolled to its end leaves the page behind it still", ev(mp, "()=>[document.querySelector('#lib-panel .panel-body').scrollTop>0, window.scrollY]"), [True, 0],
+               "overscroll-behavior: contain on panels")
+        tap("#lib-panel [data-close]"); settle(1.0)
+        expect("closing a panel with its own button uses up Back's step", [ev(mp, "()=>document.querySelector('#lib-panel').classList.contains('open')"), back_state()], [False, ["home", 0, 0]],
+               "otherwise the next Back would do nothing")
+        tap("#home-settings"); settle(0.4); stayed = back()
+        expect("the phone's Back closes a panel instead of leaving", [stayed, ev(mp, "()=>document.querySelector('#lib-panel').classList.contains('open')"), back_state()], [True, False, ["home", 0, 0]],
+               "Android's Back and an iPhone's edge swipe used to leave the site")
+        long_id = ev(mp, "DB.all('meta').then(ms=>ms.filter(m=>/Long Landing/.test(m.title))[0].id)")
+        mp.evaluate("(id)=>openDetails(id)", long_id); settle(1.0)
+        tap(".det-cta"); wait(mp, "rendition && rendition.getContents().length>0"); settle(2.5)
+        a = page_no(); swipe(PW * 0.8, PH * 0.5, PW * 0.2, PH * 0.5); settle(0.9); b = page_no()
+        swipe(PW * 0.2, PH * 0.5, PW * 0.8, PH * 0.5); settle(0.9); c = page_no()
+        expect("a swipe turns the page on a phone", [b[1] - a[1], c[1] - b[1]] if a and b and c else [a, b, c], [1, -1], "swipe left for the next page, right for the one before")
+        a = page_no(); tap_at(PW - 14, PH * 0.5); settle(0.9); b = page_no(); tap_at(14, PH * 0.5); settle(0.9); c = page_no()
+        expect("a tap on the right or left edge turns the page on a phone", [b[1] - a[1], c[1] - b[1]] if a and b and c else [a, b, c], [1, -1],
+               "the guide and the help both promise it; below 600px there are no side arrows")
+        settle(0.6); a = page_no(); mp.mouse.click(PW - 14, PH * 0.5); settle(0.9); b = page_no()
+        expect("a mouse click at the edge does not turn the page", b, a, "edge taps are for fingers; a click there may just be setting the caret or closing a menu")
+        tap("#find-btn"); settle(0.4)
+        bs2 = [ev(mp, "()=>document.activeElement && document.activeElement.id"), back_state()]
+        stayed = back(); bs3 = [stayed, ev(mp, "()=>document.querySelector('#findbar').classList.contains('hidden')"), back_state()]
+        expect("the phone's Back closes the find bar, then the book", [bs2, bs3], [["find-input", ["reader", 2, 2]], [True, True, ["reader", 1, 1]]],
+               "each open thing takes one Back; Find opens with the keyboard up")
+        # The selection menu stays clear of the phone's own Copy menu above and the handles below.
+        mp.evaluate(r"""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Paragraph 3 of chapter 0'); const s=c.window.getSelection(); s.removeAllRanges(); s.addRange(r); }"""); settle(1.0)
+        expect("the selection menu sits below the selection on a touch screen", ev(mp, r"""()=>{ const c=rendition.getContents()[0], r=c.window.getSelection().getRangeAt(0).getBoundingClientRect(), f=c.document.defaultView.frameElement.getBoundingClientRect(), p=document.querySelector('#sel-pop').getBoundingClientRect();
+            return selPopOpen() && (p.top>=f.top+r.bottom+20 || p.bottom<=f.top+r.top-40); }"""), True, "a phone draws Copy above a selection and drag handles below it")
+        tap("#sel-pop button.act[title='Comment']"); settle(0.4)
+        mp.keyboard.type("Typed on a phone"); stayed = back()
+        expect("Back on a comment being typed keeps it", [stayed, ev(mp, "()=>highlights.filter(h=>!h.deleted && h.note==='Typed on a phone').length"), back_state()], [True, 1, ["reader", 1, 1]],
+               "Back closes the box; the words are not thrown away")
+        stayed = back(); settle(0.8)
+        expect("the phone's Back then closes the book", [stayed, back_state()], [True, ["home", 0, 0]], "the last open thing")
+        # Scroll mode: the end of a chapter offers the next; a pull down at the start offers the one before.
+        mp.evaluate("(id)=>openBook(id)", long_id); wait(mp, "rendition && rendition.getContents().length>0"); settle(2)
+        mp.evaluate("()=>setReadFlow('scrolled')"); settle(2)
+        mp.evaluate("()=>bcGoTo(currentBook.id,{href:book.spine.spineItems[0].href,flash:false})"); settle(1.5)
+        for _ in range(45): swipe(PW * 0.5, PH * 0.75, PW * 0.5, PH * 0.15); time.sleep(0.1)
+        settle(0.8)
+        shown = ev(mp, "()=>document.querySelector('#bc-chap-next').classList.contains('show')")
+        tap("#bc-chap-next"); settle(1.5)
+        expect("scroll mode: a chapter's end offers the next chapter", [shown, (page_no() or [None])[0]], [True, 1], "scrolling stops at a chapter's end, and phones have no side arrows")
+        swipe(PW * 0.5, PH * 0.3, PW * 0.5, PH * 0.8); settle(0.6)
+        shown = ev(mp, "()=>document.querySelector('#bc-chap-prev').classList.contains('show')")
+        tap("#bc-chap-prev"); settle(1.8)
+        expect("scroll mode: a pull down at a chapter's start offers the one before, at its end", [shown, (page_no() or [None])[0], ev(mp, "()=>{ const c=rendition.manager.container; return c.scrollTop+c.clientHeight>=c.scrollHeight-4; }")],
+               [True, 0, True], "reading on backwards arrives at the end of the chapter before")
+        mp.evaluate("()=>setReadFlow('paginated')"); settle(1.2)
+    except Exception as e:
+        expect("the phone checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    mctx.close()
+    # A small phone: the find bar fits, and its matches sit above it, where the keyboard cannot cover them.
+    small = dict(p.devices["iPhone SE"]); small.pop("default_browser_type", None)
+    sctx = browser.new_context(**small, bypass_csp=True); sp = sctx.new_page(); watch(sp, "small-phone")
+    sp.goto(URL); wait(sp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+    sp.set_input_files("#file-input", [LONG]); wait(sp, "DB.count('meta').then(n=>window.__sn=n), window.__sn>=2", 30000); settle(1)
+    sp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Long Landing/.test(m.title))[0].id))"); wait(sp, "rendition && rendition.getContents().length>0"); settle(2)
+    sp.tap("#find-btn"); sp.keyboard.type("river"); settle(1.2)
+    expect("find in book fits a 320px phone, with its matches above the box", ev(sp, """()=>{ const x=document.querySelector('#find-close').getBoundingClientRect(), b=document.querySelector('#findbar').getBoundingClientRect(), r=document.querySelector('#find-results').getBoundingClientRect();
+        return [x.right<=innerWidth, r.height>0 && r.bottom<=b.top+1]; }"""), [True, True], "the close button was pushed off screen, and the keyboard covered the matches")
+    sctx.close()
+    # The notch and the home bar (landscape, or a home-screen app): nothing sits under them.
+    land = dict(p.devices["iPhone 13 landscape"]); land.pop("default_browser_type", None)
+    lctx = browser.new_context(**land, bypass_csp=True); lp = lctx.new_page(); watch(lp, "notch")
+    lctx.new_cdp_session(lp).send("Emulation.setSafeAreaInsetsOverride", {"insets": {"left": 47, "right": 47, "top": 0, "bottom": 21}})
+    lp.goto(URL); wait(lp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+    lp.evaluate("()=>openBook('bcguide001')"); wait(lp, "rendition && rendition.getContents().length>0"); settle(2)
+    LW, LH = land["viewport"]["width"], land["viewport"]["height"]
+    expect("nothing sits under the notch or the home bar", ev(lp, """(a)=>{ const r=s=>document.querySelector(s).getBoundingClientRect();
+        return [r('#back-btn').left>=47, r('#set-btn').right<=a[0]-47, r('#viewport').left>=47, r('#prev .nav-arrow').left>=47, r('#pct-label').bottom<=a[1]-21]; }""", [LW, LH]), [True, True, True, True, True],
+           "with the page drawn edge to edge, the safe-area insets keep controls and text clear")
+    lctx.close()
     browser.close()
 
 httpd.shutdown()

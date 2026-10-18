@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 16
+revision: 17
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -94,13 +94,15 @@ Along the bottom run the chapter and page, a progress bar, how much you have rea
 
 Turn pages by tapping the left or right edge, with the arrows at the sides, by swiping on a phone, or from the keyboard: the right arrow, Space or Page Down to go forward, the left arrow or Page Up to go back. C opens the contents, H the highlights, S the margins, and Esc closes whatever is open. Press ? to see them all.
 
+On a phone, Back works as it does in any app: it closes whatever is open, then the book.
+
 Follow a link inside a book, a footnote for instance, and a Return button waits at the bottom of the page. Tap it to go back to where you were reading.
 
 ## Read your way
 
 Display {{icon:display}} holds the settings for reading.
 
-- **Layout.** Page turns like paper. Scroll flows down the screen, one chapter at a time.
+- **Layout.** Page turns like paper. Scroll flows down the screen, one chapter at a time: at the end of a chapter, tap Next to carry on, and to go back a chapter, pull down at the top of one.
 - **Theme.** Light, Sepia, Dark, or Auto, which follows your device.
 - **Font, font size, line spacing and margin.** Yours to set, and they apply to every book.
 - **Original styling.** This one is set per book. Original shows the book exactly as its maker designed it, with its own fonts, colours and layout, which suits books built on diagrams or coloured text. Reader puts your own settings back.
