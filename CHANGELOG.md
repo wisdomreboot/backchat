@@ -2,6 +2,32 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.64 (18 October 2026)
+
+Read aloud, checked the way it is used: listening while reading along with the highlight, pausing to highlight and comment, then picking up again. Every case below was reproduced first with a scripted voice that behaves like Safari's, Chrome's and Android's, faults included, and is now part of the regression check.
+
+**Fixed**
+- **A chapter that ends in a picture, or with an empty last page, was read again and again.** At the end of the words the voice turned one page, landed on the chapter's own last page, and started the chapter over, for ever. It now goes to the next chapter by the book's own order.
+- **After going to another chapter while paused, play read the old chapter aloud,** unseen, while showing the new one, and the page never followed. Play now reads the chapter on screen; in the same chapter it picks up where the voice stopped, turning back to it if you paged away to look.
+- **Block quotes and list items were read twice,** first run together and then paragraph by paragraph, and so were nested lists. **Text kept in plain divs and table cells was skipped.** Hidden text was read, and so were the small numbers that link to notes ("the river1 flows"). Each passage is now read once, in the book's order; verse lines broken within a paragraph are read as separate lines, not run together; and "Mr." no longer ends a sentence.
+- **Selecting words while it read:** the voice turned the page under your finger and the highlight menu disappeared. While words are selected, a menu or the comment box is open, or the search over your books is up, the voice reads on and the page holds still; it catches up once you are done.
+- **A voice that fails** (an online voice with no connection) raced through the book, dozens of paragraphs a second. After three failures in a row it now pauses and says to choose another voice.
+- **Chrome's online voices can fall silent mid-paragraph** with no end and no error. The watchdog only noticed an engine that had stopped, not one that claimed to be speaking. It now notices either and repeats the sentence.
+- **Dragging the speed slider restarted the voice at every step,** which in Chrome could leave several seconds of silence. The new speed now applies once you let go, from the start of the sentence.
+- **In scroll mode the voice pulled the page back** a couple of seconds after you scrolled to look at something, because scrolling inside the book was never noticed. It now waits for you.
+
+**Changed**
+- **The page turns with the voice word by word,** not sentence by sentence, so a sentence that runs onto the next page is never heard off screen. With voices that report no words (Chrome's online voices, Android) the page used to turn late; it now keeps up.
+- **Play starts with the first sentence on the page you see,** not with the paragraph begun on the page before. A page with only a picture starts with the next words after it.
+- **Pause and play pick up at the start of the sentence,** never mid-sentence or mid-word.
+- **Turning the page yourself pauses the voice instead of stopping it,** so the player and your place stay. Play takes you back to the voice; a tap on a paragraph reads from there. Going to a mark, a search result or a link pauses it too, and switching between pages and scrolling keeps your place for play.
+- **The screen stays on through a pause** for as long as you keep using the page (up to ten minutes after your last touch), so it does not go dark while you mark a passage. Stopping read aloud lets it sleep at once.
+- The voice speaks a few sentences at a time, short enough that no engine cuts it off, and very long sentences are broken at a comma. Back steps to the start of the paragraph, then to the one before; forward past the last paragraph goes on to the next chapter.
+- The guide's chapter on listening describes how to mark up while listening (revision 18).
+
+**Checks**
+- The regression check drives read aloud on a phone with a scripted voice (`tools/check/speech_stub.js`): each passage once and in order, a chapter ending in a picture, the first sentence on the page, the page following the voice with and without word reports, pause then highlight and comment then play, selecting while it reads, a swipe pausing it, play after going to another chapter, a failing voice, the speed slider, and an engine that goes silent.
+
 ## 1.0.63 (18 October 2026)
 
 A pass over Backchat on phones, with real touch input on iPhone and Android screen sizes from 320px up, upright and sideways.

@@ -82,6 +82,45 @@ make_epub(BETA, "Beta Second Book", "Bob Writer", "urn:isbn:9780000000002", [
 LONG = os.path.join(TMP, "long.epub")
 make_long_epub(LONG)
 
+def make_listen_epub(path):
+    """A book for read aloud: a plain chapter long enough to turn pages; a chapter of awkward
+    structure (a note marker, a block quote, list items holding paragraphs, a nested list, a div used
+    as a paragraph, a table, hidden text, a footnote); a chapter that ends in a picture filling its
+    last page; and a short last chapter."""
+    z = zipfile.ZipFile(path, "w")
+    z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", compress_type=zipfile.ZIP_STORED)
+    z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
+    head = '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>%s</title></head><body>'
+    w = "river stone lantern harbor meadow copper window orchard thunder pencil garden mirror candle valley silver forest".split()
+    def para(n):
+        a = " ".join(w[(n + k) % len(w)] for k in range(9)); b = " ".join(w[(n * 3 + k) % len(w)] for k in range(10)); c = " ".join(w[(n * 5 + k) % len(w)] for k in range(8))
+        return "Paragraph %d opens with %s. Its second sentence %d carries %s. The third sentence %d ends on %s." % (n, a, n, b, n, c)
+    ch = [("Plain", "<h1>Plain</h1>" + "".join("<p>%s</p>" % para(i) for i in range(30))),
+          ("Structure", "<h1>Structure</h1>"
+           '<p>Opening line with a note marker<sup><a href="#fn1" epub:type="noteref">1</a></sup> right here.</p>'
+           "<blockquote><p>Quoted first paragraph.</p><p>Quoted second paragraph.</p></blockquote>"
+           "<ul><li><p>List item paragraph.</p></li><li>Plain list item<ul><li>Nested item.</li></ul></li></ul>"
+           '<div class="para">A paragraph written as a div.</div>'
+           "<table><tr><td>Table cell one.</td><td>Table cell two.</td></tr></table>"
+           '<p style="display:none">Hidden words never shown.</p>'
+           "<p>A line of verse<br/>broken by a line break.</p>"
+           "<p>Closing line of structure.</p>"
+           '<aside epub:type="footnote" id="fn1"><p>The footnote text itself.</p></aside>'),
+          ("Trailing image", "<h1>Trailing image</h1>" + "".join("<p>Image chapter paragraph %d says something about %s.</p>" % (i, w[i]) for i in range(6))
+           + '<div><img src="tall.png" alt="" style="height:90vh;width:auto"/></div>'),
+          ("Short end", "<h1>Short end</h1><p>The final chapter begins here.</p><p>And the book ends here.</p>")]
+    man = ['<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>', '<item id="img" href="tall.png" media-type="image/png"/>']; spine = []; nav = []
+    for i, (lab, body) in enumerate(ch):
+        z.writestr("OEBPS/c%d.xhtml" % i, (head % lab) + body + "</body></html>")
+        man.append('<item id="c%d" href="c%d.xhtml" media-type="application/xhtml+xml"/>' % (i, i)); spine.append('<itemref idref="c%d"/>' % i); nav.append('<li><a href="c%d.xhtml">%s</a></li>' % (i, lab))
+    # a 1x1 grey PNG; the page stretches it to fill most of the screen
+    z.writestr("OEBPS/tall.png", base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOYNm0aAAOIAcMdATx8AAAAAElFTkSuQmCC"))
+    z.writestr("OEBPS/nav.xhtml", '<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Nav</title></head><body><nav epub:type="toc"><ol>%s</ol></nav></body></html>' % "".join(nav))
+    z.writestr("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:isbn:9780000000888</dc:identifier><dc:title>Listening Book</dc:title><dc:creator>Test Author</dc:creator><dc:language>en</dc:language></metadata><manifest>%s</manifest><spine>%s</spine></package>' % ("".join(man), "".join(spine)))
+    z.close()
+LISTEN = os.path.join(TMP, "listen.epub")
+make_listen_epub(LISTEN)
+
 
 # ---------- local server ----------
 class Quiet(http.server.SimpleHTTPRequestHandler):
@@ -714,6 +753,103 @@ with sync_playwright() as p:
         return [r('#back-btn').left>=47, r('#set-btn').right<=a[0]-47, r('#viewport').left>=47, r('#prev .nav-arrow').left>=47, r('#pct-label').bottom<=a[1]-21]; }""", [LW, LH]), [True, True, True, True, True],
            "with the page drawn edge to edge, the safe-area insets keep controls and text clear")
     lctx.close()
+
+    # 8. Read aloud, on a phone, with a scripted voice in place of the browser's (speech_stub.js). It
+    #    reads each passage once and in order, follows the voice page by page, survives pausing to mark
+    #    a passage, and recovers from the ways real speech engines fail.
+    actx = browser.new_context(**phone, bypass_csp=True); actx.add_init_script(path=os.path.join(HERE, "speech_stub.js"))
+    ap = actx.new_page(); watch(ap, "read-aloud"); acdp = actx.new_cdp_session(ap)
+    def a_swipe(x0, y0, x1, y1, steps=6, dur=0.1):
+        acdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x0, "y": y0}]})
+        for i in range(1, steps + 1):
+            acdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x0 + (x1 - x0) * i / steps, "y": y0 + (y1 - y0) * i / steps}]}); time.sleep(dur / steps)
+        acdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    def voice(**kw): ev(ap, "(o)=>Object.assign(window.__speech, o)", kw)
+    def heard(): return ev(ap, "()=>__speech.log.filter(r=>!r.error).map(r=>r.text.trim())")
+    def a_state(): return ev(ap, "()=>tts.state")
+    def chapter(i):
+        ev(ap, "()=>ttsStop()"); ev(ap, "()=>{ __speech.log=[]; __speech.cancels=0; }")
+        # the chapter's first page (display() of the chapter already showing would not move)
+        ap.evaluate("(i)=>{ const c=(rendition.getContents()||[]).filter(x=>x.sectionIndex===i)[0]; return c ? rendition.display(c.cfiFromNode(c.document.body)) : rendition.display(book.spine.spineItems[i].href); }", i); settle(1.3)
+    VOICE_ON_PAGE = r"""()=>{ const ch=tts.chunks[tts.cidx]; if(!ch) return 'no voice'; return bcRangeSide(tts.contents, ttsRangeAt(ch, tts.lastChar)); }"""
+    try:
+        ap.goto(URL); wait(ap, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+        ap.set_input_files("#file-input", [LISTEN]); wait(ap, "DB.count('meta').then(n=>window.__an=n), window.__an>=2", 30000); settle(1)
+        ap.evaluate("()=>{ settings.tts=true; saveSettings(); syncTtsControls(); }")
+        ap.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Listening/.test(m.title))[0].id))"); wait(ap, "rendition && rendition.getContents().length>0"); settle(2)
+
+        voice(cps=900, mode="boundary"); chapter(1); ev(ap, "()=>ttsStart()"); settle(2.5)
+        got = heard(); got = got[:got.index("Trailing image")] if "Trailing image" in got else got
+        expect("read aloud reads each passage once, in order", got,
+               ["Structure", "Opening line with a note marker right here.", "Quoted first paragraph.", "Quoted second paragraph.", "List item paragraph.", "Plain list item", "Nested item.",
+                "A paragraph written as a div.", "Table cell one.", "Table cell two.", "A line of verse\nbroken by a line break.", "Closing line of structure.", "The footnote text itself."],
+               "a quote or a list item was read twice, text in divs and tables was skipped, hidden text and note numbers were read, verse lines ran together")
+        voice(cps=900); chapter(2); ev(ap, "()=>ttsStart()"); settle(3)
+        got = heard()
+        expect("a chapter that ends in a picture carries on into the next chapter", [got.count("Image chapter paragraph 0 says something about river."), "The final chapter begins here." in got], [1, True],
+               "a page turn at the end landed on the picture and the chapter was read again from the top, for ever")
+        voice(cps=150); chapter(0); ap.evaluate("()=>rendition.next()"); settle(0.8)
+        first = ev(ap, r"""()=>{ const c=rendition.getContents()[0]; for(const k of buildChunks(c)) for(const s of k.sentences) if(bcRangeSide(c,s.range)===0) return s.range.toString().slice(0,40); return null; }""")
+        ev(ap, "()=>ttsStart()"); settle(0.6)
+        expect("play starts with the first sentence on the page you see", ((heard() or [""])[0])[:40], first, "it started with the paragraph begun on the page before, so you heard words you could not see")
+        for mode in ["boundary", "none"]:
+            voice(cps=200, mode=mode); chapter(0)
+            ev(ap, r"""()=>{ window.__lag={on:0,off:0}; clearInterval(window.__lagT); window.__lagT=setInterval(()=>{ try{ if(tts.state!=='playing'||!speechSynthesis.speaking) return; const s=bcRangeSide(tts.contents, ttsRangeAt(tts.chunks[tts.cidx], tts.lastChar)); if(s===0) __lag.on++; else __lag.off++; }catch(e){} },50); }""")
+            ev(ap, "()=>ttsStart()"); settle(5)
+            lag = ev(ap, "()=>{ clearInterval(window.__lagT); return [__lag.off, __lag.on>40, (rendition.currentLocation().start.displayed||{}).page>1]; }")
+            expect("the page turns with the voice, word by word (%s)" % ("a voice that reports words" if mode == "boundary" else "a voice that reports none"), lag, [0, True, True],
+                   "the word being spoken was off the page; voices that report no words turned the page late")
+        voice(cps=60, mode="boundary"); chapter(0); ev(ap, "()=>ttsStart()"); settle(2.6)
+        ev(ap, "()=>ttsPlayPause()"); settle(0.3)
+        was = ev(ap, "()=>{ const ch=tts.chunks[tts.cidx]; return ch.text.slice(ch.sentences[tts.curSentIdx].cStart, ch.sentences[tts.curSentIdx].cEnd).trim().slice(0,40); }")
+        awake = ev(ap, "()=>__speech.wake.held")
+        ev(ap, r"""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Paragraph 0 opens'); const s=c.window.getSelection(); s.removeAllRanges(); s.addRange(r); }"""); settle(0.8)
+        ev(ap, "()=>document.querySelector('#sel-pop .sw').click()"); settle(0.5)
+        ev(ap, "()=>{ const h=highlights.filter(x=>!x.deleted).slice(-1)[0]; editExistingNote(h.id); }"); settle(0.3)
+        ap.keyboard.type("Noted while listening"); ev(ap, "()=>document.querySelector('#note-save').click()"); settle(0.5)
+        ev(ap, "()=>{ __speech.log=[]; ttsPlayPause(); }"); settle(0.4)
+        expect("pause, highlight and comment, then play picks up at the start of the sentence", [awake, ((heard() or [""])[0])[:40], ev(ap, "()=>highlights.some(h=>h.note==='Noted while listening')")], [True, was, True],
+               "the screen may not sleep during a pause, and play must not restart mid-sentence or mid-word")
+        voice(cps=80); chapter(0)
+        ev(ap, r"""()=>{ const c=rendition.getContents()[0]; tts.contents=c; tts.chunks=buildChunks(c); let k=0; for(let i=0;i<tts.chunks.length;i++) if(bcRangeSide(c,tts.chunks[i].range)===0) k=i; tts.cidx=k; tts.state='playing'; ensureAudioBar(); ttsSetUI(); speakChunk(0); }""")
+        settle(0.5)
+        ev(ap, r"""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Paragraph 0 opens'); const s=c.window.getSelection(); s.removeAllRanges(); s.addRange(r); }"""); settle(4)
+        held = [ev(ap, "()=>selPopOpen()"), ev(ap, "()=>(rendition.currentLocation().start.displayed||{}).page")]
+        ev(ap, "()=>{ hideSelPop(); rendition.getContents()[0].window.getSelection().removeAllRanges(); }"); settle(1.2)
+        expect("selecting words while it reads keeps the page and the menu still, then the page catches up", [held, ev(ap, VOICE_ON_PAGE)], [[True, 1], 0],
+               "the voice turned the page under your finger and the highlight menu vanished")
+        voice(cps=60); chapter(0); ev(ap, "()=>ttsStart()"); settle(1.2)
+        a_swipe(PW * 0.8, PH * 0.5, PW * 0.2, PH * 0.5); settle(0.8)
+        swiped = a_state(); ev(ap, "()=>{ __speech.log=[]; ttsPlayPause(); }"); settle(0.8)
+        expect("turning the page yourself pauses the voice; play takes you back to it", [swiped, ev(ap, VOICE_ON_PAGE)], ["paused", 0], "a swipe stopped read aloud and lost its place")
+        ev(ap, "()=>ttsPlayPause()"); settle(0.2); chapter_to = 3
+        ap.evaluate("(i)=>bcGoTo(currentBook.id,{href:book.spine.spineItems[i].href,flash:false})", chapter_to); settle(1.3)
+        ev(ap, "()=>{ __speech.log=[]; ttsPlayPause(); }"); settle(0.6)
+        expect("after going to another chapter, play reads the chapter on screen", ((heard() or [""])[0])[:20], "Short end", "it read the old chapter's words aloud, unseen, while showing the new one")
+        voice(cps=60, failAll=True); chapter(0); ev(ap, "()=>ttsStart()"); settle(2.5)
+        expect("a voice that keeps failing pauses instead of racing through the book", [ev(ap, "()=>__speech.log.length"), a_state()], [3, "paused"], "an offline online voice flew through every paragraph")
+        voice(failAll=False, swallowAfterCancelMs=40); chapter(0); ev(ap, "()=>ttsStart()"); settle(1)
+        for v in [1.1, 1.2, 1.3, 1.4, 1.5, 1.4, 1.3]:
+            ev(ap, "(v)=>{ const r=document.querySelector('#tts-rate'); r.value=v; r.dispatchEvent(new Event('input',{bubbles:true})); }", v); time.sleep(0.03)
+        settle(0.8)
+        expect("dragging the speed slider changes the voice once, without a silence", [ev(ap, "()=>__speech.cancels"), ev(ap, "()=>speechSynthesis.speaking")], [1, True],
+               "every step of the drag restarted the voice, and Chrome can lose speech started right after a cancel")
+        voice(swallowAfterCancelMs=0, cps=40, mode="none", stallAfterMs=700); chapter(0); ev(ap, "()=>{ tts.cps=40; ttsStart(); }")
+        # the heading is over before the engine stalls; the first paragraph is not
+        stall = None; t_end = time.time() + 20
+        while time.time() < t_end:
+            log = ev(ap, "()=>__speech.log.map(r=>[r.text.slice(0,30), r.t])") or []
+            k = next((i for i, r in enumerate(log) if len(r[0]) >= 30), None)
+            if k is not None and len(log) > k + 1:
+                stall = [log[k + 1][0] == log[k][0], round((log[k + 1][1] - log[k][1]) / 1000)]; break
+            time.sleep(0.25)
+        voice(stallAfterMs=0)
+        expect("an engine that goes silent mid-sentence is noticed, and the voice repeats that sentence", [stall and stall[0], stall and stall[1] <= 12], [True, True],
+               "Chrome's online voices can stop with no end and no error; the watchdog only looked for a stopped engine (got %s)" % stall)
+        ev(ap, "()=>ttsStop()")
+    except Exception as e:
+        expect("the read-aloud checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    actx.close()
     browser.close()
 
 httpd.shutdown()
