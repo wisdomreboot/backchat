@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qqoj7KKnA04rNruKzfMpb97qXxv3DmwQD5VP1qlrykI=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-WyMHFDenKarbvMJYuQgkBo1U6TAeB6hHBcQCoatIovw=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -1215,13 +1215,14 @@ var PAGE = 25;
 var settings = loadSettings();
 var book=null, rendition=null, currentBook=null, currentData=null, highlights=[], lastSelection=null, noteContext=null;
 /* ---------------- READ ALOUD: chunks, sentence tracking, watchdog, bookmark ---------------- */
-var tts = { state:"idle", chunks:[], cidx:0, curSentIdx:-1, contents:null, voice:null, voices:[], token:0, lastChar:0, lastTickAt:0, watch:null, userScrollAt:0, cps:0, estTimer:null, chunkT0:0, boundarySeen:false };
+var tts = { state:"idle", chunks:[], cidx:0, curSentIdx:-1, contents:null, voice:null, voices:[], token:0, lastChar:0, lastTickAt:0, watch:null, userScrollAt:0, cps:0, estTimer:null, chunkT0:0, boundarySeen:false,
+  uttStart:0, uttEnd:0, resumeAt:0, pausedAt:0, cancelAt:0, errors:0, followOwed:false, turning:false, awakeT:0, rateT:0 };
 var lib = { q:"", sort:"opened", dir:"desc", page:0, fav:false, tag:"" };
 var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.63";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.64";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -3911,6 +3912,7 @@ function bcFlash(contents, range){
 }
 function bcGoTo(bookId, place){
   place=place||{};
+  try{ ttsHush(); }catch(e){}   // going to a place pauses read aloud, which would otherwise turn the page back to the voice
   var seq=++_bcGoSeq;
   try{ closePanels(); }catch(e){}
   var find=(place.quote && !place.href && !place.cfi) ? bcFindSectionByQuote(bookId, place.quote).then(function(h){ if(h) place.href=h; }) : Promise.resolve();
@@ -3957,7 +3959,7 @@ function bcKeepPlace(change){
 }
 // Read-aloud and the video player turn pages on their own; a landing must not pull them back.
 function bcPagesFollowSomething(){
-  try{ if(tts && tts.state!=="idle") return true; }catch(e){}
+  try{ if(tts && tts.state==="playing") return true; }catch(e){}
   try{ if(window.BackchatPlayer && BackchatPlayer.isPlaying) return true; }catch(e){}
   return false;
 }
@@ -4193,7 +4195,7 @@ function setReadFlow(f){
   settings.flow=f; saveSettings();
   document.documentElement.dataset.flow=f;   // before the new layout is measured: scroll mode leaves room under the last line
   if(!rendition) return;
-  try{ ttsStop(); }catch(e){}
+  try{ ttsHush(); }catch(e){}   // play picks up on the same words once the new layout is drawn
   // Pages and scrolling lay the book out afresh; keep the reader on the same words across the switch.
   bcKeepPlace(function(){ try{ rendition.flow(f); }catch(e){} try{ applyTheme(); }catch(e){} });
 }
@@ -4247,8 +4249,8 @@ function globalKeys(e){
   if(typing) return;
   var readerOpen = rendition && !$("#reader").classList.contains("hidden");
   if(readerOpen){
-    if(e.key==="ArrowLeft"||e.key==="PageUp"){ e.preventDefault(); ttsStop(); rendition.prev(); }
-    else if(e.key==="ArrowRight"||e.key==="PageDown"||e.key===" "){ e.preventDefault(); ttsStop(); rendition.next(); }
+    if(e.key==="ArrowLeft"||e.key==="PageUp"){ e.preventDefault(); ttsHush(); rendition.prev(); }
+    else if(e.key==="ArrowRight"||e.key==="PageDown"||e.key===" "){ e.preventDefault(); ttsHush(); rendition.next(); }
     else if(e.key==="h"||e.key==="H"){ renderHlControls(); renderHighlightList(); openPanel($("#hl-panel")); }
     else if(e.key==="c"||e.key==="C"){ openToc(); }
     else if(e.key==="s"||e.key==="S"){ openScratch(); }
@@ -4792,7 +4794,7 @@ function bcAnchorAtReadPosition(bookKey, sel){
   if(!blockEl){
     var chunks=buildChunks(contents);
     for(var i=0;i<chunks.length;i++){
-      if(rangeVisible(contents, chunks[i].range)){ blockEl=bcBlockFromDoc(doc, chunks[i].range.startContainer); break; }
+      if(rangeVisible(contents, chunks[i].range)){ blockEl=bcBlockFromDoc(doc, chunks[i].range.startContainer); if(blockEl) break; }
     }
   }
   if(!blockEl) return null;
@@ -6149,7 +6151,9 @@ function ensureAudioBar(){
   $("#tts-mark-go").onclick=ttsBookmarkGo;
   ttsBookmarkUI();
   $("#tts-stop").onclick=ttsStop;
-  $("#tts-rate").oninput=function(e){ settings.ttsRate=+e.target.value; $("#tts-rate-val").textContent=settings.ttsRate.toFixed(1)+"×"; saveSettings(); ttsReapply(); };
+  // The label follows your finger; the voice takes the new speed once you stop moving, not at every step.
+  $("#tts-rate").oninput=function(e){ settings.ttsRate=+e.target.value; $("#tts-rate-val").textContent=settings.ttsRate.toFixed(1)+"×"; saveSettings(); clearTimeout(tts.rateT); tts.rateT=setTimeout(ttsReapply, 400); };
+  $("#tts-rate").onchange=function(){ clearTimeout(tts.rateT); ttsReapply(); };
   return bar;
 }
 function voiceScore(v){ var n=((v.name||"")+" "+(v.voiceURI||"")).toLowerCase(), s=0; if(/natural|neural/.test(n))s+=100; if(/premium|enhanced/.test(n))s+=70; if(/online/.test(n))s+=45; if(/google/.test(n))s+=55; if(/siri/.test(n))s+=50; if(/\b(aria|jenny|guy|sonia|ryan|libby|natasha|clara|michelle|ana|emma)\b/.test(n))s+=30; if(/^en/i.test(v.lang||""))s+=12; if(v.localService===false)s+=6; return s; }
@@ -6171,23 +6175,30 @@ function rangeVisible(contents, range){
 function caretFromPoint(doc,x,y){ try{ if(doc.caretRangeFromPoint) return doc.caretRangeFromPoint(x,y); if(doc.caretPositionFromPoint){ var pos=doc.caretPositionFromPoint(x,y); if(pos){ var r=doc.createRange(); r.setStart(pos.offsetNode,pos.offset); return r; } } }catch(e){} return null; }
 function ttsHighlight(contents, range){ try{ var win=contents.window, doc=contents.document; if(win.CSS && win.CSS.highlights && typeof win.Highlight==="function"){ ensureHlStyles(doc); win.CSS.highlights.set("tts", new win.Highlight(range)); return true; } }catch(e){} return false; }
 function ttsClearHighlight(){ try{ if(tts.contents){ var win=tts.contents.window; if(win.CSS && win.CSS.highlights) win.CSS.highlights.delete("tts"); } }catch(e){} }
-/* Hold the screen awake while the book is actually being read aloud, and only then.
-   The lock follows tts.state, so it is dropped the instant speech stops or pauses and
-   nothing can leave the display burning in the background. Browsers revoke the lock
-   whenever the page is hidden, so it is re-taken when the reader returns. Browsers
-   without the API simply go without, exactly as before. */
-var _wakeLock=null, _wakeBusy=false;
+/* Hold the screen awake while you listen. The lock is held while the book is read aloud, and
+   through a pause for as long as you keep using the page (up to TTS_AWAKE_MS after your last
+   touch), because a pause is usually for marking a passage or reading on in silence, and a screen
+   going dark in the middle of that is exactly the glitch to avoid. Stopping drops it at once, and
+   a pause left untouched lets the screen sleep as usual. Browsers revoke the lock whenever the
+   page is hidden, so it is re-taken when the reader returns. Browsers without the API go without. */
+var _wakeLock=null, _wakeBusy=false, TTS_AWAKE_MS=10*60*1000;
+function ttsWantsAwake(){
+  if(tts.state==="playing") return true;
+  if(tts.state!=="paused") return false;
+  return Date.now()-Math.max(tts.pausedAt||0, _bcInputAt||0) < TTS_AWAKE_MS;
+}
 function ttsWakeSync(){
-  var want=(tts.state==="playing");
-  if(want){
+  clearTimeout(tts.awakeT);
+  if(tts.state==="paused") tts.awakeT=setTimeout(ttsWakeSync, 30000);   // look again, so a long untouched pause lets go
+  if(ttsWantsAwake()){
     if(_wakeLock || _wakeBusy) return;
     if(!navigator.wakeLock || !navigator.wakeLock.request) return;
     if(document.visibilityState!=="visible") return;
     _wakeBusy=true;
     navigator.wakeLock.request("screen").then(function(l){
       _wakeBusy=false;
-      // playback may have stopped while the request was in flight
-      if(tts.state!=="playing"){ try{ l.release(); }catch(e){} return; }
+      // listening may have stopped while the request was in flight
+      if(!ttsWantsAwake()){ try{ l.release(); }catch(e){} return; }
       _wakeLock=l;
       l.addEventListener("release", function(){ _wakeLock=null; });
     }).catch(function(){ _wakeBusy=false; });
@@ -6213,7 +6224,7 @@ function _bcJumpPill(){
 function _bcJumpBack(){
   if(!_bcReadJump.length || !rendition) return;
   var cfi=_bcReadJump.pop();
-  try{ ttsStop(); }catch(e){}
+  try{ ttsHush(); }catch(e){}
   if(currentBook) bcGoTo(currentBook.id, { cfi:cfi, flash:false });
   _bcJumpPill();
 }
@@ -6230,8 +6241,8 @@ function bcEdgeTurn(c, e){
   var vp=document.getElementById("viewport"); if(!vp) return false;
   var fr=c.document.defaultView.frameElement, ib=fr?fr.getBoundingClientRect():{left:0};
   var r=vp.getBoundingClientRect(), x=ib.left+e.clientX-r.left, zone=Math.min(r.width*0.25, 140);
-  if(x<zone){ ttsStop(); rendition.prev(); return true; }
-  if(x>r.width-zone){ ttsStop(); rendition.next(); return true; }
+  if(x<zone){ ttsHush(); rendition.prev(); return true; }
+  if(x>r.width-zone){ ttsHush(); rendition.next(); return true; }
   return false;
 }
 function bindReadClicks(){ rendition.getContents().forEach(function(c){ if(c._readClickBound) return; c._readClickBound=true; c.document.addEventListener("click", function(e){ bcBackNote(); var _a=e.target&&e.target.closest?e.target.closest("a[href]"):null; if(_a){ var _h=_a.getAttribute("href")||""; if(/^(https?:|mailto:)/i.test(_h)){ e.preventDefault(); bcOpenOutside(_h); return; } if(_h&&!/^(https?:|mailto:|tel:|javascript:|#$)/i.test(_h)){ try{ var _l=rendition.currentLocation&&rendition.currentLocation(); var _cc=_l&&_l.start&&_l.start.cfi; if(_cc){ _bcReadJump.push(_cc); setTimeout(_bcJumpPill,80); } }catch(_e){} } return; } var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(selPopOpen()){ hideSelPop(); return; } var hid=highlightAtPoint(c,e.clientX,e.clientY); if(hid){ var it=highlights.filter(function(x){ return x.id===hid; })[0]; if(it && it.kind==="note"){ editExistingNote(hid); return; } var iframe=c.document.defaultView.frameElement; var ib=iframe?iframe.getBoundingClientRect():{left:0,top:0}; showHlActions(hid, ib.left+e.clientX, ib.top+e.clientY); return; } if(bcEdgeTurn(c, e)) return; readFromPoint(c,e.clientX,e.clientY); }); c.document.addEventListener("mousemove", function(e){ onNoteHover(c, e.clientX, e.clientY); }); c.document.addEventListener("mouseleave", function(){ hideNotePop(); });
@@ -6239,12 +6250,13 @@ function bindReadClicks(){ rendition.getContents().forEach(function(c){ if(c._re
       c.document.addEventListener("touchstart", function(ev){ c._bcTouchAt=Date.now(); if(!ev.touches||ev.touches.length!==1){ _st=0; return; } _sx=ev.touches[0].clientX; _sy=ev.touches[0].clientY; _st=Date.now(); }, {passive:true});
       // Scroll mode: pulling down (or wheeling up) at the top of a chapter offers the chapter before.
       var _pull=function(){ if(settings.flow!=="scrolled" || !rendition || _bcChapPull) return; var ct=rendition.manager && rendition.manager.container; if(ct && ct.scrollTop<=2){ _bcChapPull=true; bcChapUpdate(); } };
-      c.document.addEventListener("touchmove", function(ev){ if(_st && ev.touches && ev.touches[0] && ev.touches[0].clientY-_sy>30) _pull(); }, {passive:true});
-      c.document.addEventListener("wheel", function(ev){ if(ev.deltaY<0) _pull(); }, {passive:true});
-      c.document.addEventListener("touchend", function(ev){ if(!_st) return; var t=ev.changedTouches&&ev.changedTouches[0]; var began=_st; _st=0; if(!t) return; var dx=t.clientX-_sx, dy=t.clientY-_sy, dt=Date.now()-began; var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(dt>700||Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.5) return; if(!rendition) return; ttsStop(); if(dx<0) rendition.next(); else rendition.prev(); }, {passive:true});
+      // Your own scrolling inside the book: in scroll mode the voice lets the view be for a few seconds.
+      c.document.addEventListener("touchmove", function(ev){ tts.userScrollAt=Date.now(); if(_st && ev.touches && ev.touches[0] && ev.touches[0].clientY-_sy>30) _pull(); }, {passive:true});
+      c.document.addEventListener("wheel", function(ev){ tts.userScrollAt=Date.now(); if(ev.deltaY<0) _pull(); }, {passive:true});
+      c.document.addEventListener("touchend", function(ev){ if(!_st) return; var t=ev.changedTouches&&ev.changedTouches[0]; var began=_st; _st=0; if(!t) return; var dx=t.clientX-_sx, dy=t.clientY-_sy, dt=Date.now()-began; var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(dt>700||Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.5) return; if(!rendition) return; ttsHush(); if(dx<0) rendition.next(); else rendition.prev(); }, {passive:true});
     }
   }); }
-// Tap-to-read: begin read-aloud from the tapped paragraph (only when read-aloud is enabled).
+// Tap-to-read: begin read-aloud from the tapped sentence (only when read-aloud is enabled).
 function readFromPoint(contents,x,y){
   if(!ttsSupported() || !settings.tts) return; ensureAudioBar();
   tts.contents=contents; tts.chunks=buildChunks(contents); if(!tts.chunks.length) return;
@@ -6254,43 +6266,64 @@ function readFromPoint(contents,x,y){
     var found=-1;
     for(var i=0;i<tts.chunks.length;i++){
       var cp; try{ cp = tts.chunks[i].range.comparePoint(caret.startContainer, caret.startOffset); }catch(e){ cp = 1; }
-      if(cp===0){ found=i; var cpos=caretCharInChunk(tts.chunks[i], caret); for(var s=0;s<tts.chunks[i].sentences.length;s++){ if(cpos>=tts.chunks[i].sentences[s].cStart && cpos<tts.chunks[i].sentences[s].cEnd){ startChar=tts.chunks[i].sentences[s].cStart; break; } } break; }
+      if(cp===0){ found=i; var cpos=caretCharInChunk(tts.chunks[i], caret); startChar=tts.chunks[i].sentences[ttsSentenceAt(tts.chunks[i], cpos)].cStart; break; }
       if(cp===-1){ found=i; startChar=0; break; }
     }
     cidx = found>=0 ? found : tts.chunks.length-1;
-  } else { cidx = firstVisibleChunk(); }
-  tts.cidx=cidx; tts.state="playing"; ttsSetUI(); if(synth) synth.cancel(); speakChunk(startChar);
+  } else { var at=ttsFirstOnScreen(); cidx=at.cidx; startChar=at.ch; }
+  tts.cidx=cidx; tts.curSentIdx=-1; tts.followOwed=false; tts.errors=0; tts.state="playing"; ttsSetUI(); ttsQuiet(); speakChunk(startChar);
 }
 function ttsToggle(){ if(!ttsSupported()){ toast("Read-aloud not supported in this browser"); return; } if(!settings.tts) return; if(tts.state==="idle") ttsStart(); else ttsStop(); }
-/* Chrome can silently kill a long utterance with online voices: no onend, no onerror,
-   the player just hangs. The watchdog notices the silence and re-speaks the current
-   paragraph from the last spoken word. It also nudges resume() if the engine
-   auto-paused itself, another known Chromium habit. */
+
+/* ---- Talking to the speech engine ----
+   Cancelling and speaking again at once can lose the new speech in Chrome, so speech waits a
+   moment after any cancel. Nothing is cancelled when nothing is speaking, so the first tap on play
+   speaks at once, inside the tap, which is what lets an iPhone start talking at all. */
+function ttsCancel(){ tts.token++; tts.cancelAt=Date.now(); try{ synth.cancel(); }catch(e){} }   // the token first: whatever the old utterance reports after this is ignored
+function ttsQuiet(){ var busy=true; try{ busy=synth.speaking || synth.pending; }catch(e){} if(busy) ttsCancel(); }
+function ttsSpeakNow(u, myToken){
+  var wait=150-(Date.now()-(tts.cancelAt||0));
+  if(wait<=0){ try{ synth.speak(u); }catch(e){} return; }
+  setTimeout(function(){ if(tts.state==="playing" && myToken===tts.token){ try{ synth.speak(u); }catch(e){} } }, wait);
+}
+
+/* The watchdog. Engines fail quietly: Chrome's online voices can fall silent mid-utterance with no
+   end and no error (sometimes still claiming to speak), and Chrome can pause itself. Every 1.5 s:
+   resume a self-paused engine; respeak if nothing is speaking; and respeak if an utterance has run
+   far past the time it should take, or a voice that reports its words has gone quiet. A respeak
+   starts at the beginning of the sentence the voice was in, never in the middle of a word. */
 function ttsWatchStart(){ ttsWatchStop(); tts.watch=setInterval(function(){
   if(tts.state!=="playing") return;
   try{
     if(synth.paused && synth.speaking){ synth.resume(); return; }
-    if(synth.speaking || synth.pending) return;
-    if(Date.now()-(tts.lastTickAt||0)>2500){ speakChunk(tts.lastChar||0); }
+    var now=Date.now();
+    if(!synth.speaking && !synth.pending){ if(now-(tts.lastTickAt||0)>2500) ttsRespeak(); return; }
+    var cps=(tts.cps||14)*(settings.ttsRate||1), expect=((tts.uttEnd||0)-(tts.uttStart||0))/cps*1000;
+    if(tts.boundarySeen ? (now-(tts.lastTickAt||0)>6000) : (now-(tts.chunkT0||now)>Math.max(expect*1.4+2500, 5000))) ttsRespeak();
   }catch(e){}
-}, 3000); }
+}, 1500); }
 function ttsWatchStop(){ if(tts.watch){ clearInterval(tts.watch); tts.watch=null; } }
-/* Neural and online voices (the best-sounding ones) fire no boundary events in
-   Chromium, so the sentence highlight would freeze per paragraph. This estimator
-   advances the highlight by measured speaking speed instead, calibrated from each
-   finished paragraph; any real boundary event switches tracking back to exact.
-   It deliberately does not touch lastTickAt, so the stall watchdog still works. */
+// Where to pick up after a stall: the sentence a voice that reports its words was in; for a voice
+// that reports none, the start of the utterance, since the highlight there is only an estimate and
+// may have run on past the silence.
+function ttsRespeak(){ var at=tts.boundarySeen ? ttsSentenceStart() : (tts.uttStart||0); ttsCancel(); speakChunk(at); }
+/* Voices that report no words (Chrome's online voices, Android) would leave the highlight frozen
+   on an utterance's first sentence. This estimator moves it by measured speaking speed instead,
+   calibrated from each finished utterance; any real word report switches back to exact tracking.
+   Utterances are a few sentences long, so the estimate restarts exact at each one. It does not
+   touch lastTickAt, so the watchdog still notices a stall. */
 function ttsEstStop(){ if(tts.estTimer){ clearInterval(tts.estTimer); tts.estTimer=null; } }
-function ttsEstStart(chunk, startChar, myToken){
+function ttsEstStart(chunk, startChar, endChar, myToken){
   ttsEstStop();
   tts.estTimer=setInterval(function(){
     if(tts.state!=="playing" || myToken!==tts.token || tts.boundarySeen){ ttsEstStop(); return; }
     var cps=(tts.cps||14)*(settings.ttsRate||1);
     var est=startChar+Math.floor((Date.now()-tts.chunkT0)/1000*cps);
-    if(est>chunk.text.length-1) est=chunk.text.length-1;
+    if(est>endChar-1) est=endChar-1;
     tts.lastChar=est;
     highlightSentenceAt(chunk, est);
-  }, 300);
+    ttsFollow(chunk, est);
+  }, 250);
 }
 /* In scrolled mode several sections can be attached at once; the first is often the
    old one. Pick the contents that matches where the book actually is. */
@@ -6304,11 +6337,14 @@ function ttsPickContents(){
   }catch(e){}
   return cs[cs.length-1];
 }
-function ttsReapply(){ if(tts.state!=="playing") return; tts.token++; try{ synth.cancel(); }catch(e){} speakChunk(tts.lastChar||0); }
+// Is the chapter the voice is reading still on screen? After a jump elsewhere its page is gone.
+function ttsContentsLive(){ try{ return !!(tts.contents && rendition && (rendition.getContents()||[]).indexOf(tts.contents)>=0 && tts.contents.document && tts.contents.document.body); }catch(e){ return false; } }
+// A new speed or voice applies from the start of the sentence being read.
+function ttsReapply(){ if(tts.state!=="playing") return; ttsCancel(); speakChunk(ttsSentenceStart()); }
 function ttsBookmarkSet(){
   if(!currentBook) return;
   var cfi=null;
-  try{ if(tts.state!=="idle" && tts.contents && tts.chunks[tts.cidx] && tts.curSentIdx>=0){ cfi=tts.contents.cfiFromRange(tts.chunks[tts.cidx].sentences[tts.curSentIdx].range); } }catch(e){}
+  try{ if(tts.state!=="idle" && ttsContentsLive() && tts.chunks[tts.cidx] && tts.curSentIdx>=0){ cfi=tts.contents.cfiFromRange(tts.chunks[tts.cidx].sentences[tts.curSentIdx].range); } }catch(e){}
   if(!cfi){ try{ var loc=rendition.currentLocation&&rendition.currentLocation(); if(loc&&loc.start) cfi=loc.start.cfi; }catch(e){} }
   if(!cfi){ toast("No position to save yet"); return; }
   currentBook.bookmarkCfi=cfi; currentBook.bookmarkAt=Date.now(); currentBook.updated=Date.now();
@@ -6331,65 +6367,194 @@ function ttsBookmarkGo(){
       if(r){
         for(var i=0;i<tts.chunks.length;i++){
           var cp; try{ cp=tts.chunks[i].range.comparePoint(r.startContainer, r.startOffset); }catch(e2){ cp=1; }
-          if(cp===0){
-            cidx=i;
-            var pos=0, mp=tts.chunks[i].map;
-            for(var mi=0; mi<mp.length; mi++){ if(mp[mi].node===r.startContainer){ pos=mp[mi].base+r.startOffset; break; } }
-            var sn=tts.chunks[i].sentences;
-            for(var s2=0;s2<sn.length;s2++){ if(pos>=sn[s2].cStart && pos<sn[s2].cEnd){ startChar=sn[s2].cStart; break; } }
-            break;
-          }
+          if(cp===0){ cidx=i; startChar=tts.chunks[i].sentences[ttsSentenceAt(tts.chunks[i], caretCharInChunk(tts.chunks[i], r))].cStart; break; }
           if(cp===-1){ cidx=i; break; }
         }
       }
-      tts.cidx=cidx; tts.curSentIdx=-1; tts.state="playing"; ttsSetUI();
-      if(synth) synth.cancel();
+      tts.cidx=cidx; tts.curSentIdx=-1; tts.followOwed=false; tts.errors=0; tts.state="playing"; ttsSetUI();
+      ttsQuiet();
       speakChunk(startChar);
     }, 350);
   });
 }
 function ttsBookmarkUI(){ var b=$("#tts-mark-go"); if(!b) return; b.style.opacity=(currentBook&&currentBook.bookmarkCfi)?"1":".35"; }
-/* Pause by cancel, resume by re-speak from the last spoken word. synth.pause()/resume()
-   is unreliable with network voices; cancel-and-respeak works with every voice. */
-function ttsPlayPause(){
-  if(tts.state==="playing"){ tts.state="paused"; tts.token++; try{ synth.cancel(); }catch(e){} ttsWatchStop(); ttsEstStop(); ttsSetUI(); }
-  else if(tts.state==="paused"){ tts.state="playing"; ttsSetUI(); speakChunk(tts.lastChar||0); }
-  else ttsStart();
+/* Pause by cancel, resume by speaking again from the start of the sentence the voice was in.
+   synth.pause()/resume() is unreliable with network voices and does nothing on Android;
+   cancel-and-respeak works with every voice. */
+function ttsPause(){
+  if(tts.state!=="playing") return;
+  tts.resumeAt=ttsSentenceStart(); tts.state="paused"; tts.pausedAt=Date.now();
+  tts.token++; ttsCancel(); ttsWatchStop(); ttsEstStop(); ttsSetUI();
 }
-/* Build paragraph-sized chunks: one utterance per block for smooth audio,
-   each chunk knows its sentences so the highlight can follow boundary events. */
+function ttsResume(){
+  if(tts.state!=="paused") return;
+  // You went to another chapter while it was paused: read from the page you are on now.
+  if(!ttsContentsLive() || ttsPickContents()!==tts.contents){ tts.state="idle"; ttsStart(); return; }
+  // Same chapter: pick up where the voice stopped, turning back to it if you paged away to look.
+  tts.state="playing"; tts.errors=0; tts.followOwed=false; ttsSetUI(); speakChunk(tts.resumeAt||0);
+}
+function ttsPlayPause(){ if(tts.state==="playing") ttsPause(); else if(tts.state==="paused") ttsResume(); else ttsStart(); }
+// Turning the page yourself, or going somewhere else in the book, pauses the voice rather than
+// stopping it: play picks up again, and a tap on a paragraph reads from there instead.
+function ttsHush(){ if(tts.state==="playing") ttsPause(); }
+
+/* ---- What is read, in what order ----
+   The book is read in its own order, each piece of text once. Text belongs to the nearest block
+   around it (a paragraph, a heading, a list item, a quote, a table cell, or a div used as a
+   paragraph), so a quote's paragraphs, a list item's paragraph and a nested list are read once
+   each, and text a book keeps in plain divs or table cells is not skipped. Hidden text, and the
+   small numbers that link to notes, are left out. A line break inside a paragraph (verse) is
+   read as a break, not run into the next word. Each block becomes a chunk that knows its
+   sentences, so the highlight can follow the voice sentence by sentence. */
+var TTS_BLOCKS="p,li,blockquote,h1,h2,h3,h4,h5,h6,dd,dt,pre,figcaption,caption,td,th,div,section,article,aside,header,footer,main,figure,address,summary,details";
+// "Mr." and its kind end no sentence, so they never split a sentence or pause the voice.
+var TTS_ABBR=/(?:^|[\s(])(?:Mr|Mrs|Ms|Mx|Dr|St|Jr|Sr|Prof|Rev|Gen|Col|Capt|Lt|Sgt|vs|etc|e\.g|i\.e|cf|No|Nos|Vol|Fig|pp?|ch)\.\s*$/i;
+function ttsNoteMark(el){
+  var t=(el.textContent||"").trim(); if(!t || t.length>5) return false;
+  var kind=""; try{ kind=(el.getAttribute("epub:type")||(el.getAttributeNS && el.getAttributeNS("http://www.idpf.org/2007/ops","type"))||"")+" "+(el.getAttribute("role")||""); }catch(e){}
+  if(/noteref/.test(kind)) return true;
+  if((el.localName||"").toLowerCase()!=="sup") return false;
+  var linked=false; try{ linked=!!(el.querySelector("a[href]") || (el.closest && el.closest("a[href]"))); }catch(e){}
+  return linked && /^[\[(]?[0-9*†‡§¶]{1,3}[\])]?$/.test(t);
+}
+function ttsLocate(map, pos, asEnd){
+  for(var i=0;i<map.length;i++){
+    var m=map[i];
+    if(pos>=m.base && pos<m.base+m.len){
+      if(m.node) return {node:m.node, offset:pos-m.base};
+      // a line break added for the voice: no text of its own, so use the text beside it
+      if(asEnd){ for(var j=i-1;j>=0;j--) if(map[j].node) return {node:map[j].node, offset:map[j].len}; }
+      for(var k=i+1;k<map.length;k++) if(map[k].node) return {node:map[k].node, offset:0};
+    }
+  }
+  for(var z=map.length-1;z>=0;z--) if(map[z].node) return {node:map[z].node, offset:map[z].len};
+  return null;
+}
 function buildChunks(contents){
-  var doc = contents.document, body = doc.body;
-  var blocks = body.querySelectorAll(BLOCK_SEL);
-  var els = blocks.length ? [].slice.call(blocks) : [body];
-  var seg = (typeof Intl!=="undefined" && Intl.Segmenter) ? new Intl.Segmenter(undefined,{granularity:"sentence"}) : null;
-  var chunks = [];
-  els.forEach(function(el){
-    var walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false), map=[], full="", node;
-    while((node = walker.nextNode())){ var v=node.nodeValue; if(!v) continue; map.push({node:node, base:full.length, len:v.length}); full += v; }
-    if(!full.trim()) return;
-    function locate(pos){ for(var i=0;i<map.length;i++){ if(pos>=map[i].base && pos<map[i].base+map[i].len) return {node:map[i].node, offset:pos-map[i].base}; } var last=map[map.length-1]; return {node:last.node, offset:last.len}; }
-    function rangeFor(s,e){ var a=locate(s), b=locate(Math.max(s,e-1)); var r=doc.createRange(); try{ r.setStart(a.node,a.offset); r.setEnd(b.node, Math.min(b.offset+1, b.node.nodeValue.length)); }catch(err){} return r; }
+  var doc=contents && contents.document, body=doc && doc.body; if(!body) return [];
+  var lang=""; try{ lang=doc.documentElement.getAttribute("lang")||doc.documentElement.getAttribute("xml:lang")||""; }catch(e){}
+  var seg=null;
+  if(typeof Intl!=="undefined" && Intl.Segmenter){ try{ seg=new Intl.Segmenter(lang||undefined,{granularity:"sentence"}); }catch(e){ try{ seg=new Intl.Segmenter(undefined,{granularity:"sentence"}); }catch(_e){ seg=null; } } }
+  var skipMemo=new Map(), shownMemo=new Map(), blockMemo=new Map(), chunks=[], cur=null;
+  function skipped(el){
+    if(!el || el===body) return false;
+    if(skipMemo.has(el)) return skipMemo.get(el);
+    var tag=(el.localName||"").toLowerCase();
+    var v=/^(script|style|noscript|template|rt|rp)$/.test(tag) || !!el.hidden || ttsNoteMark(el) || skipped(el.parentElement);
+    skipMemo.set(el, v); return v;
+  }
+  function shown(el){ if(shownMemo.has(el)) return shownMemo.get(el); var v=true; try{ v=el.getClientRects().length>0; }catch(e){} shownMemo.set(el, v); return v; }
+  function blockOf(el){
+    if(blockMemo.has(el)) return blockMemo.get(el);
+    var e=el; while(e && e!==body && !(e.matches && e.matches(TTS_BLOCKS))) e=e.parentElement;
+    e=e||body; blockMemo.set(el, e); return e;
+  }
+  function trimmedRange(map, full, s, e){
+    while(s<e && /\s/.test(full.charAt(s))) s++;
+    while(e>s && /\s/.test(full.charAt(e-1))) e--;
+    if(e<=s) e=s+1;
+    var a=ttsLocate(map, s), b=ttsLocate(map, Math.max(s, e-1), true), r=doc.createRange();
+    try{ r.setStart(a.node, a.offset); r.setEnd(b.node, Math.min(b.offset+1, b.node.nodeValue.length)); }catch(err){}
+    return r;
+  }
+  function finish(){
+    if(!cur) return; var c=cur; cur=null;
+    var full=c.full; if(!full.trim()) return;
     var sents=[];
-    if(seg){ try{ Array.from(seg.segment(full)).forEach(function(sg){ var cs=sg.index, ce=sg.index+sg.segment.length; if(full.slice(cs,ce).trim()) sents.push({cStart:cs, cEnd:ce, range:rangeFor(cs,ce)}); }); }catch(e){} }
-    if(!sents.length) sents.push({cStart:0, cEnd:full.length, range:rangeFor(0,full.length)});
-    chunks.push({ text:full, map:map, sentences:sents, range:rangeFor(0,full.length) });
-  });
+    if(seg){ try{ Array.from(seg.segment(full)).forEach(function(sg){
+      var cs=sg.index, ce=sg.index+sg.segment.length, prev=sents[sents.length-1];
+      if(prev && (TTS_ABBR.test(full.slice(prev.cStart, prev.cEnd)) || !full.slice(cs,ce).trim())){ prev.cEnd=ce; return; }
+      sents.push({cStart:cs, cEnd:ce});
+    }); }catch(e){ sents=[]; } }
+    if(!sents.length) sents.push({cStart:0, cEnd:full.length});
+    sents.forEach(function(s){ s.range=trimmedRange(c.map, full, s.cStart, s.cEnd); });
+    chunks.push({ text:full, map:c.map, sentences:sents, range:trimmedRange(c.map, full, 0, full.length), block:c.block });
+  }
+  var walker=doc.createTreeWalker(body, NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT, null, false), node;
+  while((node=walker.nextNode())){
+    if(node.nodeType===1){
+      if((node.localName||"").toLowerCase()==="br" && cur && cur.full && !/\s$/.test(cur.full) && blockOf(node)===cur.block){ cur.map.push({node:null, base:cur.full.length, len:1}); cur.full+="\n"; }
+      continue;
+    }
+    var v=node.nodeValue, par=node.parentElement; if(!v || !par) continue;
+    if(skipped(par) || !shown(par)) continue;
+    var blk=blockOf(par);
+    if(!cur || cur.block!==blk){ finish(); cur={block:blk, map:[], full:""}; }
+    cur.map.push({node:node, base:cur.full.length, len:v.length}); cur.full+=v;
+  }
+  finish();
   return chunks;
 }
-function caretCharInChunk(chunk, caret){ for(var i=0;i<chunk.map.length;i++){ if(chunk.map[i].node===caret.startContainer) return chunk.map[i].base + caret.startOffset; } return 0; }
-function highlightSentenceAt(chunk, charPos){
-  var idx=-1;
-  for(var i=0;i<chunk.sentences.length;i++){ if(charPos>=chunk.sentences[i].cStart && charPos<chunk.sentences[i].cEnd){ idx=i; break; } }
-  if(idx<0) idx = chunk.sentences.length-1;
-  if(idx===tts.curSentIdx) return;
-  tts.curSentIdx = idx;
-  ttsHighlight(tts.contents, chunk.sentences[idx].range);
-  ttsPageFollow(chunk.sentences[idx].range);
+function caretCharInChunk(chunk, caret){ for(var i=0;i<chunk.map.length;i++){ if(chunk.map[i].node && chunk.map[i].node===caret.startContainer) return chunk.map[i].base + caret.startOffset; } return 0; }
+function ttsSentenceAt(chunk, pos){ var s=chunk.sentences; for(var i=0;i<s.length;i++){ if(pos<s[i].cEnd) return i; } return s.length-1; }
+// The place to pick up again: the start of the sentence the voice is in.
+function ttsSentenceStart(){
+  var ch=tts.chunks[tts.cidx]; if(!ch) return 0;
+  var i=(tts.curSentIdx>=0 && tts.curSentIdx<ch.sentences.length) ? tts.curSentIdx : ttsSentenceAt(ch, tts.lastChar||0);
+  return ch.sentences[i].cStart;
 }
-// Keep the page with the voice. If the sentence being spoken sits past the page on screen,
-// step forward exactly one page. Reactive and single-step, so it
-// just catches up rather than racing ahead; it only runs while read-aloud is playing.
+/* One utterance is a few whole sentences, up to about TTS_UTTER_MAX characters: short enough that
+   no engine cuts it off (Chrome's online voices fall silent after some fifteen seconds of a single
+   utterance), and each one starts the highlight exactly on its sentence even with a voice that
+   reports no words. A single sentence longer than that is spoken in parts, broken at a comma or
+   the like, so the voice pauses where a reader would. */
+var TTS_UTTER_MAX=200;
+function ttsGroupEnd(chunk, start){
+  var s=chunk.sentences, i=ttsSentenceAt(chunk, start), end=s[i].cEnd;
+  if(end-start>TTS_UTTER_MAX){
+    var piece=chunk.text.slice(start, start+TTS_UTTER_MAX), cut=-1, re=/[,;:—–)](?=\s)/g, x;
+    while((x=re.exec(piece))){ if(x.index>=60) cut=x.index+1; }
+    if(cut<0){ var sp=piece.lastIndexOf(" "); if(sp>=60) cut=sp; }
+    return cut>0 ? start+cut : end;
+  }
+  while(i+1<s.length && s[i+1].cEnd-start<=TTS_UTTER_MAX){ i++; end=s[i].cEnd; }
+  return end;
+}
+function highlightSentenceAt(chunk, charPos){
+  var idx=ttsSentenceAt(chunk, charPos);
+  if(idx===tts.curSentIdx) return;
+  tts.curSentIdx=idx;
+  ttsHighlight(tts.contents, chunk.sentences[idx].range);
+}
+
+/* ---- Keeping the page with the voice ----
+   The page follows the voice word by word: it turns as the first word past it is spoken, so a
+   sentence that runs onto the next page is never heard off-screen. While you are marking a
+   passage (words selected, the highlight menu or the comment box open, or the search over the
+   book) the voice reads on but the page stays still, so nothing slides out from under your
+   finger; it catches up as soon as you are done. In scroll mode the view waits a few seconds
+   after you scroll it yourself. */
+function ttsHeld(){
+  try{
+    if(selPopOpen() || bcOpenStyle("note-edit")) return true;
+    var rs=document.getElementById("reader-search"); if(rs && !rs.classList.contains("hidden")) return true;
+    var w=tts.contents && tts.contents.window, sel=w && w.getSelection && w.getSelection();
+    if(sel && !sel.isCollapsed && String(sel).trim()) return true;
+  }catch(e){}
+  return false;
+}
+// A one-character range at the first letter at or after pos: where the voice is, on the page.
+function ttsRangeAt(chunk, pos){
+  var t=chunk.text; pos=Math.max(0, Math.min(pos, t.length-1));
+  while(pos<t.length-1 && /\s/.test(t.charAt(pos))) pos++;
+  var a=ttsLocate(chunk.map, pos); if(!a || !a.node) return null;
+  try{ var r=tts.contents.document.createRange(); r.setStart(a.node, Math.min(a.offset, a.node.nodeValue.length)); r.setEnd(a.node, Math.min(a.offset+1, a.node.nodeValue.length)); return r; }catch(e){ return null; }
+}
+function ttsFollow(chunk, pos){
+  if(!rendition || !tts.contents || tts.state!=="playing") return;
+  if(ttsHeld()){ tts.followOwed=true; return; }
+  var r=ttsRangeAt(chunk, pos); if(!r) return;
+  if(settings.flow==="scrolled"){ tts.followOwed=false; ttsScrollFollow(r); return; }
+  if(tts.turning) return;
+  var side=bcRangeSide(tts.contents, r);
+  if(side===0){ tts.followOwed=false; return; }
+  var owed=tts.followOwed, p=null; tts.followOwed=false;
+  if(side>0 && !owed) p=rendition.next();          // the usual case: on to the next page
+  else { var cfi=null; try{ cfi=tts.contents.cfiFromRange(r); }catch(e){} if(cfi) p=rendition.display(cfi); }   // after a hold: straight to the voice
+  if(!p) return;
+  tts.turning=true;
+  Promise.resolve(p).then(function(){ tts.turning=false; }, function(){ tts.turning=false; });
+}
 function ttsScrollFollow(range){
   try{
     if(Date.now()-(tts.userScrollAt||0)<4000) return;   /* you scrolled; the voice waits */
@@ -6403,69 +6568,112 @@ function ttsScrollFollow(range){
     }
   }catch(e){}
 }
-function ttsPageFollow(range){
-  if(settings.flow==="scrolled") return ttsScrollFollow(range);
-  try{
-    if(!rendition || !tts.contents || !range || !window.ePub || !ePub.CFI) return;
-    var loc = rendition.currentLocation && rendition.currentLocation();
-    if(!loc || !loc.start || !loc.end || !loc.end.cfi) return;
-    var cfi = tts.contents.cfiFromRange(range);
-    if(!cfi) return;
-    if(new ePub.CFI(cfi).spinePos !== loc.start.index) return;
-    if(new ePub.CFI().compare(cfi, loc.end.cfi) > 0){
-      var pr=rendition.next(); if(pr&&pr.then) pr.then(function(){},function(){});
-    }
-  }catch(e){}
-}
 (function(){ var vp=document.getElementById("viewport"); if(vp){ ["wheel","touchmove"].forEach(function(ev){ vp.addEventListener(ev, function(){ tts.userScrollAt=Date.now(); }, {passive:true, capture:true}); }); } })();
-function firstVisibleChunk(){ for(var i=0;i<tts.chunks.length;i++){ if(rangeVisible(tts.contents, tts.chunks[i].range)) return i; } return 0; }
-function ttsSkip(d){ if(tts.state==="idle"||!tts.chunks.length) return; tts.token++; if(synth) synth.cancel(); tts.cidx=Math.max(0,Math.min(tts.chunks.length-1,tts.cidx+d)); tts.state="playing"; ttsSetUI(); speakChunk(0); }
-function ttsStart(){ if(!rendition) return; ensureAudioBar(); var c=ttsPickContents(); if(!c) return; tts.contents=c; tts.chunks=buildChunks(c); tts.cidx=firstVisibleChunk(); if(!tts.chunks.length) return ttsNextSection(); tts.state="playing"; ttsSetUI(); if(synth) synth.cancel(); speakChunk(0); }
+/* Where reading starts when you press play: the first sentence that begins on the page you see,
+   not the paragraph that began on the page before. A page holding only the middle of one long
+   sentence starts with that sentence; a page with no words on it (a picture) starts with the
+   next words after it. Nothing left in the chapter: the next chapter. */
+function ttsEndsOnPage(c, range){
+  try{ var e=range.cloneRange(); if(e.endContainer.nodeType===3 && e.endOffset>0) e.setStart(e.endContainer, e.endOffset-1); return bcRangeSide(c, e)>=0; }catch(err){ return false; }
+}
+function ttsFirstOnScreen(){
+  var c=tts.contents, before=null;
+  for(var i=0;i<tts.chunks.length;i++){
+    var ss=tts.chunks[i].sentences;
+    for(var j=0;j<ss.length;j++){
+      var side=bcRangeSide(c, ss[j].range);
+      if(side<0){ before={cidx:i, ch:ss[j].cStart, range:ss[j].range}; continue; }
+      if(side>0 && before && ttsEndsOnPage(c, before.range)) return {cidx:before.cidx, ch:before.ch};
+      return {cidx:i, ch:ss[j].cStart};
+    }
+  }
+  if(before && ttsEndsOnPage(c, before.range)) return {cidx:before.cidx, ch:before.ch};
+  return {cidx:tts.chunks.length, ch:0};
+}
+// Back: to the start of this paragraph, or to the one before when already there. Forward: the
+// next paragraph, and past the last one, the next chapter.
+function ttsSkip(d){
+  if(tts.state==="idle" || !tts.chunks.length) return;
+  if(!ttsContentsLive()){ tts.state="idle"; ttsStart(); return; }
+  var i=tts.cidx, ch=tts.chunks[i];
+  if(d<0){ var at=(tts.state==="playing") ? tts.curSentIdx : (ch ? ttsSentenceAt(ch, tts.resumeAt||0) : 0); if(!(at>0)) i=Math.max(0, i-1); }
+  else i=i+1;
+  tts.token++; ttsCancel(); tts.cidx=i; tts.curSentIdx=-1; tts.followOwed=false; tts.state="playing"; ttsSetUI();
+  speakChunk(0);
+}
+function ttsStart(){
+  if(!rendition) return; ensureAudioBar();
+  var c=ttsPickContents(); if(!c) return;
+  tts.contents=c; tts.chunks=buildChunks(c); tts.curSentIdx=-1; tts.followOwed=false; tts.errors=0;
+  var at=ttsFirstOnScreen();
+  tts.state="playing"; ttsSetUI(); ttsQuiet();
+  tts.cidx=at.cidx; speakChunk(at.ch);
+}
 function speakChunk(startChar){
   if(tts.state!=="playing") return;
+  if(!ttsContentsLive()){ tts.state="idle"; ttsStart(); return; }   // the chapter changed under the voice: read the one on screen
   if(tts.cidx>=tts.chunks.length) return ttsNextSection();
   var myToken = ++tts.token;
   var chunk = tts.chunks[tts.cidx];
   startChar = startChar || 0;
   if(startChar>=chunk.text.length) startChar=0;
-  tts.lastChar=startChar; tts.lastTickAt=Date.now();
+  while(startChar<chunk.text.length-1 && /\s/.test(chunk.text.charAt(startChar))) startChar++;
+  var endChar = ttsGroupEnd(chunk, startChar);
+  tts.lastChar=startChar; tts.lastTickAt=Date.now(); tts.uttStart=startChar; tts.uttEnd=endChar;
   tts.chunkT0=Date.now(); tts.boundarySeen=false; ttsEstStop();
   if(!tts.watch) ttsWatchStart();
+  // Bring the voice's place into view first: after a pause, a skip, or a page you turned to look.
   var go = Promise.resolve();
-  if(!rangeVisible(tts.contents, chunk.range)){ try{ var cfi=tts.contents.cfiFromRange(chunk.range); if(cfi) go=rendition.display(cfi); }catch(e){} }
+  var scrolledAway=(settings.flow==="scrolled" && Date.now()-(tts.userScrollAt||0)<4000);   // you are scrolling: the voice waits for you
+  if(!ttsHeld() && !scrolledAway){ var r0=ttsRangeAt(chunk, startChar); if(r0 && bcRangeSide(tts.contents, r0)!==0){ try{ var cfi=tts.contents.cfiFromRange(r0); if(cfi) go=rendition.display(cfi); }catch(e){} } }
   go.then(function(){
     if(tts.state!=="playing" || myToken!==tts.token) return;
     tts.curSentIdx = -1;
-    highlightSentenceAt(chunk, startChar);                 // highlight the starting sentence immediately
-    var u = new SpeechSynthesisUtterance(chunk.text.slice(startChar));
+    highlightSentenceAt(chunk, startChar);                 // highlight the starting sentence at once
+    var u = new SpeechSynthesisUtterance(chunk.text.slice(startChar, endChar));
     if(tts.voice) u.voice = tts.voice;
     u.rate = settings.ttsRate || 1;
-    u.onboundary = function(ev){ if(tts.state==="playing" && myToken===tts.token){ tts.boundarySeen=true; ttsEstStop(); tts.lastChar=startChar+(ev.charIndex||0); tts.lastTickAt=Date.now(); highlightSentenceAt(chunk, tts.lastChar); } };
-    u.onend = function(){ ttsEstStop(); if(tts.state==="playing" && myToken===tts.token){ var secs=(Date.now()-tts.chunkT0)/1000, chars=chunk.text.length-startChar; if(secs>1.2 && chars>40){ var raw=chars/secs/(settings.ttsRate||1); tts.cps=tts.cps?(0.7*tts.cps+0.3*raw):raw; tts.cps=Math.max(8,Math.min(30,tts.cps)); } tts.lastTickAt=Date.now(); tts.cidx++; speakChunk(0); } };
-    u.onerror = function(){ ttsEstStop(); if(tts.state==="playing" && myToken===tts.token){ tts.lastTickAt=Date.now(); tts.cidx++; speakChunk(0); } };
-    setTimeout(function(){ if(tts.state==="playing" && myToken===tts.token && !tts.boundarySeen) ttsEstStart(chunk, startChar, myToken); }, 800);
-    try{ synth.speak(u); }catch(e){}
+    var next=function(){ if(endChar<chunk.text.length && chunk.text.slice(endChar).trim()) speakChunk(endChar); else { tts.cidx++; speakChunk(0); } };
+    u.onstart = function(){ if(myToken===tts.token){ tts.chunkT0=Date.now(); tts.lastTickAt=Date.now(); } };
+    u.onboundary = function(ev){ if(tts.state!=="playing" || myToken!==tts.token) return; tts.boundarySeen=true; tts.errors=0; ttsEstStop(); tts.lastChar=startChar+(ev.charIndex||0); tts.lastTickAt=Date.now(); highlightSentenceAt(chunk, tts.lastChar); ttsFollow(chunk, tts.lastChar); };
+    u.onend = function(){ ttsEstStop(); if(tts.state!=="playing" || myToken!==tts.token) return; tts.errors=0;
+      var secs=(Date.now()-tts.chunkT0)/1000, chars=endChar-startChar; if(secs>1.2 && chars>40){ var raw=chars/secs/(settings.ttsRate||1); tts.cps=tts.cps?(0.7*tts.cps+0.3*raw):raw; tts.cps=Math.max(8,Math.min(30,tts.cps)); }
+      tts.lastTickAt=Date.now(); next(); };
+    u.onerror = function(ev){ ttsEstStop(); if(tts.state!=="playing" || myToken!==tts.token) return;
+      var er=(ev && ev.error) || "";
+      if(er==="interrupted" || er==="canceled") return;    // not by us: something else took the audio; the watchdog picks up again
+      if(er==="not-allowed"){ ttsPause(); toast("Tap play to start reading aloud"); return; }
+      // A voice that keeps failing (an online voice with no connection) must not race through the book.
+      if(++tts.errors>=3){ ttsPause(); toast("The voice is not responding. Choose another voice in Display, then press play."); return; }
+      tts.lastTickAt=Date.now(); setTimeout(function(){ if(tts.state==="playing" && myToken===tts.token) next(); }, 400); };
+    setTimeout(function(){ if(tts.state==="playing" && myToken===tts.token && !tts.boundarySeen) ttsEstStart(chunk, startChar, endChar, myToken); }, 600);
+    ttsFollow(chunk, startChar);
+    ttsSpeakNow(u, myToken);
   });
 }
+// The next chapter, by the book's own order. (A page turn here would land on the chapter's own
+// last page, a picture or a blank, and read the chapter again from the top.)
 function ttsNextSection(){
-  var atEnd=rendition.location && rendition.location.atEnd;
-  if(atEnd){ toast("Reached the end"); ttsStop(); return; }
-  rendition.next().then(function(){
+  var c=tts.contents, sec=null;
+  try{ if(c) sec=book.spine.get(c.sectionIndex); }catch(e){}
+  var nx=(sec && sec.next) ? sec.next() : null;
+  if(!nx){ toast("Reached the end"); ttsStop(); return; }
+  tts.token++;
+  rendition.display(nx.href).then(function(){
     var tries=0;
     (function arm(){
       if(tts.state!=="playing") return;
-      var c=ttsPickContents();
-      if(c){
-        tts.contents=c; tts.chunks=buildChunks(c);
-        if(tts.chunks.length){ tts.cidx=0; tts.curSentIdx=-1; speakChunk(0); return; }
-        // rendered but nothing to read (image page, blank section): move on
-        if(c.document && c.document.readyState==="complete"){ ttsNextSection(); return; }
+      var cc=(rendition.getContents()||[]).filter(function(x){ return x.sectionIndex===nx.index; })[0];
+      if(cc && cc.document && cc.document.body){
+        tts.contents=cc; tts.chunks=buildChunks(cc); tts.cidx=0; tts.curSentIdx=-1; tts.followOwed=false;
+        if(tts.chunks.length){ speakChunk(0); return; }
+        if(cc.document.readyState==="complete"){ ttsNextSection(); return; }   // nothing to read here (a picture, a blank): move on
       }
       if(++tries<10) setTimeout(arm, 300); else ttsStop();
     })();
-  });
+  }, function(){ ttsStop(); });
 }
-function ttsStop(){ tts.token++; ttsWatchStop(); ttsEstStop(); if(synth) try{ synth.cancel(); }catch(e){} ttsClearHighlight(); tts.state="idle"; tts.chunks=[]; tts.cidx=0; tts.curSentIdx=-1; tts.contents=null; ttsSetUI(); }
+function ttsStop(){ tts.token++; ttsWatchStop(); ttsEstStop(); ttsQuiet(); ttsClearHighlight(); tts.state="idle"; tts.chunks=[]; tts.cidx=0; tts.curSentIdx=-1; tts.contents=null; tts.followOwed=false; tts.turning=false; tts.resumeAt=0; ttsSetUI(); }
 
 /* ============================================================
    PANELS, MARGINS, HELP & NAV
@@ -6593,7 +6801,7 @@ function renderTocList(toc){
   var box=$("#toc-list"); if(!box) return;
   if(!toc || !toc.length){ box.innerHTML='<div class="toc-empty">This book did not include a contents list. You can still use Find in book to jump to a phrase.</div>'; return; }
   box.innerHTML=tocHtml(toc,0);
-  [].forEach.call(box.querySelectorAll("[data-href]"), function(el){ el.onclick=function(){ var href=el.getAttribute("data-href"); if(!href) return; closePanels(); ttsStop(); try{ rendition.display(href); }catch(e){} }; });
+  [].forEach.call(box.querySelectorAll("[data-href]"), function(el){ el.onclick=function(){ var href=el.getAttribute("data-href"); if(!href) return; closePanels(); ttsHush(); try{ rendition.display(href); }catch(e){} }; });
 }
 function openToc(){
   if(!book){ return; }
@@ -6802,10 +7010,10 @@ function bcChapButtons(){
   var wrap=document.getElementById("viewport-wrap"); if(!wrap) return false;
   if(document.getElementById("bc-chap-next")) return true;
   var nx=document.createElement("button"); nx.type="button"; nx.id="bc-chap-next"; nx.className="bc-chap"; nx.innerHTML='<span></span>'+BC_ARROW_DOWN;
-  nx.onclick=function(){ if(!rendition) return; ttsStop(); bcChapHide(); rendition.next(); };
+  nx.onclick=function(){ if(!rendition) return; ttsHush(); bcChapHide(); rendition.next(); };
   var pv=document.createElement("button"); pv.type="button"; pv.id="bc-chap-prev"; pv.className="bc-chap"; pv.innerHTML=BC_ARROW_UP+'<span></span>';
   pv.onclick=function(){
-    if(!rendition) return; ttsStop(); bcChapHide();
+    if(!rendition) return; ttsHush(); bcChapHide();
     // Scrolling up past a chapter's start means reading on backwards: arrive at the end of the one before.
     var r=rendition; r.prev().then(function(){ var c=r.manager && r.manager.container; if(c && r===rendition) c.scrollTop=c.scrollHeight; });
   };
@@ -7565,8 +7773,8 @@ $("#index-btn").onclick=buildAllIndex;
 
 $("#back-btn").onclick=closeBook;
 (function(){ var rh=$("#reader-home"); if(rh) rh.onclick=function(){ _bcStack=[]; closeBook(); }; })();
-$("#prev").onclick=function(){ if(rendition){ ttsStop(); rendition.prev(); } };
-$("#next").onclick=function(){ if(rendition){ ttsStop(); rendition.next(); } };
+$("#prev").onclick=function(){ if(rendition){ ttsHush(); rendition.prev(); } };
+$("#next").onclick=function(){ if(rendition){ ttsHush(); rendition.next(); } };
 $("#progress").onclick=function(e){ if(!book||!book.locations||!book.locations.length()) return; var r=e.currentTarget.getBoundingClientRect(); var pct=(e.clientX-r.left)/r.width; var cfi=book.locations.cfiFromPercentage(Math.max(0,Math.min(1,pct))); if(cfi) rendition.display(cfi); };
 $("#find-btn").onclick=function(){ if($("#findbar").classList.contains("hidden")) openFind(); else closeFind(); };
 $("#find-close").onclick=closeFind;

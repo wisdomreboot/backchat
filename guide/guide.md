@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 17
+revision: 18
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -194,9 +194,13 @@ Two marks of affection, two scopes. The star {{icon:star}} on a highlight favour
 
 ## Listen
 
-Read aloud lives in Display {{icon:display}}. Turn it on and choose a voice, and the speaker {{icon:listen}} joins the top bar. Tap a paragraph to start there.
+Read aloud lives in Display {{icon:display}}. Turn it on and choose a voice, and the speaker {{icon:listen}} joins the top bar. Tap it to start with the first sentence on the page, or tap any paragraph to start there.
 
-The sentence being spoken is highlighted, and the tracking learns each voice's pace, so it keeps step even with the premium voices. It carries across chapter breaks on its own. The bar at the bottom steps back or forward a paragraph, plays, pauses and stops, and sets the speed. Save my spot pins the exact sentence; Back to my spot returns there, and if you were listening when you tapped it, the voice resumes from that very sentence.
+The sentence being spoken is highlighted, and the page turns with the voice, word by word, so you can read along. The tracking learns each voice's pace, so it keeps step even with voices that report nothing as they speak. It carries on into the next chapter by itself.
+
+To mark a passage, pause, then select, highlight and comment as usual. Press play and the voice picks up at the start of the sentence it was in. Select words while it is still reading and the page holds still until you are done, then catches up. Turning the page yourself pauses the voice: play takes you back to it, and a tap on a paragraph starts there instead. The screen stays on while you listen, and through a pause for as long as you keep using the page.
+
+The bar at the bottom steps back or forward a paragraph, plays, pauses and stops, and sets the speed. Save my spot pins the exact sentence; Back to my spot returns there, and if you were listening when you tapped it, the voice resumes from that very sentence.
 
 ## Video books
 
