@@ -2,6 +2,25 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.66 (19 October 2026)
+
+Highlighting on a phone, above all while read aloud is playing. Each fault was reproduced on a phone-sized screen with real touch input and a scripted voice, and is now in the regression check.
+
+**Fixed**
+- **The book laid itself out again in the middle of a swipe or a selection,** reflowing the text as if the font size and margins had changed, losing the words you were selecting, and moving the page. On a phone the page behind the book could scroll a little (a full-height page is taller than the screen while the address bar shows), so a swipe or a selection drag slid the address bar away, the window changed size, and the book was laid out again. While a book is open the page itself can no longer scroll.
+- **The last lines of every page were hidden while read aloud played.** The player opened below a book laid out for the taller page, so the bottom lines sat behind it, and the voice turned the page before you had seen them. With read aloud switched on, the player now stays at the foot of the page whether it is playing or not, so the page never changes size when you press play or stop. Any other change in the size of the reading area lays the book out again to fit.
+- **Find's list of matches hid the bottom of the page** the same way. The matches now open over the page.
+- **The voice turned the page while you were pressing to select.** While a finger is on the page, and for a moment after, read aloud reads on but leaves the page where it is; once you have selected words it waits until you are done, as before.
+- **A tap that only cleared a selection turned the page,** or moved the voice to the paragraph you tapped. A tap within a second of a selection now just clears it.
+- **Taps on the words near either edge turned the page.** The edge that turns the page was a quarter of the screen on each side, so a tap meant for the text often moved on. It is now about a sixth: the margin and the first letters.
+- **When the book was laid out again while the voice read** (a turned phone, a resized window), the voice lost its place and started again at the top of the page. It now carries on from the sentence it was in.
+
+**Changed**
+- The guide's chapter on listening says the player stays at the foot of the page (revision 19).
+
+**Checks**
+- Seven new checks on a phone: the page behind the book cannot scroll; the book always fits above the player; a finger on the page keeps read aloud from turning it; a tap that clears a selection, and a tap on the words near the edge, leave the page alone; find's matches leave the page its size; and a new layout mid-sentence leaves the voice in its sentence. All seven fail on 1.0.65.
+
 ## 1.0.65 (19 October 2026)
 
 Selecting on an Android phone, in page mode.

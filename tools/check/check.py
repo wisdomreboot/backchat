@@ -860,6 +860,43 @@ with sync_playwright() as p:
         settle(0.8)
         expect("dragging the speed slider changes the voice once, without a silence", [ev(ap, "()=>__speech.cancels"), ev(ap, "()=>speechSynthesis.speaking")], [1, True],
                "every step of the drag restarted the voice, and Chrome can lose speech started right after a cancel")
+        # Marking up while it reads, by touch.
+        def a_touch(kind, pts): acdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [{"x": x, "y": y} for x, y in pts]})
+        def a_page(): return ev(ap, "()=>(rendition.currentLocation().start.displayed||{}).page")
+        START_LAST_SENTENCE = r"""()=>{ const c=rendition.getContents()[0]; tts.contents=c; tts.chunks=buildChunks(c); let k=0, at=0;
+            tts.chunks.forEach((ch,i)=>ch.sentences.forEach(s=>{ if(bcRangeSide(c,s.range)===0){ k=i; at=s.cStart; } })); tts.cidx=k; tts.state='playing'; ttsSetUI(); speakChunk(at); }"""
+        expect("while a book is open the page itself cannot scroll", ev(ap, "()=>[getComputedStyle(document.documentElement).overflowY, getComputedStyle(document.body).overflowY]"), ["hidden", "hidden"],
+               "on a phone a swipe or a selection slid the address bar away, the window resized, and the book laid itself out again mid-gesture")
+        voice(cps=120, mode="boundary"); chapter(0); ev(ap, "()=>ttsStop()"); settle(0.3)
+        idle_fit = ev(ap, "()=>[!document.querySelector('#audiobar').classList.contains('hidden'), Math.round(document.querySelector('#viewport iframe').getBoundingClientRect().height)===rendition.manager.container.clientHeight]")
+        ev(ap, "()=>ttsStart()"); settle(1.0)
+        playing_fit = ev(ap, "()=>Math.round(document.querySelector('#viewport iframe').getBoundingClientRect().height)===rendition.manager.container.clientHeight")
+        expect("with read aloud on, the player stays and the book always fits the space above it", [idle_fit, playing_fit], [[True, True], True],
+               "the player appeared over a book laid out for the taller page, hiding the last lines of every page")
+        ev(ap, "()=>ttsStop()"); ev(ap, START_LAST_SENTENCE); settle(0.3)
+        f0 = a_page(); a_touch("touchStart", [(PW * 0.5, PH * 0.5)]); settle(3.5); f1 = a_page(); a_touch("touchCancel", []); settle(0.2)
+        expect("a finger on the page keeps read aloud from turning it", [f0, f1], lambda v: v[0] == v[1], "the voice turned the page while you were pressing to select")
+        ev(ap, "()=>ttsStop()"); settle(0.3)
+        ev(ap, r"""()=>{ const c=rendition.getContents()[0]; for(const k of buildChunks(c)) for(const s of k.sentences) if(bcRangeSide(c,s.range)===0){ const sel=c.window.getSelection(); sel.removeAllRanges(); sel.addRange(s.range); return; } }"""); settle(0.8)
+        ev(ap, "()=>{ hideSelPop(); rendition.getContents()[0].window.getSelection().removeAllRanges(); }")   # a phone clears the selection as the tap begins
+        d0 = a_page(); a_touch("touchStart", [(PW - 12, PH * 0.5)]); time.sleep(0.05); a_touch("touchEnd", []); settle(0.8)
+        expect("a tap that dismisses a selection does not turn the page", [d0, a_page()], lambda v: v[0] == v[1], "the tap that cleared a selection near the edge also turned the page")
+        settle(1.2); t0 = a_page(); a_touch("touchStart", [(PW * 0.78, PH * 0.5)]); time.sleep(0.05); a_touch("touchEnd", []); settle(0.8)
+        expect("a tap on the words near the edge does not turn the page", [t0, a_page()], lambda v: v[0] == v[1], "a quarter of the text on each side turned the page, so a tap meant for the words moved on")
+        ev(ap, "()=>openFind()"); settle(0.8); fh0 = ev(ap, "()=>rendition.manager.container.clientHeight")
+        ev(ap, "()=>{ document.querySelector('#find-input').value='river'; doFind('river'); }"); settle(1.0)
+        expect("find's matches open over the page without changing its size", [ev(ap, "()=>rendition.manager.container.clientHeight") == fh0, ev(ap, "()=>Math.round(document.querySelector('#viewport iframe').getBoundingClientRect().height)===rendition.manager.container.clientHeight")], [True, True],
+               "the list of matches pushed the page up and hid its last lines")
+        ev(ap, "()=>closeFind()"); settle(0.8)
+        # start mid-page, so carrying on cannot be mistaken for starting again at the top of the page
+        voice(cps=30); ev(ap, r"""()=>{ const c=rendition.getContents()[0]; tts.contents=c; tts.chunks=buildChunks(c); const on=[];
+            tts.chunks.forEach((ch,i)=>ch.sentences.forEach(s=>{ if(bcRangeSide(c,s.range)===0) on.push([i,s.cStart]); })); const m=on[Math.min(on.length-1, 3)];
+            tts.cidx=m[0]; tts.state='playing'; ttsSetUI(); speakChunk(m[1]); }"""); settle(1.5)
+        said = ev(ap, "()=>{ const ch=tts.chunks[tts.cidx]; return ch.text.slice(ch.sentences[tts.curSentIdx].cStart).trim().slice(0,30); }")
+        ev(ap, "()=>{ __speech.log=[]; }"); ap.set_viewport_size({"width": PW, "height": PH + 56}); settle(2.0)
+        expect("when the book is laid out again while it reads, the voice carries on in its sentence", [said, ev(ap, "()=>(__speech.log.filter(r=>!r.error)[0]||{text:''}).text.trim().slice(0,30)")], lambda v: v[0] and v[0] == v[1],
+               "a new layout left the voice on a page that no longer existed, so it restarted elsewhere or fell silent")
+        ap.set_viewport_size({"width": PW, "height": PH}); settle(1.2); ev(ap, "()=>ttsStop()")
         voice(swallowAfterCancelMs=0, cps=40, mode="none", stallAfterMs=700); chapter(0); ev(ap, "()=>{ tts.cps=40; ttsStart(); }")
         # the heading is over before the engine stalls; the first paragraph is not
         stall = None; t_end = time.time() + 20
