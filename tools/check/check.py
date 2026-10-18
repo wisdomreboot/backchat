@@ -706,8 +706,17 @@ with sync_playwright() as p:
                "each open thing takes one Back; Find opens with the keyboard up")
         # The selection menu stays clear of the phone's own Copy menu above and the handles below.
         mp.evaluate(r"""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Paragraph 3 of chapter 0'); const s=c.window.getSelection(); s.removeAllRanges(); s.addRange(r); }"""); settle(1.0)
-        expect("the selection menu sits below the selection on a touch screen", ev(mp, r"""()=>{ const c=rendition.getContents()[0], r=c.window.getSelection().getRangeAt(0).getBoundingClientRect(), f=c.document.defaultView.frameElement.getBoundingClientRect(), p=document.querySelector('#sel-pop').getBoundingClientRect();
-            return selPopOpen() && (p.top>=f.top+r.bottom+20 || p.bottom<=f.top+r.top-40); }"""), True, "a phone draws Copy above a selection and drag handles below it")
+        MENU_CLEAR = r"""()=>{ const c=rendition.getContents()[0], r=c.window.getSelection().getRangeAt(0).getBoundingClientRect(), f=c.document.defaultView.frameElement.getBoundingClientRect(), p=document.querySelector('#sel-pop').getBoundingClientRect();
+            return selPopOpen() && (p.top>=f.top+r.bottom+20 || p.bottom<=f.top+r.top-40) && p.bottom<=innerHeight*0.8; }"""
+        clear_mid = ev(mp, MENU_CLEAR)
+        # words low on the screen, where a menu below them would sit under Chrome's Touch to Search bar
+        mp.evaluate(r"""()=>{ const c=rendition.getContents()[0], doc=c.document, fr=doc.defaultView.frameElement.getBoundingClientRect(), box=rendition.manager.container.getBoundingClientRect();
+            const a=doc.caretRangeFromPoint(box.left-fr.left+30, box.top-fr.top+box.height*0.8), b=doc.caretRangeFromPoint(box.left-fr.left+200, box.top-fr.top+box.height*0.8);
+            c.window.getSelection().setBaseAndExtent(a.startContainer, a.startOffset, b.startContainer, b.startOffset); }"""); settle(1.0)
+        clear_low = ev(mp, MENU_CLEAR)
+        mp.evaluate(r"""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Paragraph 3 of chapter 0'); const s=c.window.getSelection(); s.removeAllRanges(); s.addRange(r); }"""); settle(1.0)
+        expect("the selection menu sits clear of the selection and of the bottom of the screen", [clear_mid, clear_low], [True, True],
+               "a phone draws Copy above a selection and drag handles below it, and Chrome's Touch to Search bar covers the bottom of the screen")
         tap("#sel-pop button.act[title='Comment']"); settle(0.4)
         mp.keyboard.type("Typed on a phone"); stayed = back()
         expect("Back on a comment being typed keeps it", [stayed, ev(mp, "()=>highlights.filter(h=>!h.deleted && h.note==='Typed on a phone').length"), back_state()], [True, 1, ["reader", 1, 1]],
@@ -738,6 +747,23 @@ with sync_playwright() as p:
     sp.goto(URL); wait(sp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
     sp.set_input_files("#file-input", [LONG]); wait(sp, "DB.count('meta').then(n=>window.__sn=n), window.__sn>=2", 30000); settle(1)
     sp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Long Landing/.test(m.title))[0].id))"); wait(sp, "rendition && rendition.getContents().length>0"); settle(2)
+    sp.evaluate("()=>{ settings.tts=true; saveSettings(); syncTtsControls(); }")
+    expect("the reader's top bar is one row on a small phone, read aloud included", ev(sp, "()=>Math.round(document.querySelector('#reader .topbar').getBoundingClientRect().height)"), lambda h: isinstance(h, int) and h < 70,
+           "with read aloud on, the buttons wrapped to a second row and took the page's height")
+    # Dragging a selection handle past the edge of the page scrolls the book sideways by part of a page.
+    sp.evaluate("()=>rendition.next()"); settle(0.8)
+    sp.evaluate(r"""()=>{ const c=rendition.getContents()[0], m=rendition.manager, d=m.layout.delta, doc=c.document;
+      const fr=doc.defaultView.frameElement.getBoundingClientRect(), box=m.container.getBoundingClientRect();
+      const a=doc.caretRangeFromPoint(box.right-fr.left-50, box.bottom-fr.top-60), b=doc.caretRangeFromPoint(box.right-fr.left+50, box.top-fr.top+100);
+      c.window.getSelection().setBaseAndExtent(a.startContainer, a.startOffset, b.startContainer, b.startOffset);
+      m.container.scrollLeft = m.container.scrollLeft + Math.round(d*0.55); }""")
+    settle(1.5)
+    snapped = ev(sp, r"""()=>{ const c=rendition.getContents()[0], m=rendition.manager, d=m.layout.delta, sl=m.container.scrollLeft, s=c.window.getSelection();
+        const r=c.document.createRange(); r.setStart(s.focusNode, Math.max(0, s.focusOffset-1)); r.setEnd(s.focusNode, s.focusOffset);
+        return [Math.abs(sl-Math.round(sl/d)*d)<2, bcRangeSide(c, r)===0, !s.isCollapsed, selPopOpen()]; }""")
+    sp.evaluate("()=>{ hideSelPop(); rendition.getContents()[0].window.getSelection().removeAllRanges(); rendition.next(); }"); settle(0.8)
+    expect("a selection dragged onto the next page settles on a whole page, and pages stay whole after", [snapped, ev(sp, "()=>{ const m=rendition.manager, d=m.layout.delta, sl=m.container.scrollLeft; return Math.abs(sl-Math.round(sl/d)*d)<2; }")],
+           [[True, True, True, True], True], "half of two pages stayed on screen, and every page turn after kept the offset until the book was reopened")
     sp.tap("#find-btn"); sp.keyboard.type("river"); settle(1.2)
     expect("find in book fits a 320px phone, with its matches above the box", ev(sp, """()=>{ const x=document.querySelector('#find-close').getBoundingClientRect(), b=document.querySelector('#findbar').getBoundingClientRect(), r=document.querySelector('#find-results').getBoundingClientRect();
         return [x.right<=innerWidth, r.height>0 && r.bottom<=b.top+1]; }"""), [True, True], "the close button was pushed off screen, and the keyboard covered the matches")

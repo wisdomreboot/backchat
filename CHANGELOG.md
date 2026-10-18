@@ -2,6 +2,18 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.65 (19 October 2026)
+
+Selecting on an Android phone, in page mode.
+
+**Fixed**
+- **Half of two pages stuck on screen.** Dragging a selection handle past the edge of a page makes the browser scroll the book sideways by however far your finger went. The screen was left showing the right half of one page and the left half of the next, and every page turn after that kept the same offset until the book was closed and opened again. Once you stop dragging, the book now settles on a whole page: the one where your selection ends, so the words you reached stay in view. The selection and its colour menu stay up, ready to highlight.
+- **The selection menu could hide under Chrome's Touch to Search bar.** On Android, Chrome raises a "Tap to see search results" bar over the bottom of the screen whenever words are selected, and the menu placed below words low on the page sat right under it. On a touch screen the menu now docks at the top of the reader, clear of the phone's own Copy menu, the drag handles and that bar, and drops just under the words only when they are at the very top of the page.
+- **The reader's buttons wrapped onto a second row** on a phone with read aloud switched on, taking about 45px of height from the page. They now fit one row even at 320px.
+
+**Checks**
+- The phone checks add a selection dragged onto the next page (it settles on a whole page, keeps the selection and its menu, and later page turns stay whole), the selection menu for words low on the screen, and the reader's buttons fitting one row at 320px with read aloud on.
+
 ## 1.0.64 (18 October 2026)
 
 Read aloud, checked the way it is used: listening while reading along with the highlight, pausing to highlight and comment, then picking up again. Every case below was reproduced first with a scripted voice that behaves like Safari's, Chrome's and Android's, faults included, and is now part of the regression check.
