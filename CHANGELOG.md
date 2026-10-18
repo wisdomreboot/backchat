@@ -2,6 +2,12 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.62 (18 October 2026)
+
+**Added**
+- **Tables in the margins.** Write a table the way Obsidian and GitHub do, with cells between pipes and a line of dashes under the first row, and the margins show a real table. Colons in the dashes set the alignment (`:--` left, `:-:` centre, `--:` right), and `\|` puts a pipe inside a cell. Bold, highlights, links and location links all work inside cells. In the narrow margins panel a wide table scrolls sideways instead of squeezing. Tables are read exactly as Point First reads them when it publishes, so a table looks the same in both apps, and in your folder's notes it stays a plain pipe table that Obsidian shows as a table. A location link inside a table cell is written for Obsidian with its pipe escaped, so the link cannot split the cell.
+- The guide's chapter on the margins mentions tables (revision 16).
+
 ## 1.0.61 (18 October 2026)
 
 The built-in guide, *How to talk back to your books*, is rewritten as the way in for someone who has never seen Backchat, and it now lives in its own files.
