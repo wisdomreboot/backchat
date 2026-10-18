@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-yjcbU0qQazdUJ+91G4UF8w7lyWJy+cBQtilG7kPiPGE=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qqoj7KKnA04rNruKzfMpb97qXxv3DmwQD5VP1qlrykI=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -547,6 +547,66 @@
 
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#222;color:#fff;padding:.6rem 1rem;border-radius:10px;font-size:.85rem;z-index:90;opacity:0;transition:.25s;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---- Phones and touch screens ---- */
+  /* Keep text its set size when a phone turns sideways, and let a quick second tap be a tap, not a zoom. */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
+  /* A panel, list or dialog scrolled to its end stops there instead of moving the page behind it.
+     While reading, a pull down never reloads the page. */
+  .panel-body,.find-results,.rs-body,.cbx-pop,.note-edit .box,.note-edit .quote,.scratch-edit-area,#details,#viewport .epub-container{overscroll-behavior:contain}
+  html:has(#reader:not(.hidden)),html:has(#details:not(.hidden)){overscroll-behavior-y:none}
+  .findbar input{min-width:0}
+  .linkbtn{white-space:nowrap}
+  .stars{flex-wrap:wrap;row-gap:.35rem}
+  /* The notch and the home bar: in landscape, and as a home-screen app, nothing sits under them. */
+  .topbar,.rs-head{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right));padding-top:calc(.7rem + env(safe-area-inset-top,0px))}
+  .screen,.det-wrap,.rs-body{padding-left:max(1.25rem,env(safe-area-inset-left));padding-right:max(1.25rem,env(safe-area-inset-right))}
+  #viewport{left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px)}
+  .nav-zone.left{padding-left:max(10px,env(safe-area-inset-left))}.nav-zone.right{padding-right:max(10px,env(safe-area-inset-right))}
+  .findbar,.audiobar{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+  .botbar{padding-left:max(1.2rem,env(safe-area-inset-left));padding-right:max(1.2rem,env(safe-area-inset-right));padding-bottom:calc(.55rem + env(safe-area-inset-bottom,0px))}
+  .panel{padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .toast{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  #reader #bc-jumpback{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+  #reader.bc-chap-end #bc-jumpback{bottom:calc(118px + env(safe-area-inset-bottom,0px))}
+  /* Scroll mode: the way on at the end of a chapter, and back at its start. */
+  .bc-chap{position:absolute;left:50%;transform:translateX(-50%);z-index:6;display:none;align-items:center;gap:.45rem;max-width:calc(100% - 2rem);padding:.6rem 1.05rem;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--accent);box-shadow:var(--shadow);font-weight:600;font-size:.86rem;white-space:nowrap;cursor:pointer}
+  .bc-chap span{overflow:hidden;text-overflow:ellipsis}
+  .bc-chap svg{width:16px;height:16px;flex:0 0 auto}
+  .bc-chap.show{display:inline-flex}
+  #bc-chap-next{bottom:14px}
+  /* Room under a chapter's last line, so the Next button never covers it. */
+  html[data-flow="scrolled"] #viewport .epub-container{padding-bottom:72px}
+  #bc-chap-prev{top:12px}
+  @media(max-width:600px){
+    .topbar{padding-left:max(.75rem,env(safe-area-inset-left));padding-right:max(.75rem,env(safe-area-inset-right));padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
+    /* The home header (search and Add) scrolls away instead of covering a third of a small screen. */
+    #home > .topbar{position:relative}
+    .audiobar{padding-left:max(.55rem,env(safe-area-inset-left));padding-right:max(.55rem,env(safe-area-inset-right))}
+    #note-edit{align-items:flex-start;padding-top:max(5vh,12px)}
+  }
+  @media(max-height:520px){ #note-edit{align-items:flex-start;padding-top:12px} }
+  @media(max-width:360px){ .audiobar{gap:.15rem} .audiobar .iconbtn{width:31px} .tts-rate{gap:.25rem} .tts-rate input{width:56px} }
+  @media(pointer:coarse){
+    /* Under 16px an iPhone zooms the whole page into a box you tap, and stays zoomed. */
+    .searchbox input,.cs-input,.det-tags .det-tag-input{font-size:16px}
+    /* Fingers need bigger targets than a pointer. */
+    #sel-pop{gap:.3rem;padding:.35rem}
+    #sel-pop .sw{width:30px;height:30px}
+    #sel-pop button.act{width:34px;height:32px}
+    #sel-pop{flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 16px)}
+    h2.sec a{display:inline-block;padding:.6rem .1rem;margin:-.6rem 0}
+    #daily-shuffle{padding:.5rem .45rem;margin-left:-.45rem}
+    #rdr-sync{padding:12px;margin:-12px}
+    .linkbtn{padding:.6rem .7rem}
+    body #bc-conns-ov .bc-conns-x,body #bc-peek .bc-peek-x{padding:.25rem .55rem;margin-right:-.4rem}   /* body: outranks the overlay's own sheet, added later */
+    .hl-controls .dot{width:24px;height:24px}
+    .hl-controls .chip{padding:.45rem .7rem}
+    .hl-controls .chip.icon{width:36px;height:32px}
+    .hl-item .row button,.mark-echo{padding:.4rem 0}
+    .cs-link,#meta-rating-clear{padding:.35rem .1rem}
+  }
+  @media(pointer:coarse) and (max-width:360px){ #sel-pop{gap:.2rem} #sel-pop .sw{width:28px;height:28px} #sel-pop button.act{width:30px} }
 </style>
 
 
@@ -570,7 +630,7 @@
 <div id="home">
   <div class="topbar">
     <div class="brand-wrap"><h1 class="tk-brand"><a class="tk-brand-home" href="https://jonathandutoit.com/" target="_blank" rel="noopener" aria-label="Jonathan du Toit's site, opens in a new tab" title="Made by Jonathan du Toit. jonathandutoit.com"><svg class="tk-brand-mark" width="24" height="24" viewBox="7 8 47 46" aria-hidden="true" focusable="false"><path d="M53.34 49.98c-.3-1.14-.54-2.22-.9-3.3s-.72-2.16-1.14-3.24-.9-2.1-1.38-3.12-1.02-2.04-1.56-3c-.54-1.02-1.14-1.98-1.74-2.94s-1.2-1.92-1.86-2.82c-1.26-1.86-2.7-3.6-4.14-5.28s-2.94-3.36-4.5-4.92-3.18-3.12-4.74-4.62c-3.24-3-6.6-5.82-9.96-8.64 1.44 1.68 2.88 3.3 4.32 4.98L30.06 18c1.44 1.62 2.82 3.3 4.2 4.98s2.7 3.42 3.96 5.16 2.4 3.54 3.54 5.34c.54.9 1.08 1.8 1.62 2.76.48.96 1.02 1.86 1.44 2.82q.72 1.44 1.26 2.88c.18.42.36.84.48 1.32l-1.86-1.74c-2.64-2.4-5.28-4.8-7.98-7.14s-5.46-4.62-8.4-6.84c-1.44-1.08-2.94-2.16-4.62-3.18-.84-.48-1.68-.96-2.7-1.38-.54-.24-1.08-.42-1.8-.54-.36-.06-.78-.12-1.38-.06-.54.06-1.38.3-1.98.9l-.06.06c-.72.66-.96 1.74-.54 2.64 1.5 3.54 3.06 7.08 5.04 10.56.36.66.78 1.38 1.2 2.04-.6-.24-1.14-.48-1.74-.66-1.8-.66-3.6-1.2-5.4-1.68s-3.6-.9-5.4-1.32h-.06c-.24-.06-.48 0-.66.18-.42.42-.6 1.02-.66 1.56s.06 1.02.18 1.5c.24.9.66 1.68 1.08 2.46.9 1.5 1.98 2.82 3.06 4.14-.84-1.5-1.68-3-2.34-4.5-.3-.78-.6-1.56-.72-2.34q-.09-.54 0-1.08c.06-.12.06-.24.12-.36 1.56.6 3.18 1.14 4.74 1.8.84.36 1.68.72 2.52 1.02.84.36 1.68.72 2.46 1.08 1.62.78 3.24 1.62 4.68 2.58.72.48 1.44.96 2.1 1.5s1.32 1.08 1.92 1.68c.66.66 1.8.72 2.52.06.78-.66.84-1.86.18-2.64l-.06-.12c-.6-.66-1.14-1.38-1.68-2.1s-1.02-1.5-1.5-2.22c-.48-.78-.96-1.56-1.38-2.34s-.9-1.62-1.26-2.46c-.84-1.62-1.56-3.36-2.34-5.04-.06-.12-.06-.18-.12-.3 1.14.78 2.34 1.62 3.48 2.52 2.76 2.1 5.46 4.38 8.1 6.66 2.7 2.28 5.34 4.62 7.98 6.96l4.02 3.54 2.04 1.74c.72.6 1.32 1.14 2.16 1.8l.06.06c.54.42 1.2.54 1.92.42 1.38-.24 2.16-1.5 1.86-2.7"></path></svg></a><span class="tk-brand-name">Backchat</span><span id="brand-sync-note" class="brand-sync-note" style="display:none"></span></h1></div>
-    <div class="searchbox" style="flex:1 1 200px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="home-search" placeholder="Search books, highlights, notes, and inside books…"></div>
+    <div class="searchbox" style="flex:1 1 200px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="home-search" placeholder="Search books, highlights, notes, and inside books…" enterkeyhint="search" autocomplete="off"></div>
     <div class="topbar-actions"><div class="segbtns" role="group" aria-label="Save and load your library"><button id="home-save" type="button" title="Save a full backup of everything"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="lab">Save</span></button><button id="home-load" type="button" title="Load any backup: a full library, one book, a deleted book, or notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5V10"/><path d="M3 10h18l-1.5 8.2a1.5 1.5 0 0 1-1.5 1.3H6a1.5 1.5 0 0 1-1.5-1.3L3 10z"/></svg><span class="lab">Load</span></button><button id="home-handoff" type="button" title="Hand off your marks to another device" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13"/><path d="M13 6l6 6-6 6"/></svg><span class="lab">Handoff</span><span class="seg-badge" id="home-handoff-count"></span></button></div><span class="navdiv" aria-hidden="true"></span><button class="iconbtn" id="home-marks" type="button" title="All marks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button><button class="iconbtn" id="home-settings" type="button" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div><span class="navdiv" aria-hidden="true"></span><div class="addgrp"><button class="btn-primary" id="home-add" type="button">+ Add EPUB</button></div>
   </div>
   <div class="screen">
@@ -625,7 +685,7 @@
   <div class="screen">
     <div class="libbar">
       
-      <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="lib-search" placeholder="Filter this library…"></div>
+      <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="lib-search" placeholder="Filter this library…" enterkeyhint="search" autocomplete="off"></div>
       <select class="sel" id="lib-sort">
         <option value="opened">Last opened</option>
         <option value="added">Date added</option>
@@ -645,7 +705,7 @@
 <div id="search" class="hidden">
   <div class="topbar">
     <button class="iconbtn" id="search-back" title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
-    <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="search-input" placeholder="Search everything…"></div>
+    <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="search-input" placeholder="Search everything…" enterkeyhint="search" autocomplete="off"></div>
   </div>
   <div class="screen" id="search-results"></div>
 </div>
@@ -667,12 +727,13 @@
     <div class="nav-zone left" id="prev"><div class="nav-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
     <div class="nav-zone right" id="next"><div class="nav-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div></div>
   </div>
+  <!-- The matches sit above the box, where a phone's keyboard cannot cover them. -->
+  <div class="find-results hidden" id="find-results"></div>
   <div class="findbar hidden" id="findbar">
-    <input id="find-input" placeholder="Find in this book…">
+    <input id="find-input" placeholder="Find in this book…" enterkeyhint="search" autocomplete="off">
     <div class="fc" id="find-count"></div>
     <button class="iconbtn" id="find-close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
-  <div class="find-results hidden" id="find-results"></div>
   <div class="audiobar hidden" id="audiobar" style="display:none"></div>
   <div class="botbar">
     <div class="loc" id="chapter-label"></div>
@@ -795,7 +856,7 @@
 <div id="sel-pop"></div>
 <div id="reader-search" class="rs-overlay hidden">
   <div class="rs-head">
-    <div class="searchbox" style="flex:1 1 auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="rs-input" placeholder="Search all books, tags, highlights, lines…" autocomplete="off" spellcheck="false"></div>
+    <div class="searchbox" style="flex:1 1 auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input id="rs-input" placeholder="Search all books, tags, highlights, lines…" autocomplete="off" spellcheck="false" enterkeyhint="search"></div>
     <button class="iconbtn" id="rs-close" title="Close search (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="rs-body" id="rs-results"></div>
@@ -1160,7 +1221,7 @@ var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.62";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.63";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -1648,7 +1709,7 @@ function hydrateCovers(root){
   }catch(e){}
 }
 /* ---------- screen switching ---------- */
-function show(id){ ["home","library","search","reader","details"].forEach(function(s){ $("#"+s).classList.toggle("hidden", s!==id); }); }
+function show(id){ ["home","library","search","reader","details"].forEach(function(s){ $("#"+s).classList.toggle("hidden", s!==id); }); bcBackSoon(); }
 
 /* ============================================================
    FOLDER SYNC (File System Access API)
@@ -1791,7 +1852,8 @@ function updateHandoffBtn(){
   var since=0; try{ since=+(localStorage.getItem("handoff-at")||0); }catch(e){}
   DB.all("highlights").then(function(rows){
     var n=0;
-    (rows||[]).forEach(function(r){ (r.items||[]).forEach(function(h){ if(((h.updated||h.created)||0)>since) n++; }); });
+    // The guide's sample marks arrive with it on every device; they are not news to hand off.
+    (rows||[]).forEach(function(r){ if(r.id===GUIDE_ID) return; (r.items||[]).forEach(function(h){ if(((h.updated||h.created)||0)>since) n++; }); });
     homeBtn.title = n ? ("Hand off "+n+" new mark"+(n===1?"":"s")+" to another device") : "Hand off your marks to another device";
     if(homeCount) homeCount.textContent = (showHome && n>0) ? (n>99?"99+":String(n)) : "";
   }).catch(function(){});
@@ -2566,6 +2628,8 @@ function makeCoverThumb(src){
 function bcSanitizeContent(contents){
   try{
     var doc = contents && contents.document; if(!doc) return;
+    // Quick taps on a page edge turn pages; on a phone they must never be read as a double-tap zoom.
+    try{ var de=doc.documentElement; de.style.touchAction="manipulation"; de.style.webkitTextSizeAdjust="100%"; }catch(e){}
     var kill = doc.querySelectorAll("script,object,embed");
     for(var i=0;i<kill.length;i++){ if(kill[i].parentNode) kill[i].parentNode.removeChild(kill[i]); }
     var all = doc.getElementsByTagName("*");
@@ -4116,8 +4180,9 @@ function wireOpenedBook(){
     var dp=loc.start && loc.start.displayed;
     var pg=(dp && dp.total) ? ("page "+dp.page+" of "+dp.total) : "";
     $("#chapter-label").textContent = ch + (pg ? (ch ? " · " : "") + pg : "");
+    bcChapUpdate();
   });
-  rendition.on("rendered", function(){ renderAllHighlights(); bindReadClicks(); rendition.getContents().forEach(function(c){ bcWatchInput(c.document); }); if(currentBook && currentBook.faithful){ bcSyncBookScheme(); } else { bcApplyReaderColors(); } });
+  rendition.on("rendered", function(){ renderAllHighlights(); bindReadClicks(); bcChapWire(); setTimeout(bcChapUpdate, 80); rendition.getContents().forEach(function(c){ bcWatchInput(c.document); }); if(currentBook && currentBook.faithful){ bcSyncBookScheme(); } else { bcApplyReaderColors(); } });
   rendition.on("selected", onSelected);
   rendition.on("resized", function(){ bcKeepPlace(null); });   // a new window size or a turned phone keeps the page you were on
 }
@@ -4126,13 +4191,14 @@ function updateProgress(){ var p=Math.round((currentBook.progress||0)*100); $("#
 function setReadFlow(f){
   f = (f==="scrolled") ? "scrolled" : "paginated";
   settings.flow=f; saveSettings();
+  document.documentElement.dataset.flow=f;   // before the new layout is measured: scroll mode leaves room under the last line
   if(!rendition) return;
   try{ ttsStop(); }catch(e){}
   // Pages and scrolling lay the book out afresh; keep the reader on the same words across the switch.
   bcKeepPlace(function(){ try{ rendition.flow(f); }catch(e){} try{ applyTheme(); }catch(e){} });
 }
 function closeBook(){
-  _bcReadJump=[]; try{ _bcJumpPill(); }catch(e){}
+  _bcReadJump=[]; try{ _bcJumpPill(); }catch(e){} bcChapHide();
   ttsStop(); hideSelPop(); closeFind(); stopReadTimer(); flushScratch(); try{ if(window.BackchatPlayer) BackchatPlayer.release(); }catch(e){}
   if(currentBook){
     // Read the position straight from the rendition rather than trusting the last relocated
@@ -4232,6 +4298,7 @@ function bcApplyReaderColors(){
 function applyTheme(){
   var rt=resolvedTheme();
   document.documentElement.dataset.theme = rt;
+  document.documentElement.dataset.flow = (settings.flow==="scrolled") ? "scrolled" : "paginated";
   if(!rendition) return;
   if(currentBook && currentBook.faithful){ bcSyncBookScheme();
     // Original styling keeps the book's own fonts/colours/sizes, but in scroll mode let the
@@ -4301,7 +4368,7 @@ function bcSyncBookScheme(){
    FIND IN BOOK
    Searches the open book's own text (its fulltext record), indexing it once if needed.
    ============================================================ */
-function openFind(){ $("#findbar").classList.remove("hidden"); setTimeout(function(){ $("#find-input").focus(); },50); }
+function openFind(){ $("#findbar").classList.remove("hidden"); bcFocus($("#find-input")); bcBackSoon(); }
 function closeFind(){ $("#findbar").classList.add("hidden"); $("#find-results").classList.add("hidden"); $("#find-results").innerHTML=""; $("#find-count").textContent=""; var fi=$("#find-input"); if(fi) fi.value=""; }
 function doFind(q, triedIndex){
   q=(q||"").trim(); var box=$("#find-results");
@@ -4526,9 +4593,20 @@ function onSelected(cfiRange, contents){
   // later, stomping the trash and friends. Briefly ignore selections after the actions
   // popover opens, and clear the stray selection so it cannot swallow the next tap.
   if(Date.now()<_selGuardUntil){ try{ contents.window.getSelection().removeAllRanges(); }catch(e){} return; }
-  var sel=contents.window.getSelection(); var text=sel?sel.toString():""; if(!text.trim()) return; lastSelection={cfiRange:cfiRange,text:text.trim(),contents:contents}; var rect=null; try{ rect=sel.getRangeAt(0).getBoundingClientRect(); }catch(e){} var iframe=contents.document.defaultView.frameElement; var ib=iframe?iframe.getBoundingClientRect():{left:0,top:0}; showSelPop(ib.left+(rect?rect.left+rect.width/2:100), ib.top+(rect?rect.top:100)); }
+  var sel=contents.window.getSelection(); var text=sel?sel.toString():""; if(!text.trim()) return; lastSelection={cfiRange:cfiRange,text:text.trim(),contents:contents}; var rect=null; try{ rect=sel.getRangeAt(0).getBoundingClientRect(); }catch(e){} var iframe=contents.document.defaultView.frameElement; var ib=iframe?iframe.getBoundingClientRect():{left:0,top:0}; showSelPop(ib.left+(rect?rect.left+rect.width/2:100), ib.top+(rect?rect.top:100), rect?ib.top+rect.bottom:null); }
 /* ---------------- READER POPOVERS: new-selection menu and highlight-tap menu ---------------- */
-function showSelPop(x,y){
+/* On a touch screen the phone draws its own Copy menu above a selection and drag handles below it,
+   so the menu goes under the handles, or well above the phone's menu when there is no room below. */
+function bcPlaceSelPop(pop, x, y, yBottom){
+  var pw=pop.offsetWidth||200, ph=pop.offsetHeight||40, top=y-ph-10;
+  if(bcTouchUI() && yBottom!=null){
+    var below=yBottom+30, room=window.innerHeight-ph-8;
+    top = (below<=room) ? below : y-ph-58;
+    top = Math.min(top, room);
+  }
+  pop.style.left=Math.max(8,Math.min(window.innerWidth-pw-8,x-pw/2))+"px"; pop.style.top=Math.max(8,top)+"px";
+}
+function showSelPop(x,y,yBottom){
   var pop=$("#sel-pop"); pop.innerHTML="";
   Object.keys(COLORS).forEach(function(name){ var b=document.createElement("button"); b.className="sw"; b.style.background=COLORS[name]; b.title=hlLabel(name); b.onmousedown=function(e){ e.preventDefault(); }; b.onclick=function(){ createHighlight(name); hideSelPop(); }; pop.appendChild(b); });
   var note=document.createElement("button"); note.className="act"; note.title="Comment"; note.innerHTML=menuSvg("comment",15); note.onmousedown=function(e){ e.preventDefault(); }; note.onclick=function(){ openNoteEditor(); }; pop.appendChild(note);
@@ -4536,7 +4614,7 @@ function showSelPop(x,y){
   var quote=document.createElement("button"); quote.className="act"; quote.title="Copy as quote (paste into the margins)"; quote.innerHTML=menuSvg("quote",15); quote.onmousedown=function(e){ e.preventDefault(); }; quote.onclick=function(){ copyQuoteFromSelection(); }; pop.appendChild(quote);
   var mrg=document.createElement("button"); mrg.className="act"; mrg.title="Send to margins (quote and location, no highlight)"; mrg.innerHTML=menuSvg("margins",15); mrg.onmousedown=function(e){ e.preventDefault(); }; mrg.onclick=function(){ pushSelectionToMargins(); }; pop.appendChild(mrg);
   var srch=document.createElement("button"); srch.className="act"; srch.title="Search all books for this"; srch.innerHTML=menuSvg("search",15); srch.onmousedown=function(e){ e.preventDefault(); }; srch.onclick=function(){ var t=lastSelection?lastSelection.text:""; hideSelPop(); openReaderSearch(t); }; pop.appendChild(srch);
-  pop.style.display="flex"; var pw=pop.offsetWidth||200, ph=pop.offsetHeight||40; pop.style.left=Math.max(8,Math.min(window.innerWidth-pw-8,x-pw/2))+"px"; pop.style.top=Math.max(8,y-ph-10)+"px";
+  pop.style.display="flex"; bcPlaceSelPop(pop, x, y, yBottom);
 }
 function hideSelPop(){ var p=$("#sel-pop"); if(p) p.style.display="none"; }
 function selPopOpen(){ var p=$("#sel-pop"); return p && p.style.display!=="none" && p.style.display!==""; }
@@ -5203,7 +5281,7 @@ function handleRefHash(){
   if(typeof cloudHandleSetupHash==="function" && cloudHandleSetupHash()) return true;
   var ref=bcParseUrl(location.hash||"");
   if(!ref) return false;
-  try{ history.replaceState(null, "", location.href.split("#")[0]); }catch(e){}
+  try{ history.replaceState(history.state, "", location.href.split("#")[0]); }catch(e){}   // keep the Back depth this entry carries
   followBcRef(ref);
   return true;
 }
@@ -5271,8 +5349,8 @@ function renderHighlightList(){
     list.appendChild(el);
   });
 }
-function openNoteEditor(){ if(!lastSelection) return; noteContext={mode:"new"}; $("#note-quote").textContent=lastSelection.text; $("#note-text").value=""; $("#note-edit").style.display="flex"; hideSelPop(); setTimeout(function(){ $("#note-text").focus(); },50); }
-function editExistingNote(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; noteContext={mode:"edit",id:id}; $("#note-quote").textContent=h.text; $("#note-text").value=h.note||""; $("#note-edit").style.display="flex"; setTimeout(function(){ $("#note-text").focus(); },50); }
+function openNoteEditor(){ if(!lastSelection) return; noteContext={mode:"new"}; $("#note-quote").textContent=lastSelection.text; $("#note-text").value=""; noteContext.orig=""; $("#note-edit").style.display="flex"; hideSelPop(); bcFocus($("#note-text")); bcBackSoon(); }
+function editExistingNote(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; noteContext={mode:"edit",id:id}; $("#note-quote").textContent=h.text; $("#note-text").value=h.note||""; noteContext.orig=h.note||""; $("#note-edit").style.display="flex"; bcFocus($("#note-text")); bcBackSoon(); }
 function saveNote(){
   var val=$("#note-text").value.trim(), done;
   if(noteContext.mode==="new"){
@@ -5866,13 +5944,12 @@ function detailsNotesEdit(caret){
   ta.value=detailsBook.scratch||"";
   if(view) view.style.display="none"; ed.style.display="block"; if(btn) btn.style.display="none";
   try{ var _df=document.getElementById("details"); if(_df) _df.classList.add("bc-focus-write"); }catch(e){}
-  setTimeout(function(){
-    ta.focus();
-    if(typeof caret==="number" && caret>=0){
-      try{ ta.setSelectionRange(caret, caret); }catch(e){}
-      try{ scrollTextareaToCaret(ta, caret); }catch(e){}
-    }
-  },30);
+  bcFocus(ta);
+  if(typeof caret==="number" && caret>=0){
+    try{ ta.setSelectionRange(caret, caret); }catch(e){}
+    try{ scrollTextareaToCaret(ta, caret); }catch(e){}
+  }
+  bcBackSoon();
 }
 function detailsNotesCancel(){ try{ var _d=document.getElementById("details"); if(_d) _d.classList.remove("bc-focus-write"); }catch(e){} if(detailsBook) renderRichDetails(detailsBook); }
 function detailsNotesSave(){
@@ -5971,7 +6048,8 @@ function detailsEdit(){
     if(metaRelatedCbx) metaRelatedCbx.refresh();
   });
   $("#meta-modal").style.display="flex";
-  setTimeout(function(){ $("#meta-title").focus(); },50);
+  if(!bcTouchUI()) bcFocus($("#meta-title"));   // on a phone, let the form be read before a keyboard covers it
+  bcBackSoon();
 }
 function saveMetaForm(){
   if(!detailsBook) return;
@@ -6144,9 +6222,25 @@ function _bcJumpBack(){
 function bcOpenOutside(href){
   try{ var w=window.open(href, "_blank", "noopener,noreferrer"); if(w) w.opener=null; }catch(e){}
 }
-function bindReadClicks(){ rendition.getContents().forEach(function(c){ if(c._readClickBound) return; c._readClickBound=true; c.document.addEventListener("click", function(e){ var _a=e.target&&e.target.closest?e.target.closest("a[href]"):null; if(_a){ var _h=_a.getAttribute("href")||""; if(/^(https?:|mailto:)/i.test(_h)){ e.preventDefault(); bcOpenOutside(_h); return; } if(_h&&!/^(https?:|mailto:|tel:|javascript:|#$)/i.test(_h)){ try{ var _l=rendition.currentLocation&&rendition.currentLocation(); var _cc=_l&&_l.start&&_l.start.cfi; if(_cc){ _bcReadJump.push(_cc); setTimeout(_bcJumpPill,80); } }catch(_e){} } return; } var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(selPopOpen()){ hideSelPop(); return; } var hid=highlightAtPoint(c,e.clientX,e.clientY); if(hid){ var it=highlights.filter(function(x){ return x.id===hid; })[0]; if(it && it.kind==="note"){ editExistingNote(hid); return; } var iframe=c.document.defaultView.frameElement; var ib=iframe?iframe.getBoundingClientRect():{left:0,top:0}; showHlActions(hid, ib.left+e.clientX, ib.top+e.clientY); return; } readFromPoint(c,e.clientX,e.clientY); }); c.document.addEventListener("mousemove", function(e){ onNoteHover(c, e.clientX, e.clientY); }); c.document.addEventListener("mouseleave", function(){ hideNotePop(); });
+/* On a touch screen in page mode, a tap near either edge of the page turns it, as in any e-reader.
+   The middle stays free for tapping marks and for read aloud, and a mouse click never turns. */
+function bcEdgeTurn(c, e){
+  if(!rendition || settings.flow==="scrolled") return false;
+  if(Date.now()-(c._bcTouchAt||0)>900) return false;
+  var vp=document.getElementById("viewport"); if(!vp) return false;
+  var fr=c.document.defaultView.frameElement, ib=fr?fr.getBoundingClientRect():{left:0};
+  var r=vp.getBoundingClientRect(), x=ib.left+e.clientX-r.left, zone=Math.min(r.width*0.25, 140);
+  if(x<zone){ ttsStop(); rendition.prev(); return true; }
+  if(x>r.width-zone){ ttsStop(); rendition.next(); return true; }
+  return false;
+}
+function bindReadClicks(){ rendition.getContents().forEach(function(c){ if(c._readClickBound) return; c._readClickBound=true; c.document.addEventListener("click", function(e){ bcBackNote(); var _a=e.target&&e.target.closest?e.target.closest("a[href]"):null; if(_a){ var _h=_a.getAttribute("href")||""; if(/^(https?:|mailto:)/i.test(_h)){ e.preventDefault(); bcOpenOutside(_h); return; } if(_h&&!/^(https?:|mailto:|tel:|javascript:|#$)/i.test(_h)){ try{ var _l=rendition.currentLocation&&rendition.currentLocation(); var _cc=_l&&_l.start&&_l.start.cfi; if(_cc){ _bcReadJump.push(_cc); setTimeout(_bcJumpPill,80); } }catch(_e){} } return; } var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(selPopOpen()){ hideSelPop(); return; } var hid=highlightAtPoint(c,e.clientX,e.clientY); if(hid){ var it=highlights.filter(function(x){ return x.id===hid; })[0]; if(it && it.kind==="note"){ editExistingNote(hid); return; } var iframe=c.document.defaultView.frameElement; var ib=iframe?iframe.getBoundingClientRect():{left:0,top:0}; showHlActions(hid, ib.left+e.clientX, ib.top+e.clientY); return; } if(bcEdgeTurn(c, e)) return; readFromPoint(c,e.clientX,e.clientY); }); c.document.addEventListener("mousemove", function(e){ onNoteHover(c, e.clientX, e.clientY); }); c.document.addEventListener("mouseleave", function(){ hideNotePop(); });
     if(!c._readSwipeBound){ c._readSwipeBound=true; var _sx=0,_sy=0,_st=0;
-      c.document.addEventListener("touchstart", function(ev){ if(!ev.touches||ev.touches.length!==1){ _st=0; return; } _sx=ev.touches[0].clientX; _sy=ev.touches[0].clientY; _st=Date.now(); }, {passive:true});
+      c.document.addEventListener("touchstart", function(ev){ c._bcTouchAt=Date.now(); if(!ev.touches||ev.touches.length!==1){ _st=0; return; } _sx=ev.touches[0].clientX; _sy=ev.touches[0].clientY; _st=Date.now(); }, {passive:true});
+      // Scroll mode: pulling down (or wheeling up) at the top of a chapter offers the chapter before.
+      var _pull=function(){ if(settings.flow!=="scrolled" || !rendition || _bcChapPull) return; var ct=rendition.manager && rendition.manager.container; if(ct && ct.scrollTop<=2){ _bcChapPull=true; bcChapUpdate(); } };
+      c.document.addEventListener("touchmove", function(ev){ if(_st && ev.touches && ev.touches[0] && ev.touches[0].clientY-_sy>30) _pull(); }, {passive:true});
+      c.document.addEventListener("wheel", function(ev){ if(ev.deltaY<0) _pull(); }, {passive:true});
       c.document.addEventListener("touchend", function(ev){ if(!_st) return; var t=ev.changedTouches&&ev.changedTouches[0]; var began=_st; _st=0; if(!t) return; var dx=t.clientX-_sx, dy=t.clientY-_sy, dt=Date.now()-began; var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(dt>700||Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.5) return; if(!rendition) return; ttsStop(); if(dx<0) rendition.next(); else rendition.prev(); }, {passive:true});
     }
   }); }
@@ -6533,7 +6627,7 @@ function toggleScratchEdit(){
     $("#scratch-edit-area").value=(currentBook&&currentBook.scratch)||"";
     _scratchOwnerId=currentBook?currentBook.id:null;
     $("#scratch-toggle").textContent="Done";
-    setTimeout(function(){ var _ta=$("#scratch-edit-area"); _ta.focus(); bcAutoGrow(_ta); },40);
+    var _ta=$("#scratch-edit-area"); bcFocus(_ta); bcAutoGrow(_ta);
   } else {
     saveScratch();
     $("#scratch-toggle").textContent="Edit";
@@ -6677,7 +6771,9 @@ function openReaderSearch(prefill){
   ov.classList.remove("hidden");
   var i=$("#rs-input"); if(i) i.value=prefill||"";
   runSearch(prefill||"", $("#rs-results"));
-  setTimeout(function(){ if(i){ i.focus(); if(prefill){ try{ i.select(); }catch(e){} } } }, 30);
+  // A search started from selected words shows its results; on a phone a keyboard would cover them.
+  if(i && !(prefill && bcTouchUI())){ bcFocus(i); if(prefill){ try{ i.select(); }catch(e){} } }
+  bcBackSoon();
 }
 function hideReaderSearch(){ var ov=$("#reader-search"); if(ov) ov.classList.add("hidden"); }
 (function(){
@@ -6686,7 +6782,124 @@ function hideReaderSearch(){ var ov=$("#reader-search"); if(ov) ov.classList.add
   var c=$("#rs-close"); if(c) c.onclick=hideReaderSearch;
   var r=$("#rs-results"); if(r) r.addEventListener("click", function(e){ if(e.target.closest && e.target.closest(".res-copy")) return; if(e.target.closest && e.target.closest(".res")) hideReaderSearch(); });
 })();
-function openSearch(prefill){ show("search"); var i=$("#search-input"); i.value=prefill||""; runSearch(i.value); setTimeout(function(){ i.focus(); },50); }
+function openSearch(prefill){ show("search"); var i=$("#search-input"); i.value=prefill||""; runSearch(i.value); if(!(prefill && bcTouchUI())) bcFocus(i); }
+
+/* ============================================================
+   PHONES AND TOUCH SCREENS
+   ============================================================ */
+function bcTouchUI(){ try{ return !!(window.matchMedia && matchMedia("(pointer:coarse)").matches); }catch(e){ return false; } }
+/* A phone opens its keyboard only for a focus made while handling the tap itself, so focus at once
+   rather than after a timer. preventScroll keeps a sliding panel from jolting the page. */
+function bcFocus(el){ if(!el) return; try{ el.focus({preventScroll:true}); }catch(e){ try{ el.focus(); }catch(_e){} } }
+
+/* Scroll mode lays out one chapter at a time, and scrolling stops at its end. A button at the end
+   offers the next chapter, and one at the top, once you scroll back up to it, the one before, so
+   nobody is stranded on a phone, where there are no side arrows. */
+var _bcChapSeen=false, _bcChapPull=false, _bcChapIdx=-1;
+var BC_ARROW_DOWN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>';
+var BC_ARROW_UP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+function bcChapButtons(){
+  var wrap=document.getElementById("viewport-wrap"); if(!wrap) return false;
+  if(document.getElementById("bc-chap-next")) return true;
+  var nx=document.createElement("button"); nx.type="button"; nx.id="bc-chap-next"; nx.className="bc-chap"; nx.innerHTML='<span></span>'+BC_ARROW_DOWN;
+  nx.onclick=function(){ if(!rendition) return; ttsStop(); bcChapHide(); rendition.next(); };
+  var pv=document.createElement("button"); pv.type="button"; pv.id="bc-chap-prev"; pv.className="bc-chap"; pv.innerHTML=BC_ARROW_UP+'<span></span>';
+  pv.onclick=function(){
+    if(!rendition) return; ttsStop(); bcChapHide();
+    // Scrolling up past a chapter's start means reading on backwards: arrive at the end of the one before.
+    var r=rendition; r.prev().then(function(){ var c=r.manager && r.manager.container; if(c && r===rendition) c.scrollTop=c.scrollHeight; });
+  };
+  wrap.appendChild(nx); wrap.appendChild(pv);
+  return true;
+}
+function bcChapHide(){ ["bc-chap-next","bc-chap-prev"].forEach(function(id){ var b=document.getElementById(id); if(b) b.classList.remove("show"); }); var rd=document.getElementById("reader"); if(rd) rd.classList.remove("bc-chap-end"); }
+function bcChapUpdate(){
+  if(!rendition || settings.flow!=="scrolled"){ bcChapHide(); return; }
+  var c=rendition.manager && rendition.manager.container, sec=null;
+  try{ var loc=rendition.currentLocation(); if(loc && loc.start) sec=book.spine.get(loc.start.index); }catch(e){}
+  if(!c || !sec || !bcChapButtons()){ bcChapHide(); return; }
+  if(sec.index!==_bcChapIdx){ _bcChapIdx=sec.index; _bcChapSeen=false; _bcChapPull=false; }
+  if(c.scrollTop>40) _bcChapSeen=true;
+  var nextS=sec.next ? sec.next() : null, prevS=sec.prev ? sec.prev() : null;
+  var showN=!!(nextS && c.scrollTop+c.clientHeight>=c.scrollHeight-4);
+  // The way back shows at the top once you have scrolled back up to it, or pulled down there, or
+  // when the chapter is too short to scroll at all.
+  var showP=!!(prevS && c.scrollTop<=2 && (_bcChapSeen || _bcChapPull || c.scrollHeight<=c.clientHeight+4));
+  var nx=document.getElementById("bc-chap-next"), pv=document.getElementById("bc-chap-prev");
+  if(showN){ var ln=chapterFor(nextS.href); nx.querySelector("span").textContent=ln ? "Next: "+ln : "Next chapter"; }
+  if(showP){ var lp=chapterFor(prevS.href); pv.querySelector("span").textContent=lp ? "Back to "+lp : "Previous chapter"; }
+  nx.classList.toggle("show", showN); pv.classList.toggle("show", showP);
+  document.getElementById("reader").classList.toggle("bc-chap-end", showN);
+}
+function bcChapWire(){
+  var c=rendition && rendition.manager && rendition.manager.container; if(!c || c._bcChapWired) return;
+  c._bcChapWired=true;
+  var f=0; c.addEventListener("scroll", function(){ if(f) return; f=requestAnimationFrame(function(){ f=0; bcChapUpdate(); }); }, {passive:true});
+}
+
+/* System back. A phone's Back (the Android button or gesture, an iPhone's edge swipe) and a
+   browser's Back button step back inside Backchat, as the app's own back arrow does: the innermost
+   open thing closes first, then the book or page. Without this, Back left the site entirely.
+   Each open layer (a page away from home, a panel, a dialog, the find bar) owns one history entry,
+   added when you open it and used up when you close it by any other means. An entry is only ever
+   added after you have touched the page, because browsers skip entries a page adds on its own. */
+var _bcGestured=false, _bcBackBusy=false, _bcBackBusyT=0, _bcBackSoonT=0;
+function bcOpenStyle(id){ var m=document.getElementById(id); return !!(m && m.style.display && m.style.display!=="none"); }
+function bcScreen(){ var ids=["reader","details","library","search"]; for(var i=0;i<ids.length;i++){ var el=document.getElementById(ids[i]); if(el && !el.classList.contains("hidden")) return ids[i]; } return "home"; }
+function bcLayers(){
+  var scr=bcScreen(), n=0;
+  if(scr!=="home") n+=1+((scr==="reader"||scr==="details") ? _bcStack.length : 0);
+  if(document.querySelector(".panel.open")) n++;
+  ["note-edit","meta-modal","help-modal","bc-peek","bc-conns-ov"].forEach(function(id){ if(bcOpenStyle(id)) n++; });
+  var rs=document.getElementById("reader-search"); if(rs && !rs.classList.contains("hidden")) n++;
+  if(scr==="reader" && !document.getElementById("findbar").classList.contains("hidden")) n++;
+  if(scr==="details" && document.getElementById("details").classList.contains("bc-focus-write")) n++;
+  return n;
+}
+function bcBackDepth(){ try{ var s=history.state; return (s && typeof s.bcBack==="number") ? s.bcBack : 0; }catch(e){ return 0; } }
+function bcSyncBack(){
+  if(_bcBackBusy) return;
+  var want=bcLayers(), have=bcBackDepth();
+  if(want>have){
+    if(!_bcGestured) return;
+    for(var i=have+1;i<=want;i++){ try{ history.pushState({bcBack:i}, ""); }catch(e){ return; } }
+  } else if(want<have){
+    _bcBackBusy=true; clearTimeout(_bcBackBusyT);
+    _bcBackBusyT=setTimeout(function(){ _bcBackBusy=false; }, 1500);   // never wait forever for our own step back
+    try{ history.go(want-have); }catch(e){ _bcBackBusy=false; }
+  }
+}
+function bcBackSoon(ms){ clearTimeout(_bcBackSoonT); _bcBackSoonT=setTimeout(bcSyncBack, ms==null ? 60 : ms); }
+// Called on any tap or key: note that the person has touched the page, then match history to what is open.
+function bcBackNote(){ _bcGestured=true; bcBackSoon(); setTimeout(bcSyncBack, 700); }
+function bcSystemBack(){
+  hideSelPop(); hideNotePop();
+  if(bcOpenStyle("note-edit")){
+    // A comment typed and not yet saved is kept, as the margins keep theirs; an untouched one is simply closed.
+    var ta=$("#note-text"), orig=(noteContext && noteContext.orig) || "";
+    if(ta && noteContext && ta.value.trim() && ta.value!==orig) saveNote(); else { $("#note-edit").style.display="none"; noteContext=null; }
+    return;
+  }
+  if(bcOpenStyle("meta-modal")){ $("#meta-cancel").click(); return; }
+  if(bcOpenStyle("help-modal")){ closeHelp(); return; }
+  if(bcOpenStyle("bc-peek")){ bcPeekClose(); return; }
+  if(bcOpenStyle("bc-conns-ov")){ bcCloseConns(); return; }
+  var rs=document.getElementById("reader-search"); if(rs && !rs.classList.contains("hidden")){ hideReaderSearch(); return; }
+  if(document.querySelector(".panel.open")){ closePanels(); return; }
+  var scr=bcScreen();
+  if(scr==="reader" && !document.getElementById("findbar").classList.contains("hidden")){ closeFind(); return; }
+  if(scr==="details" && document.getElementById("details").classList.contains("bc-focus-write")){ detailsNotesSave(); return; }
+  if(scr==="reader"){ closeBook(); return; }
+  if(scr==="details"){ bcBackOrHome(); return; }
+  if(scr!=="home") goHome();
+}
+window.addEventListener("popstate", function(){
+  if(_bcBackBusy){ _bcBackBusy=false; clearTimeout(_bcBackBusyT); bcBackSoon(); return; }   // our own step back, after closing something in the app
+  if(bcBackDepth()<bcLayers()) bcSystemBack();
+  bcBackSoon(400);
+});
+["pointerdown","touchstart","keydown"].forEach(function(t){ document.addEventListener(t, function(){ _bcGestured=true; }, {capture:true, passive:true}); });
+["click","keyup"].forEach(function(t){ document.addEventListener(t, bcBackNote, {capture:true, passive:true}); });
 
 /* ============================================================
    DEVICE SYNC (1.0.52)
@@ -7117,7 +7330,7 @@ function cloudLinkNote(u){
 function cloudHandleSetupHash(){
   var h=location.hash||"";
   if(h.indexOf("#bcsync=")!==0) return false;
-  try{ history.replaceState(null, "", location.href.split("#")[0]); }catch(e){}
+  try{ history.replaceState(history.state, "", location.href.split("#")[0]); }catch(e){}   // keep the Back depth this entry carries
   var data=cloudParseSetup(h);
   if(!data || !data.u || !data.t){ toast("That setup link is incomplete. Copy it again from your other device."); return true; }
   setTimeout(function(){
@@ -7358,6 +7571,9 @@ $("#progress").onclick=function(e){ if(!book||!book.locations||!book.locations.l
 $("#find-btn").onclick=function(){ if($("#findbar").classList.contains("hidden")) openFind(); else closeFind(); };
 $("#find-close").onclick=closeFind;
 var findTimer=null; $("#find-input").addEventListener("input", function(e){ clearTimeout(findTimer); var v=e.target.value; findTimer=setTimeout(function(){ doFind(v); },180); });
+// Enter searches at once. On a phone it also puts the keyboard away, so the matches can be read.
+$("#find-input").addEventListener("keydown", function(e){ if(e.key!=="Enter" || e.isComposing) return; e.preventDefault(); clearTimeout(findTimer); doFind(e.target.value); if(bcTouchUI()) e.target.blur(); });
+["#home-search","#search-input","#rs-input","#lib-search","#hl-q","#marks-q"].forEach(function(sel){ var el=$(sel); if(el) el.addEventListener("keydown", function(e){ if(e.key==="Enter" && !e.isComposing && bcTouchUI()) el.blur(); }); });
 
 $("#set-btn").onclick=function(){ resetResetField(); reflectFaithful(); openPanel($("#settings-panel")); };
 $("#hl-btn").onclick=function(){ renderHlControls(); renderHighlightList(); openPanel($("#hl-panel")); };
