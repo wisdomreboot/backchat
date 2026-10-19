@@ -24,14 +24,14 @@ except ImportError:
 
 
 # ---------- test books ----------
-def make_epub(path, title, author, ident, chapters):
+def make_epub(path, title, author, ident, chapters, style=""):
     z = zipfile.ZipFile(path, "w")
     z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", compress_type=zipfile.ZIP_STORED)
     z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
     man = ['<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>']; spine = []; nav = []
     for i, (lab, paras) in enumerate(chapters):
         body = "".join("<p>%s</p>" % p for p in paras)
-        z.writestr("OEBPS/c%d.xhtml" % i, '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>%s</title></head><body><h1>%s</h1>%s</body></html>' % (lab, lab, body))
+        z.writestr("OEBPS/c%d.xhtml" % i, '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>%s</title>%s</head><body><h1>%s</h1>%s</body></html>' % (lab, ("<style>%s</style>" % style) if style else "", lab, body))
         man.append('<item id="c%d" href="c%d.xhtml" media-type="application/xhtml+xml"/>' % (i, i)); spine.append('<itemref idref="c%d"/>' % i); nav.append('<li><a href="c%d.xhtml">%s</a></li>' % (i, lab))
     z.writestr("OEBPS/nav.xhtml", '<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Nav</title></head><body><nav epub:type="toc"><ol>%s</ol></nav></body></html>' % "".join(nav))
     z.writestr("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">%s</dc:identifier><dc:title>%s</dc:title><dc:creator>%s</dc:creator><dc:language>en</dc:language></metadata><manifest>%s</manifest><spine>%s</spine></package>' % (ident, title, author, "".join(man), "".join(spine)))
@@ -81,6 +81,11 @@ make_epub(BETA, "Beta Second Book", "Bob Writer", "urn:isbn:9780000000002", [
                  "Zygomorphic symmetry is a botanical term used by careful readers."])])
 LONG = os.path.join(TMP, "long.epub")
 make_long_epub(LONG)
+# A book that sets its own tight line spacing and side margins, as many do.
+STYLED = os.path.join(TMP, "styled.epub")
+make_epub(STYLED, "Styled Spacing Book", "Test Author", "urn:isbn:9780000000999",
+          [("Tight", ["Tight paragraph %d sets its own spacing: %s." % (i, " ".join("river stone lantern harbor meadow copper window orchard".split()[(i + k) % 8] for k in range(30))) for i in range(40)])],
+          style="p{line-height:1.1;margin:0 0 .4em 0} body{line-height:1.1}")
 
 def make_listen_epub(path):
     """A book for read aloud: a plain chapter long enough to turn pages; a chapter of awkward
@@ -517,6 +522,7 @@ with sync_playwright() as p:
         np_.evaluate("()=>{ openFind(); $('#find-input').value='three stages'; doFind('three stages'); }"); settle(1.2)
         np_.evaluate("()=>document.querySelectorAll('#find-results .fr')[1].click()")
         expect("find in book: the second match lands on the second copy" + F, landed(np_, "three stages", 1), True, "each match lands on its own occurrence")
+        np_.evaluate("()=>closeFind()"); settle(0.8)
 
         np_.evaluate("(c)=>{ currentBook.bookmarkCfi=c; ttsBookmarkGo(); }", pcfi)
         expect("the saved listening spot returns to its sentence" + F, landed(np_, "Paragraph 50 of chapter 0"), True, "Go to saved spot")
@@ -538,11 +544,25 @@ with sync_playwright() as p:
                 if now != page: got = "page %s, left on page %s" % (now, page)
             if got is not True: bad.append([n, at, got])
         expect("reopening a book returns to the same page" + F, bad, [], "the first words of the page you left are on the page you come back to")
+        # Closing a book with the find bar still open: the bar closes on the way out, and the place
+        # saved must be the page you saw, not one measured against the taller page left behind.
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c1.xhtml',flash:false})"); settle(1)
+        np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c3.xhtml',flash:false})"); settle(1)
+        np_.evaluate("()=>openFind()"); settle(0.8)
+        for _ in range(3):
+            if flow == "paginated": np_.evaluate("()=>rendition.next()")
+            else: np_.evaluate("()=>{ rendition.manager.container.scrollTop += 500; }")
+            settle(0.35)
+        settle(0.5)
+        at = np_.evaluate("()=>rendition.currentLocation().start.cfi")
+        np_.evaluate("()=>closeBook()"); settle(0.3); np_.evaluate("(id)=>openBook(id)", lid)
+        expect("closing a book with find open keeps the words you were reading" + F, on_page(np_, at), True,
+               "find closed before the place was read, and the page measured against the taller area began a page or so later")
         # Changing how the page is laid out keeps you on the words you were reading.
-        def slide(sel, value):
-            return "()=>{ const i=document.querySelector('%s'); i.value='%s'; i.dispatchEvent(new Event('input')); }" % (sel, value)
-        changes = [("a bigger font", slide("#fs", 140)), ("a smaller font", slide("#fs", 90)), ("wider line spacing", slide("#lh", 2.0)),
-                   ("wider margins", slide("#mg", 3)), ("a smaller window", "resize"), ("the font family", "()=>document.querySelector('#seg-font [data-font]:not(.active)').click()")]
+        def font_to(v):
+            return "()=>{ const b=s=>document.querySelector('#fs-step [data-step=\"'+s+'\"]'); let n=0; while(settings.fs<%d && n++<20) b('1').click(); while(settings.fs>%d && n++<40) b('-1').click(); }" % (v, v)
+        changes = [("a bigger font", font_to(140)), ("a smaller font", font_to(90)), ("a smaller window", "resize"),
+                   ("the font family", "()=>document.querySelector('#seg-font [data-font]:not(.active)').click()")]
         if flow == "paginated": changes += [("switching to scroll", "()=>setReadFlow('scrolled')"), ("switching back to pages", "()=>setReadFlow('paginated')")]
         bad = []
         for what, how in changes:
@@ -555,8 +575,8 @@ with sync_playwright() as p:
             got = on_page(np_, at)
             if got is not True: bad.append([what, got])
             if how == "resize": np_.set_viewport_size({"width": 1280, "height": 860}); settle(1.5)
-        np_.evaluate("()=>{ settings.fs=100; settings.lh=1.6; settings.mg=2.2; settings.font='serif'; saveSettings(); syncSettingsUI(); applyTheme(); }"); settle(1)
-        expect("changing the layout keeps your place" + F, bad, [], "font size, spacing, margins, font, window size and scroll mode all reflow the book; the words you were reading stay on screen")
+        np_.evaluate("()=>{ settings.fs=100; settings.font='serif'; saveSettings(); syncSettingsUI(); applyTheme(); }"); settle(1)
+        expect("changing the layout keeps your place" + F, bad, [], "font size (which on a wide screen also moves the margins), font, window size and scroll mode all reflow the book; the words you were reading stay on screen")
 
         np_.evaluate("()=>bcGoTo(currentBook.id,{href:'c1.xhtml',quote:'Paragraph 30 of chapter 1',flash:false})"); settle(1.5)
         at = np_.evaluate("()=>{ const s=rendition.currentLocation().start; _bcReadJump.push(s.cfi); return s.cfi; }")
@@ -779,6 +799,81 @@ with sync_playwright() as p:
         return [r('#back-btn').left>=47, r('#set-btn').right<=a[0]-47, r('#viewport').left>=47, r('#prev .nav-arrow').left>=47, r('#pct-label').bottom<=a[1]-21]; }""", [LW, LH]), [True, True, True, True, True],
            "with the page drawn edge to edge, the safe-area insets keep controls and text clear")
     lctx.close()
+
+    # 7b. Margins and line spacing, on an Android-sized phone and on a wide screen. They are set by the
+    #     reader, alike in pages and in scroll mode, and hold steady as the player comes and goes. Font
+    #     size moves by buttons, so a swipe that scrolls the Reading panel cannot change it.
+    # Every line on screen: the nearest any comes to each side, how many cross the reading area's edge,
+    # and the line spacing of the first paragraph showing, as a multiple of its font size.
+    INSET = r"""()=>{ const c=rendition.getContents()[0], d=c.document, fr=d.defaultView.frameElement.getBoundingClientRect(), box=rendition.manager.container.getBoundingClientRect();
+        let L=1e9, R=1e9, cut=0, n=0; const w=d.createTreeWalker(d.body, NodeFilter.SHOW_TEXT); let t;
+        while((t=w.nextNode())){ if(!t.textContent.trim()) continue; const r=d.createRange(); r.selectNodeContents(t);
+          for(const q of r.getClientRects()){ const a=fr.left+q.left, b=fr.left+q.right, y=fr.top+(q.top+q.bottom)/2;
+            if(b<=box.left || a>=box.right || y<box.top || y>box.bottom) continue; n++;
+            if(a<box.left-0.5 || b>box.right+0.5) cut++; L=Math.min(L, a-box.left); R=Math.min(R, box.right-b); } }
+        const p=[...d.querySelectorAll('p')].find(e=>{ const r=e.getBoundingClientRect(), y=fr.top+r.top; return fr.left+r.left>=box.left-1 && fr.left+r.left<box.right && y>=box.top && y<box.bottom; });
+        const cs=p && getComputedStyle(p);
+        return { left:Math.round(L), right:Math.round(R), cut:cut, lines:n, lh: cs ? +(parseFloat(cs.lineHeight)/parseFloat(cs.fontSize)).toFixed(2) : null, font: cs ? parseFloat(cs.fontSize) : null, col: Math.round(box.width-2*L) }; }"""
+    try:
+        gctx = browser.new_context(viewport={"width": 360, "height": 740}, device_scale_factor=2, is_mobile=True, has_touch=True, bypass_csp=True)
+        gp = gctx.new_page(); watch(gp, "margins"); gcdp = gctx.new_cdp_session(gp)
+        def gtouch(kind, pts): gcdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [{"x": x, "y": y} for x, y in pts]})
+        gp.goto(URL); wait(gp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+        gp.set_input_files("#file-input", [LONG, STYLED]); wait(gp, "DB.count('meta').then(n=>window.__gn=n), window.__gn>=3", 30000); settle(1)
+        gp.evaluate("()=>{ settings.tts=true; saveSettings(); }")
+        gp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Long Landing/.test(m.title))[0].id))"); wait(gp, "rendition && rendition.getContents().length>0"); settle(2.5)
+        gp.evaluate("()=>rendition.next()"); settle(0.8)
+        paged = ev(gp, INSET)
+        gp.evaluate("()=>document.querySelector('#seg-tts [data-tts=off]').click()"); settle(1.5)
+        paged_off = ev(gp, INSET)
+        expect("a page keeps its margins and spacing when read aloud is switched off", [paged_off.get(k) for k in ("left", "lh", "cut")], [paged.get(k) for k in ("left", "lh", "cut")],
+               "the player going away lays the book out again for the taller page; the text's width and spacing must not change with it")
+        gp.evaluate("()=>setReadFlow('scrolled')"); settle(2.5)
+        scrolled = ev(gp, INSET)
+        expect("pages and scroll mode have the same margins and line spacing on a phone", [scrolled["left"], scrolled["lh"], abs(scrolled["right"] - scrolled["left"]) <= 30],
+               [paged["left"], paged["lh"], True], "scroll mode had twice the side margin of a page, a cramped column of wide-spaced words")
+        expect("a phone's margins leave most of the screen to the words", [paged["left"] <= 24, paged["lh"]], [True, 1.35],
+               "on a short line every pixel of margin costs words; the spacing suits a short line")
+        gp.evaluate("()=>setReadFlow('paginated')"); settle(2)
+        # The Reading panel: swipe up from the font size control to reach Read aloud at the bottom.
+        gp.evaluate("()=>openPanel(document.querySelector('#settings-panel'))"); settle(0.8)
+        fs0 = ev(gp, "()=>settings.fs")
+        x, y = ev(gp, "()=>{ const e=document.querySelector('#fs-step')||document.querySelector('#fs'), r=e.getBoundingClientRect(); return [r.left+r.width*0.78, r.top+r.height/2]; }")
+        gtouch("touchStart", [(x, y)])
+        for i in range(1, 13): time.sleep(0.016); gtouch("touchMove", [(x, y - 220 * i / 12)])
+        gtouch("touchEnd", []); settle(0.8)
+        expect("a swipe that scrolls the Reading panel leaves the font size alone", [ev(gp, "()=>document.querySelector('#settings-panel .panel-body').scrollTop>0"), ev(gp, "()=>settings.fs"), ev(gp, "()=>!!document.querySelector('#lh,#mg')")],
+               [True, fs0, False], "the swipe that reaches Read aloud started on a slider and dragged it: font size and margins changed on their own")
+        gp.evaluate("()=>document.querySelector('#settings-panel .panel-body').scrollTop=0"); settle(0.3)
+        try: gp.tap("#fs-step [data-step='1']", timeout=4000)
+        except Exception: pass
+        settle(1.5)
+        gp.evaluate("()=>closePanels()"); settle(0.5)
+        for _ in range(4): gp.evaluate("()=>rendition.next()"); settle(0.4)
+        bigger = ev(gp, INSET)
+        expect("a tap on the larger button makes the text 10% bigger, and every line stays inside its page", [ev(gp, "()=>settings.fs"), bigger["font"], bigger["cut"], bigger["left"]],
+               [fs0 + 10, round((fs0 + 10) * 19 / 100), 0, paged["left"]], "font size is yours; margins follow the screen")
+        gp.evaluate("()=>{ settings.fs=100; saveSettings(); syncSettingsUI(); }")
+        # A book with its own tight spacing reads with the reader's.
+        gp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Styled Spacing/.test(m.title))[0].id))"); wait(gp, "rendition && rendition.getContents().length>0 && /Styled/.test(currentBook.title)"); settle(2.5)
+        own = ev(gp, INSET)
+        expect("a book's own line spacing gives way to the reader's", [own["lh"], own["left"]], [1.35, paged["left"]], "line spacing is set for every book alike")
+        gctx.close()
+        # A wide screen: the margins grow to hold a line to a readable length, in pages and in scroll mode.
+        wctx = browser.new_context(viewport={"width": 1280, "height": 860}, bypass_csp=True); wp = wctx.new_page(); watch(wp, "wide")
+        wp.goto(URL); wait(wp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+        wp.set_input_files("#file-input", [LONG]); wait(wp, "DB.count('meta').then(n=>window.__wn=n), window.__wn>=2", 30000); settle(1)
+        wp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Long Landing/.test(m.title))[0].id))"); wait(wp, "rendition && rendition.getContents().length>0"); settle(2.5)
+        wpg = ev(wp, INSET)
+        wp.evaluate("()=>setReadFlow('scrolled')"); settle(2.5)
+        wsc = ev(wp, INSET)
+        wp.evaluate("()=>setReadFlow('paginated')"); settle(1.5)
+        cpl = lambda m: round(m["col"] / (0.5 * m["font"])) if m.get("font") else None
+        expect("on a wide screen a line holds about 66 characters, in pages and in scroll mode", [cpl(wpg) <= 70, abs(wsc["left"] - wpg["left"]) <= 1, wpg["lh"], wpg["cut"]], [True, True, 1.45, 0],
+               "lines ran to 80 characters and more, too long for the eye to find the next one; longer lines get a little more space between them")
+        wctx.close()
+    except Exception as e:
+        expect("the margin checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
 
     # 8. Read aloud, on a phone, with a scripted voice in place of the browser's (speech_stub.js). It
     #    reads each passage once and in order, follows the voice page by page, survives pausing to mark
