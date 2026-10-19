@@ -2,6 +2,22 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.67 (19 October 2026)
+
+Margins, line spacing and font size, above all on a phone.
+
+**Fixed**
+- **Font size and margins changed on their own.** On a phone the Read aloud switch sits below the bottom of the Reading panel, so reaching it, or the Page and Scroll switch on the way back, takes a swipe up the panel. A swipe that started on the Font size or Margin slider dragged that slider to wherever the finger began: one swipe took font size from 100% to 150%, a second took the margin from 2.2 to 4.4. Font size is now two buttons, smaller and larger, in steps of 10%. A tap moves it; a swipe only scrolls the panel.
+- **Scroll mode was cramped.** The page engine sets its own side margins, a 24th of the width on a page and a 12th in scroll mode, and puts them back every time a page settles. The Margin setting mostly did nothing, and scroll mode came out with twice the margin of a page: a narrow column of widely spaced words. On the moments the setting did win, a page margin wider than the engine's own pushed text past the edge of the page.
+- **Closing a book with find still open saved a later page.** Find closed on the way out before your place was read, and the place measured against the taller reading area began a page or so after the one you were looking at. The place is now read first.
+
+**Changed**
+- **Margins and line spacing are set, not adjusted, and they are the same in Page and Scroll.** On a phone the margin is the one a page already had (15px on a 360px screen), since a phone's line is short and every pixel of margin costs words. On wider screens the margin widens to hold a line to about 66 characters, the length the eye follows best; at 100% on a desktop that is about 100px a side where lines used to run past 80 characters. Line spacing is 1.35 on the short lines of a phone and opens to 1.45 as lines approach full length, because a longer line needs more room for the eye to find the next one. A book's own line spacing gives way to these, except under Original styling. Both follow the font size you choose.
+- The guide's Read your way chapter describes the new settings (revision 20).
+
+**Checks**
+- Nine new checks: closing a book with find open keeps the words you were reading, in pages and in scroll mode; a page keeps its margins and spacing when read aloud is switched off; pages and scroll mode have the same margins and line spacing on a phone; a phone's margins leave most of the screen to the words; a swipe that scrolls the Reading panel leaves the font size alone; the larger button steps the font by 10% with every line inside its page; a book's own line spacing gives way to the reader's; and on a wide screen a line holds about 66 characters in both layouts. The layout-change check now uses the font size buttons, and the landing checks close find once its own check is done, as a reader would.
+
 ## 1.0.66 (19 October 2026)
 
 Highlighting on a phone, above all while read aloud is playing. Each fault was reproduced on a phone-sized screen with real touch input and a scripted voice, and is now in the regression check.

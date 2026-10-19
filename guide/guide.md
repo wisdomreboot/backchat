@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 19
+revision: 20
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -104,7 +104,8 @@ Display {{icon:display}} holds the settings for reading.
 
 - **Layout.** Page turns like paper. Scroll flows down the screen, one chapter at a time: at the end of a chapter, tap Next to carry on, and to go back a chapter, pull down at the top of one.
 - **Theme.** Light, Sepia, Dark, or Auto, which follows your device.
-- **Font, font size, line spacing and margin.** Yours to set, and they apply to every book.
+- **Font and font size.** Yours to set, and they apply to every book. Font size moves in steps with the two buttons, so scrolling the panel never changes it.
+- **Margins and line spacing** are set for you, and they are the same in Page and Scroll. On a phone the margins stay narrow, because a phone's line is already short and every bit of margin costs words. On a wider screen they widen to keep a line to about 66 characters, a length the eye can follow back to the start of the next line. Line spacing opens a little as lines get longer, for the same reason.
 - **Original styling.** This one is set per book. Original shows the book exactly as its maker designed it, with its own fonts, colours and layout, which suits books built on diagrams or coloured text. Reader puts your own settings back.
 - **Read aloud.** See the chapter Listen.
 
