@@ -2,6 +2,28 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.68 (20 October 2026)
+
+Where you were: your place in a book and your saved listening spot, on one device and across devices.
+
+Tested first on a phone-sized screen, in Page and in Scroll, for every way of leaving a book: closing it, going Home and tapping Continue, switching apps, the phone dropping the tab, a reload, and the voice turning pages when the tab went. In every case the words you were on came back on screen; in Scroll the line you were at returns to the top, within a line. What was wrong was around that.
+
+**Fixed**
+- **Going back to reread was undone by sync.** Across devices your place followed the furthest point read, so after rereading an earlier chapter on the phone, the desktop's next sync put the phone's place back at the desktop's furthest page. Your place now follows where you read last, on whichever device. Opening a book, a new layout or a sync landing you somewhere does not count as reading, so a device that is behind cannot outrank a newer place just by opening the book. Places saved before this build keep the old rule until one side reads on.
+- **A saved listening spot could be replaced by an older one.** The spot followed whichever device last changed anything about the book, so a margin edit on the desktop brought back the desktop's older spot. The spot saved last now wins.
+- **Back to my spot looked switched off after reopening a book.** The button stayed dimmed, as if nothing were saved, until a spot was saved again. It now shows the saved spot whenever the book opens.
+- **After the phone dropped the tab, or a reload, Backchat came back to Home.** The book that was open now opens again on its page. Closing a book first means starting on Home, as before; and a reopening that never finished (a book too big for the phone) is not tried a second time.
+- **A link followed at start could be put away** by Home repainting itself once the library check finished. Home now repaints only while it is what is showing.
+- **On the desktop with a folder, a page turn after a folder pull could undo it.** The open book kept its own older copy of the record, and the next save wrote it back over what the pull had merged in. It now takes the merged record, as a device sync already did.
+
+**Changed**
+- **A book sitting open and untouched follows a place read since on another device.** When sync brings a newer place for the book open on screen, the page moves there, says so, and shows Return to go back. Not while you are in the middle of something: the voice reading, words selected, a comment open, or a touch in the last few seconds. Then the page stays, and reading on makes this device's place the newest again.
+- Leaving Backchat (another app, the home screen) saves the page showing at that moment, so a move still settling is not lost if the phone later drops the tab.
+- The guide (revision 21) says the book you leave open opens again, and that the saved spot stays and syncs. The sync notes say position follows where you read last.
+
+**Checks**
+- Nineteen new checks: nine, each run in Page and in Scroll, that a book open when Backchat went away opens again on its page; Back to my spot shows the saved spot after reopening; a book closed first does not reopen; a reopening that never finished is not tried again; going back to reread survives another device's sync; the newest saved spot wins; opening a book does not make its place the newest; an open book untouched here moves to a place read since elsewhere, with Return; a book being read here keeps its page. Plus one on how older records merge. Thirteen of them fail on 1.0.67; the other six guard what already worked.
+
 ## 1.0.67 (19 October 2026)
 
 Margins, line spacing and font size, above all on a phone.
