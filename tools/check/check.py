@@ -875,6 +875,84 @@ with sync_playwright() as p:
     except Exception as e:
         expect("the margin checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
 
+    # 7c. Where you were, on a phone. A book open when Backchat went away (the phone dropped the tab, a
+    #     reload) opens again on its page; a book closed first does not. The saved listening spot shows
+    #     as there. Across devices the place read last wins, the newest saved spot wins, and a book
+    #     sitting open and untouched moves to a place read since on another device.
+    # Another device's copy of this book's record, changed as given, arriving as a relay pull delivers it.
+    OTHER = r"""(a)=>DB.get('meta', a.id).then(m=>{ const o=Object.assign({}, m, a.change); return cloudApplyBundle({app:'backchat-sync', v:1, device:'desk', name:'Desktop', at:Date.now(), tombstones:{ids:{},keys:{}}, books:[{meta:o, highlights:[], updatedAt:0}]}); })"""
+    def now_ms(): return int(time.time() * 1000)
+    try:
+        for flow in ("paginated", "scrolled"):
+            F = " (%s)" % flow
+            rctx = browser.new_context(viewport={"width": 360, "height": 740}, device_scale_factor=2, is_mobile=True, has_touch=True, bypass_csp=True)
+            rp = rctx.new_page(); watch(rp, "place-" + flow)
+            rp.goto(URL); wait(rp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
+            rp.set_input_files("#file-input", [LONG]); wait(rp, "DB.count('meta').then(n=>window.__rn=n), window.__rn>=2", 30000); settle(1)
+            rp.evaluate("(f)=>{ settings.flow=f; settings.tts=true; saveSettings(); }", flow)
+            rid = rp.evaluate("()=>DB.all('meta').then(ms=>ms.filter(m=>/Long Landing/.test(m.title))[0].id)")
+            rp.evaluate("(id)=>openBook(id)", rid); wait(rp, "rendition && rendition.getContents().length>0"); settle(2.5)
+            def read_on(n):
+                for _ in range(n):
+                    rp.evaluate("()=>{ _bcInputAt=Date.now(); " + ("rendition.next(); }" if flow == "paginated" else "rendition.manager.container.scrollTop += 400; }")); settle(0.4)
+            def reopened():
+                try: wait(rp, "bcScreen()==='reader' && rendition && rendition.getContents().length>0", 12000); return True
+                except Exception: return ev(rp, "()=>bcScreen()")
+            rp.evaluate("()=>{ _bcInputAt=Date.now(); return bcGoTo(currentBook.id,{href:'c2.xhtml',flash:false}); }"); settle(1.5)
+            read_on(3); settle(0.6)
+            at = rp.evaluate("()=>rendition.currentLocation().start.cfi")
+            rp.evaluate("()=>{ _bcInputAt=Date.now(); ttsBookmarkSet(); }"); settle(0.5)
+            rp.reload(); came = reopened(); settle(1.5)
+            expect("a book open when Backchat went away opens again on its page" + F, [came, on_page(rp, at)], [True, True],
+                   "a phone drops a tab in the background to save memory; coming back showed Home, not the book")
+            expect("after reopening, Back to my spot shows the saved spot is there" + F, ev(rp, "()=>document.querySelector('#tts-mark-go').style.opacity"), "1",
+                   "the button stayed dimmed as if nothing were saved until a spot was saved again")
+            rp.evaluate("()=>closeBook()"); settle(0.4); rp.reload(); wait(rp, "document.querySelectorAll('#home-recent .card').length>0"); settle(4)
+            expect("a book closed before leaving does not open again" + F, ev(rp, "()=>bcScreen()"), "home", "going back to Home is a choice the next start keeps")
+            rp.evaluate("(id)=>{ localStorage.setItem('reader-last-book', id); localStorage.setItem('reader-reopen-try', '1'); }", rid)
+            rp.reload(); wait(rp, "document.querySelectorAll('#home-recent .card').length>0"); settle(4)
+            expect("a reopening that never finished is not tried again" + F, ev(rp, "()=>[bcScreen(), localStorage.getItem('reader-last-book')]"), ["home", None],
+                   "a book that brings the tab down as it opens must not do so on every start")
+            # Across devices. Read far on, then go back to reread: the desktop's sync must not undo the going back.
+            rp.evaluate("(id)=>openBook(id)", rid); wait(rp, "rendition && rendition.getContents().length>0"); settle(2.5)
+            rp.evaluate("()=>{ _bcInputAt=Date.now(); return bcGoTo(currentBook.id,{href:'c3.xhtml',flash:false}); }"); settle(1.5)
+            far = rp.evaluate("()=>rendition.currentLocation().start.cfi")
+            rp.evaluate("()=>{ _bcInputAt=Date.now(); return bcGoTo(currentBook.id,{href:'c1.xhtml',flash:false}); }"); settle(1.5); read_on(1); settle(0.6)
+            back_at = rp.evaluate("()=>rendition.currentLocation().start.cfi")
+            rp.evaluate("()=>closeBook()"); settle(0.4)
+            rp.evaluate(OTHER, {"id": rid, "change": {"lastCfi": far, "progress": 0.9, "posAt": now_ms() - 3600000, "updated": now_ms()}}); settle(0.5)
+            expect("going back to reread keeps that place when another device syncs" + F, rp.evaluate("(id)=>DB.get('meta',id).then(m=>m.lastCfi)", rid) == back_at, True,
+                   "the furthest point always won, so another device's sync put the place back where it had read furthest")
+            # The saved listening spot: the newest save wins, not the device that last edited anything about the book.
+            spot = rp.evaluate("(id)=>DB.get('meta',id).then(m=>m.bookmarkCfi)", rid)
+            rp.evaluate(OTHER, {"id": rid, "change": {"bookmarkCfi": far, "bookmarkAt": now_ms() - 7200000, "scratch": "Written on the desktop.", "updated": now_ms() + 1000}}); settle(0.5)
+            expect("the newest saved listening spot wins over a device that edited the book since" + F, rp.evaluate("(id)=>DB.get('meta',id).then(m=>[m.bookmarkCfi===a, m.scratch])".replace("===a", "===" + json.dumps(spot)), rid), [True, "Written on the desktop."],
+                   "a margin edit on the desktop brought back the desktop's older spot")
+            # A book sitting open and untouched follows a place read since on another device; Return goes back.
+            p0 = rp.evaluate("(id)=>DB.get('meta',id).then(m=>m.posAt||0)", rid)
+            rp.evaluate("(id)=>openBook(id)", rid); wait(rp, "rendition && rendition.getContents().length>0"); settle(5)
+            expect("opening a book does not make its place the newest" + F, [rp.evaluate("()=>currentBook.posAt||0"), rp.evaluate("(id)=>DB.get('meta',id).then(m=>m.posAt||0)", rid)], [p0, p0],
+                   "only reading moves the place's time; a book opened on a device that is behind cannot outrank a newer place")
+            rp.evaluate(OTHER, {"id": rid, "change": {"lastCfi": far, "progress": 0.9, "posAt": now_ms(), "updated": now_ms()}}); settle(3)
+            expect("an open book untouched here moves to the place read since on another device, with Return to go back" + F,
+                   [on_page(rp, far), ev(rp, "()=>{ const p=document.getElementById('bc-jumpback'); return _bcReadJump.length>0 && !!p && getComputedStyle(p).display!=='none'; }")], [True, True],
+                   "the screen stayed on the old page, and turning it then made the old place the newest everywhere")
+            # Reading here a moment ago: another device's place does not pull the page away.
+            read_on(1); settle(0.3); mine = rp.evaluate("()=>rendition.currentLocation().start.cfi")
+            rp.evaluate("()=>{ _bcInputAt=Date.now(); }")
+            rp.evaluate(OTHER, {"id": rid, "change": {"lastCfi": back_at, "progress": 0.2, "posAt": now_ms() + 5000, "updated": now_ms()}}); settle(2.5)
+            expect("a book being read here keeps its page when another device syncs" + F, on_page(rp, mine), True, "a page pulled away mid-read is worse than a place a moment out of date")
+            if flow == "paginated":
+                expect("records from before the place had a time keep the old rule, and a timed place outranks them", rp.evaluate(r"""()=>[
+                    mergeMeta({progress:.2,lastCfi:'a'},{progress:.5,lastCfi:'b'}).lastCfi,
+                    mergeMeta({progress:.2,lastCfi:'a',posAt:5},{progress:.5,lastCfi:'b'}).lastCfi,
+                    mergeMeta({progress:.5,lastCfi:'a',posAt:5},{progress:.2,lastCfi:'b',posAt:9}).lastCfi,
+                    mergeMeta({bookmarkCfi:'x',updated:1},{bookmarkCfi:'y',updated:2}).bookmarkCfi ]"""), ["b", "a", "b", "y"],
+                    "furthest read between two records with no time; a device still on an older build cannot pull a timed place back; spots saved before they had a time follow the newer record")
+            rctx.close()
+    except Exception as e:
+        expect("the place checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+
     # 8. Read aloud, on a phone, with a scripted voice in place of the browser's (speech_stub.js). It
     #    reads each passage once and in order, follows the voice page by page, survives pausing to mark
     #    a passage, and recovers from the ways real speech engines fail.

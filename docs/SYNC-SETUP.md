@@ -138,7 +138,7 @@ The **Hand off** button disappears while sync is on, because there is nothing le
 
 ## What syncs, and what does not
 
-**Syncs:** highlights, comments, margins, tags, favourites, ratings, summaries, reading position, and deletions of marks and books.
+**Syncs:** highlights, comments, margins, tags, favourites, ratings, summaries, reading position, the saved listening spot, and deletions of marks and books.
 
 **Does not sync:** EPUB files and covers (add each book once per device), display settings such as font and theme (these stay per device), and your folder.
 
@@ -146,7 +146,7 @@ Three behaviours worth knowing:
 
 - **Your library is the collection; each device holds only the files you want there.** On the phone, open a book's page and tap **Remove from this device** to free its space. Only the EPUB file and its search index leave. The cover stays, dimmed with a download badge, and every mark, margin and position stays and keeps syncing. When you want the book again, its page shows **Add the EPUB to read**; pick the same file and it rejoins its marks.
 - **Delete means delete everywhere.** With sync on, the button reads **Delete everywhere**, and it removes the book from every device, including your computer's library and folder. Backchat still saves a full backup of the book first, on the device where you deleted it. To free space, use Remove from this device instead.
-- **Reading position keeps the furthest point.** If you reread a book from the start on one device, the other device keeps your furthest position.
+- **Reading position follows where you read last,** on whichever device. Go back to reread a chapter on the phone and the desktop picks up there too. A book sitting open and untouched on one device moves to the newer place when the other syncs, with a Return button to go back; a book you are reading at that moment keeps its page. The saved listening spot works the same way: the spot saved last wins.
 
 ## If something goes wrong
 
