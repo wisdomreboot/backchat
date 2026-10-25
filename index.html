@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2yfOoAcUimZBQ+fZRiaBZaaQPIl5i0ZtGeGXQ8z3r6g=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-IYIfD/hivA60VVx7pfGSnXyZjGgc6fUCsJHiRgB4jHc=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -345,6 +345,19 @@
   .seg button{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:.5rem;font-size:.85rem;color:var(--ink);background:var(--bg)}
   .seg button.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
   .range{display:flex;align-items:center;gap:.7rem}.range input{flex:1}
+  /* One dock at the foot of the reader: the progress row, or the player while read aloud is on. The
+     two are the same height, so switching read aloud on or off never changes the size of the page.
+     A page laid out again for a new height re-flows the whole chapter: the words you were looking
+     at would move, or slip onto another page. */
+  #reader{--dock-h:48px}
+  @media(max-width:600px){ #reader{--dock-h:44px} }
+  #reader .botbar,#reader .audiobar{box-sizing:border-box;height:calc(var(--dock-h) + env(safe-area-inset-bottom,0px));padding-top:0;padding-bottom:env(safe-area-inset-bottom,0px);overflow:hidden;flex:0 0 auto}
+  #reader.tts-on .botbar{display:none}
+  /* The read aloud switch shows its state by shape, never by colour alone: off is a crossed-out
+     speaker on the plain bar; on is a speaker with sound waves on a solid button. */
+  #tts-btn .ic-on{display:none}
+  #tts-btn.tts-on .ic-on{display:block} #tts-btn.tts-on .ic-off{display:none}
+  #tts-btn.tts-on,#tts-btn.tts-on:hover{background:var(--ink);color:var(--bg)}
   .fs-step button{display:flex;align-items:baseline;justify-content:center;gap:.15rem;font-size:1rem}
   .fs-step .fs-a{font-family:Georgia,"Iowan Old Style",serif}.fs-step .fs-a-s{font-size:.85rem}.fs-step .fs-a-l{font-size:1.25rem}
   .fs-step button:disabled{opacity:.4}
@@ -563,7 +576,7 @@
      away under a swipe or a selection, which resizes the window, and the book lays itself out
      again mid-gesture: the selection is lost and the page moves. */
   html:has(#reader:not(.hidden)),html:has(#reader:not(.hidden)) body{overflow:hidden;height:100%}
-  .audiobar.tts-idle #tts-back2,.audiobar.tts-idle #tts-fwd2,.audiobar.tts-idle #tts-stop{opacity:.35;pointer-events:none}
+  .audiobar.tts-idle #tts-back2,.audiobar.tts-idle #tts-fwd2{opacity:.35;pointer-events:none}
   .findbar input{min-width:0}
   .linkbtn{white-space:nowrap}
   .stars{flex-wrap:wrap;row-gap:.35rem}
@@ -728,7 +741,7 @@
     <button class="iconbtn" id="reader-home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></button><div class="title" id="book-title"></div>
     <button class="iconbtn" id="find-btn" title="Find in book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
     <button class="iconbtn" id="toc-btn" title="Contents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><path d="M9 6h11M9 12h11M9 18h8"/></svg></button>
-    <button class="iconbtn" id="tts-btn" title="Read aloud" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button>
+    <button class="iconbtn" id="tts-btn" title="Read aloud" aria-label="Read aloud" aria-pressed="false" style="display:none"><svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m23 9-6 6"/><path d="m17 9 6 6"/></svg><svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></button>
     <button class="iconbtn" id="hl-btn" title="Highlights &amp; comments"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
     <button class="iconbtn" id="scratch-btn" title="Margins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h11a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M8 2v20"/><path d="M12 7h3M12 11h3"/></svg></button>
     <button class="iconbtn" id="set-btn" title="Display"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
@@ -766,9 +779,8 @@
     <div class="field"><label>Font size &middot; <span id="fs-val">100</span>%</label><div class="seg fs-step" id="fs-step"><button type="button" data-step="-1" aria-label="Smaller text"><span class="fs-a fs-a-s">A</span>&minus;</button><button type="button" data-step="1" aria-label="Larger text"><span class="fs-a fs-a-l">A</span>+</button></div><div class="hint">Margins and line spacing are set to suit the size you choose, the same in Page and Scroll.</div></div>
     <div class="grp">This book</div>
     <div class="field"><label>Original styling</label><div class="seg" id="seg-faithful"><button data-faithful="off" class="active">Reader</button><button data-faithful="on">Original</button></div><div class="hint">Render this book with its own fonts, colours, sizes and background, exactly as its maker designed it. Turn it on for richly designed books such as diagrams or coloured text. While it is on, the Theme, Font and size settings above do not affect this book.</div></div>
-    <div class="grp">Read aloud</div>
-    <div class="field"><label>Read aloud</label><div class="seg" id="seg-tts"><button data-tts="off" class="active">Off</button><button data-tts="on">On</button></div><div class="hint">When off, tapping the page never starts audio, so highlighting stays put on a phone. Turn it on to read aloud, then tap where you want to start.</div></div>
-    <div class="field"><label>Voice</label><select id="tts-voice" class="sel" style="width:100%"></select><div class="hint" id="voice-hint"></div></div>
+    <div class="grp" id="tts-grp">Read aloud</div>
+    <div class="field"><label>Voice</label><select id="tts-voice" class="sel" style="width:100%"></select><div class="hint" id="voice-hint"></div><div class="hint">The speaker in the top bar turns read aloud on and off.</div></div>
   </div>
 </div>
 
@@ -1113,7 +1125,9 @@
      cancel-and-reconstruct because engine pause is unreliable;
      continuation across sections re-binds to the correct
      contents; the listening bookmark resumes speech at the
-     exact saved sentence.
+     exact saved sentence. The top-bar speaker is the on/off
+     switch (ttsToggle): off pauses and hides the player, on
+     reads from where the reader is (ttsReaderPlace).
 
    THE BUILT-IN GUIDE:
      Written in guide/guide.md (cover: guide/cover.jpg), fetched
@@ -1208,7 +1222,7 @@ function toast(msg){
    rendition   the epub.js view rendering that book
    currentBook the meta record for the open book
    highlights  the open book's marks (array of item objects)
-   tts         read-aloud state machine (idle unless enabled)
+   tts         read-aloud state machine; tts.on is the top-bar switch
    vault       folder-sync handle + status; dirty tracks unsynced ids
    lib/search  UI state for the library and search screens
    COLORS = solid swatches; HL_BG = translucent fills used by the
@@ -1226,13 +1240,14 @@ var settings = loadSettings();
 var book=null, rendition=null, currentBook=null, currentData=null, highlights=[], lastSelection=null, noteContext=null;
 /* ---------------- READ ALOUD: chunks, sentence tracking, watchdog, bookmark ---------------- */
 var tts = { state:"idle", chunks:[], cidx:0, curSentIdx:-1, contents:null, voice:null, voices:[], token:0, lastChar:0, lastTickAt:0, watch:null, userScrollAt:0, cps:0, estTimer:null, chunkT0:0, boundarySeen:false,
-  uttStart:0, uttEnd:0, resumeAt:0, pausedAt:0, cancelAt:0, errors:0, followOwed:false, turning:false, awakeT:0, rateT:0 };
+  uttStart:0, uttEnd:0, resumeAt:0, pausedAt:0, cancelAt:0, errors:0, followOwed:false, turning:false, awakeT:0, rateT:0,
+  on:false };   // on: read aloud is switched on (the player shows and taps steer the voice)
 var lib = { q:"", sort:"opened", dir:"desc", page:0, fav:false, tag:"" };
 var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.68";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.69";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -1263,7 +1278,7 @@ var detailsBook=null, detailsItems=[];
    ============================================================ */
 function defaultTheme(){ try{ return (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light"; }catch(e){ return "light"; } }
 function loadSettings(){
-  var D={theme:defaultTheme(),font:"serif",fs:100,flow:"paginated",hlColor:"yellow",tts:false,ttsRate:1,ttsVoice:""};   // margins and line spacing are set (bcMarginPx, bcLineHeight), not stored
+  var D={theme:defaultTheme(),font:"serif",fs:100,flow:"paginated",hlColor:"yellow",ttsRate:1,ttsVoice:""};   // margins and line spacing are set (bcMarginPx, bcLineHeight), not stored
   var s;
   try{ s=cleanSettings(D, JSON.parse(localStorage.getItem("reader-settings")||"{}")); }
   catch(e){ s=D; }
@@ -4154,7 +4169,7 @@ function openBookAt(id, target, viaGoTo){
     $("#book-title").textContent=currentBook.title||"Untitled";
     closeFind();
     try{ ttsBookmarkUI(); }catch(e){}   // this book's saved listening spot, not the last book's
-    try{ ttsStop(); }catch(e){}
+    try{ ttsEnd(false); }catch(e){}     // a book opens with read aloud off; the speaker switches it on
     try{ if(rendition) rendition.destroy(); }catch(e){}
     try{ if(book) book.destroy(); }catch(e){}
     try{ var _vp=document.getElementById("viewport"); if(_vp) _vp.innerHTML=""; }catch(e){}
@@ -4215,6 +4230,7 @@ function bcSavePlaceNow(){
   try{
     if(!currentBook || !rendition || $("#reader").classList.contains("hidden")) return;
     var l=rendition.currentLocation(); if(!l || !l.start || !l.start.cfi) return;
+    if(tts.state==="playing") ttsNoteVoicePlace();
     if(l.start.cfi!==currentBook.lastCfi){
       if(bcReadMoved()) currentBook.posAt=Date.now();
       currentBook.lastCfi=l.start.cfi;
@@ -4246,7 +4262,7 @@ function closeBook(){
   var loc=null, moved=bcReadMoved();
   try{ loc = (currentBook && rendition && rendition.currentLocation) ? rendition.currentLocation() : null; }catch(e){}
   _bcReadJump=[]; try{ _bcJumpPill(); }catch(e){} bcChapHide();
-  ttsStop(); hideSelPop(); closeFind(); stopReadTimer(); flushScratch(); try{ if(window.BackchatPlayer) BackchatPlayer.release(); }catch(e){}
+  ttsEnd(true); hideSelPop(); closeFind(); stopReadTimer(); flushScratch(); try{ if(window.BackchatPlayer) BackchatPlayer.release(); }catch(e){}
   if(currentBook){
     try{
       if(loc && loc.start && loc.start.cfi){
@@ -4443,7 +4459,7 @@ function setFaithful(on){
   var id=currentBook.id, cfi=null;
   try{ var loc=rendition && rendition.currentLocation && rendition.currentLocation(); if(loc && loc.start && loc.start.cfi) cfi=loc.start.cfi; }catch(e){}
   if(!cfi) cfi=currentBook.lastCfi||null;
-  try{ ttsStop(); }catch(e){}
+  try{ ttsEnd(true); }catch(e){}
   saveProgress(currentBook,{immediate:true});
   rendition=null;               // bypass the same-book early return so openBookAt does a clean re-render
   openBookAt(id, cfi);
@@ -5619,6 +5635,10 @@ function mergeMeta(local, inc){
   // about the book: a margin edit on the desktop used to bring back the desktop's older spot.
   var bl=local.bookmarkAt||0, bi=inc.bookmarkAt||0;
   if(bi>bl && inc.bookmarkCfi){ out.bookmarkCfi=inc.bookmarkCfi; out.bookmarkAt=bi; }
+  // Where the voice last paused, likewise: the newest wins. It is used only when it is on the page
+  // you are reading, so one from another device that is not there is simply passed over.
+  var vl=local.voiceAt||0, vi=inc.voiceAt||0;
+  if(vi>vl && inc.voiceCfi){ out.voiceCfi=inc.voiceCfi; out.voiceAt=vi; }
   out.readMs=Math.max(local.readMs||0, inc.readMs||0);
   out.finished=!!(local.finished||inc.finished);
   out.lastOpened=Math.max(local.lastOpened||0, inc.lastOpened||0);
@@ -6241,7 +6261,8 @@ function detailsDelete(){
 
 /* ============================================================
    READ-ALOUD (Web Speech API)
-   Off by default; tap-to-read and an audio bar (built on first use) when enabled.
+   Switched on and off by the speaker in the top bar. On: the player shows at the foot of the page
+   and a tap on a paragraph reads from there. Off: the player goes and taps are for marking.
    ============================================================ */
 var synth=window.speechSynthesis;
 function ttsSupported(){ return !!synth && typeof window.SpeechSynthesisUtterance==="function"; }
@@ -6254,7 +6275,6 @@ function ensureAudioBar(){
     '<button class="iconbtn" id="tts-mark-set" title="Save my spot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/><path d="M12 8v6M9 11h6"/></svg></button>'+
     '<button class="iconbtn" id="tts-mark-go" title="Back to my spot"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>'+
     '<button class="iconbtn" id="tts-fwd2" title="Next paragraph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4 6l9 6-9 6z"/></svg></button>'+
-    '<button class="iconbtn" id="tts-stop" title="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>'+
     '<div class="tts-status" id="tts-status"></div>'+
     '<div class="tts-rate"><span>Speed</span><input type="range" id="tts-rate" min="0.6" max="1.8" step="0.1" value="'+(Number(settings.ttsRate)||1)+'"><span id="tts-rate-val">'+(+ (settings.ttsRate||1)).toFixed(1)+'×</span></div>';
   bar.dataset.built="1";
@@ -6264,7 +6284,6 @@ function ensureAudioBar(){
   $("#tts-mark-set").onclick=ttsBookmarkSet;
   $("#tts-mark-go").onclick=ttsBookmarkGo;
   ttsBookmarkUI();
-  $("#tts-stop").onclick=ttsStop;
   // The label follows your finger; the voice takes the new speed once you stop moving, not at every step.
   $("#tts-rate").oninput=function(e){ settings.ttsRate=+e.target.value; $("#tts-rate-val").textContent=settings.ttsRate.toFixed(1)+"×"; saveSettings(); clearTimeout(tts.rateT); tts.rateT=setTimeout(ttsReapply, 400); };
   $("#tts-rate").onchange=function(){ clearTimeout(tts.rateT); ttsReapply(); };
@@ -6322,10 +6341,22 @@ function ttsWakeSync(){
   }
 }
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") ttsWakeSync(); });
-/* With read aloud switched on, the player stays at the foot of the page whether it is playing or
-   not. Starting and stopping used to add and remove it, which changed the height of the page
-   under the book; the book kept its old layout and its last lines sat hidden behind the bar. */
-function ttsSetUI(){ var bar=$("#audiobar"), btn=$("#tts-btn"), icon=$("#tts-play-icon"); var keep=tts.state!=="idle" || (!!settings.tts && ttsSupported()); if(!keep){ bar.classList.add("hidden"); } else { ensureAudioBar(); bar.classList.remove("hidden"); } bar.classList.toggle("tts-idle", tts.state==="idle"); if(btn) btn.style.color=(tts.state==="idle")?"":"var(--accent)"; if(icon) icon.innerHTML=(tts.state==="playing")?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>'; var st=$("#tts-status"); if(st) st.textContent=tts.state==="playing"?"Reading aloud…":tts.state==="paused"?"Paused":""; ttsWakeSync(); }
+/* The player shows while read aloud is switched on, playing or paused, in place of the progress row,
+   and the progress row comes back when it is switched off. The page keeps its size either way, so
+   nothing on it moves, a selection included. A voice playing means read aloud is on, whatever
+   started it. */
+function ttsSetUI(){
+  var bar=$("#audiobar"), btn=$("#tts-btn"), icon=$("#tts-play-icon"), rd=$("#reader");
+  if(tts.state==="playing") tts.on=true;
+  var show=ttsSupported() && tts.on;
+  if(!show){ bar.classList.add("hidden"); } else { ensureAudioBar(); bar.classList.remove("hidden"); }
+  if(rd) rd.classList.toggle("tts-on", show);
+  bar.classList.toggle("tts-idle", tts.state==="idle");
+  if(btn){ btn.classList.toggle("tts-on", !!tts.on); btn.setAttribute("aria-pressed", tts.on ? "true" : "false"); btn.title = tts.on ? "Turn read aloud off" : "Read aloud"; }
+  if(icon) icon.innerHTML=(tts.state==="playing")?'<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+  var st=$("#tts-status"); if(st) st.textContent=tts.state==="playing"?"Reading aloud\u2026":tts.state==="paused"?"Paused":"";
+  ttsWakeSync();
+}
 var _bcReadJump=[];   // reading positions captured before an in-book cross-reference jump, so the reader can return
 function _bcJumpPill(){
   var p=document.getElementById("bc-jumpback");
@@ -6379,9 +6410,10 @@ function bindReadClicks(){ rendition.getContents().forEach(function(c){ if(c._re
       c.document.addEventListener("touchend", function(ev){ if(!_st) return; var t=ev.changedTouches&&ev.changedTouches[0]; var began=_st; _st=0; if(!t) return; var dx=t.clientX-_sx, dy=t.clientY-_sy, dt=Date.now()-began; var sel=c.window.getSelection?c.window.getSelection().toString():""; if(sel&&sel.trim()) return; if(dt>700||Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.5) return; if(!rendition) return; ttsHush(); if(dx<0) rendition.next(); else rendition.prev(); }, {passive:true});
     }
   }); }
-// Tap-to-read: begin read-aloud from the tapped sentence (only when read-aloud is enabled).
+// Tap-to-read: with read aloud switched on, a tap on a paragraph reads from the sentence tapped.
+// Switched off, a tap is yours: it never starts the voice or moves its place.
 function readFromPoint(contents,x,y){
-  if(!ttsSupported() || !settings.tts) return; ensureAudioBar();
+  if(!ttsSupported() || !tts.on) return; ensureAudioBar();
   tts.contents=contents; tts.chunks=buildChunks(contents); if(!tts.chunks.length) return;
   var cidx = 0, startChar = 0;
   var caret = caretFromPoint(contents.document, x, y);
@@ -6396,7 +6428,93 @@ function readFromPoint(contents,x,y){
   } else { var at=ttsFirstOnScreen(); cidx=at.cidx; startChar=at.ch; }
   tts.cidx=cidx; tts.curSentIdx=-1; tts.followOwed=false; tts.errors=0; tts.state="playing"; ttsSetUI(); ttsQuiet(); speakChunk(startChar);
 }
-function ttsToggle(){ if(!ttsSupported()){ toast("Read-aloud not supported in this browser"); return; } if(!settings.tts) return; if(tts.state==="idle") ttsStart(); else ttsStop(); }
+/* ---- The switch: the speaker in the top bar ----
+   Listening is a mode you move in and out of while reading. On: the player shows, the voice reads
+   from where you are, and a tap on a paragraph moves it. Off: the voice pauses, the player goes, and
+   the page is yours to select, highlight and comment; nothing you tap moves the voice. On again: the
+   voice reads from where you are now (ttsReaderPlace). */
+function ttsToggle(){
+  if(!ttsSupported()){ toast("Read aloud is not supported in this browser"); return; }
+  if(tts.on) ttsTurnOff(); else ttsTurnOn();
+}
+function ttsTurnOn(){
+  if(!rendition) return;
+  var place=ttsReaderPlace();
+  tts.on=true; ttsSetUI();
+  ttsPlayFrom(place);   // inside the tap, which is what lets an iPhone start talking
+}
+function ttsTurnOff(){
+  if(tts.state==="playing") ttsPause();   // keeps where the voice was (ttsNoteVoicePlace)
+  tts.on=false; ttsClearHighlight(); ttsSetUI();
+}
+// A book closing, or another opening: the voice stops and read aloud switches off.
+function ttsEnd(note){
+  if(note && tts.state==="playing") ttsNoteVoicePlace();
+  tts.on=false;
+  ttsStop();
+}
+/* Where you are reading, for the voice to start from. It goes by what you did last on the page you
+   see: the furthest of the sentence where the voice stopped (you were listening there) and any
+   passage you marked since it stopped (you read on to it). When neither is on the page you see
+   (you read on, went back, or have just opened the book), the top of the page: its first sentence.
+   Returns the place as a CFI. */
+function ttsReaderPlace(){
+  try{
+    var c=rendition && ttsPickContents(); if(!c || !currentBook) return null;
+    var best=null, bestCfi=null;
+    var take=function(r, cfi){ if(!r || bcRangeSide(c, r)!==0) return; if(!best || r.compareBoundaryPoints(Range.START_TO_START, best)>0){ best=r; bestCfi=cfi; } };
+    var vc=currentBook.voiceCfi;
+    if(vc && bcSectionIndex({cfi:vc})===c.sectionIndex) take(bcRangeAt(c, {cfi:vc}), vc);
+    var since=Math.max(currentBook.voiceAt||0, _bcOpenedAt||0);
+    if(_highlightsOwnerId===currentBook.id) (highlights||[]).forEach(function(h){
+      if(!h || h.deleted || !h.cfiRange || Math.max(h.created||0, h.updated||0)<since) return;
+      if(bcSectionIndex({cfi:h.cfiRange})!==c.sectionIndex) return;
+      var r=null; try{ r=resolveHlRange(c, secTextMap(c), h); }catch(e){}
+      if(r){ try{ take(r, c.cfiFromRange(r)); }catch(e){} }
+    });
+    if(bestCfi) return bestCfi;
+    var chunks=buildChunks(c), at=ttsFirstOnScreen(c, chunks), ch=chunks[at.cidx];
+    if(!ch) return null;
+    var pos=at.ch; while(pos<ch.text.length-1 && /\s/.test(ch.text.charAt(pos))) pos++;
+    var a=ttsLocate(ch.map, pos); if(!a || !a.node) return null;
+    var r0=c.document.createRange(), n=a.node.nodeValue.length;
+    r0.setStart(a.node, Math.min(a.offset, n)); r0.setEnd(a.node, Math.min(a.offset+1, n));
+    return c.cfiFromRange(r0);
+  }catch(e){ return null; }
+}
+// The sentence a point in the page falls in: its chunk, and where the sentence starts.
+function ttsStartAt(r){
+  for(var i=0;i<tts.chunks.length;i++){
+    var cp; try{ cp=tts.chunks[i].range.comparePoint(r.startContainer, r.startOffset); }catch(e){ cp=1; }
+    if(cp===0) return { cidx:i, ch:tts.chunks[i].sentences[ttsSentenceAt(tts.chunks[i], caretCharInChunk(tts.chunks[i], r))].cStart };
+    if(cp===-1) return { cidx:i, ch:0 };
+  }
+  return null;
+}
+// Read from a place (a CFI) on the page showing; with none, or one not on this chapter, from the top of the page.
+function ttsPlayFrom(cfi){
+  if(!rendition) return;
+  var c=ttsPickContents(); if(!c) return;
+  ensureAudioBar();
+  tts.contents=c; tts.chunks=buildChunks(c); tts.curSentIdx=-1; tts.followOwed=false; tts.errors=0;
+  var at=null;
+  if(cfi && bcSectionIndex({cfi:cfi})===c.sectionIndex){ var r=bcRangeAt(c, {cfi:cfi}); if(r) at=ttsStartAt(r); }
+  if(!at) at=ttsFirstOnScreen();
+  tts.state="playing"; ttsSetUI(); ttsQuiet();
+  tts.cidx=at.cidx; speakChunk(at.ch);
+}
+/* The voice's place, kept with the book: the start of the sentence it was in when it paused, so
+   switching on again, even after closing the book or on another device, can carry on from it when
+   you are still on that page. */
+function ttsNoteVoicePlace(){
+  try{
+    if(!currentBook || !ttsContentsLive()) return;
+    var ch=tts.chunks[tts.cidx]; if(!ch) return;
+    var r=ttsRangeAt(ch, tts.state==="playing" ? ttsSentenceStart() : (tts.resumeAt||0)); if(!r) return;
+    var cfi=tts.contents.cfiFromRange(r); if(!cfi) return;
+    currentBook.voiceCfi=cfi; currentBook.voiceAt=Date.now();
+  }catch(e){}
+}
 
 /* ---- Talking to the speech engine ----
    Cancelling and speaking again at once can lose the new speech in Chrome, so speech waits a
@@ -6487,30 +6605,17 @@ function ttsBookmarkSet(){
   DB.put("meta", currentBook).then(function(){ if(vault.connected) vaultPushBook(currentBook.id, false); });
   ttsBookmarkUI(); toast("Spot saved");
 }
+// Back to my spot: the saved spot becomes where you are, so the voice reads on from it, now if it
+// was playing, or whenever you next press play.
 function ttsBookmarkGo(){
   if(!currentBook||!currentBook.bookmarkCfi){ toast("No saved spot yet"); return; }
-  var wasListening = tts.state!=="idle";
-  ttsStop();
-  bcGoTo(currentBook.id, { cfi:currentBook.bookmarkCfi }).then(function(){
+  var wasPlaying=tts.state==="playing", spot=currentBook.bookmarkCfi, id=currentBook.id;
+  if(wasPlaying) ttsPause();
+  currentBook.voiceCfi=spot; currentBook.voiceAt=Date.now();
+  bcGoTo(id, { cfi:spot }).then(function(){
     toast("Back to your spot");
-    if(!wasListening || !settings.tts || !ttsSupported()) return;
-    setTimeout(function(){
-      var c=ttsPickContents(); if(!c) return;
-      var r=null; try{ r=rendition.getRange(currentBook.bookmarkCfi); }catch(e){}
-      tts.contents=c; tts.chunks=buildChunks(c);
-      if(!tts.chunks.length) return;
-      var cidx=0, startChar=0;
-      if(r){
-        for(var i=0;i<tts.chunks.length;i++){
-          var cp; try{ cp=tts.chunks[i].range.comparePoint(r.startContainer, r.startOffset); }catch(e2){ cp=1; }
-          if(cp===0){ cidx=i; startChar=tts.chunks[i].sentences[ttsSentenceAt(tts.chunks[i], caretCharInChunk(tts.chunks[i], r))].cStart; break; }
-          if(cp===-1){ cidx=i; break; }
-        }
-      }
-      tts.cidx=cidx; tts.curSentIdx=-1; tts.followOwed=false; tts.errors=0; tts.state="playing"; ttsSetUI();
-      ttsQuiet();
-      speakChunk(startChar);
-    }, 350);
+    if(!wasPlaying || !ttsSupported()) return;
+    setTimeout(function(){ if(currentBook && currentBook.id===id && tts.on && tts.state!=="playing") ttsPlayFrom(spot); }, 350);
   });
 }
 function ttsBookmarkUI(){ var b=$("#tts-mark-go"); if(!b) return; b.style.opacity=(currentBook&&currentBook.bookmarkCfi)?"1":".35"; }
@@ -6520,19 +6625,16 @@ function ttsBookmarkUI(){ var b=$("#tts-mark-go"); if(!b) return; b.style.opacit
 function ttsPause(){
   if(tts.state!=="playing") return;
   tts.resumeAt=ttsSentenceStart(); tts.state="paused"; tts.pausedAt=Date.now();
+  ttsNoteVoicePlace();
   tts.token++; ttsCancel(); ttsWatchStop(); ttsEstStop(); ttsSetUI();
+  try{ if(currentBook) saveProgress(currentBook); }catch(e){}
 }
-function ttsResume(){
-  if(tts.state!=="paused") return;
-  // You went to another chapter while it was paused: read from the page you are on now.
-  if(!ttsContentsLive() && ttsRebind()) return;
-  if(!ttsContentsLive() || ttsPickContents()!==tts.contents){ tts.state="idle"; ttsStart(); return; }
-  // Same chapter: pick up where the voice stopped, turning back to it if you paged away to look.
-  tts.state="playing"; tts.errors=0; tts.followOwed=false; ttsSetUI(); speakChunk(tts.resumeAt||0);
-}
-function ttsPlayPause(){ if(tts.state==="playing") ttsPause(); else if(tts.state==="paused") ttsResume(); else ttsStart(); }
+// Play reads from where you are (ttsReaderPlace): on the page where the voice stopped, from its
+// sentence or a passage you marked further on; on any other page, from the top of that page.
+function ttsResume(){ if(tts.state==="playing") return; ttsPlayFrom(ttsReaderPlace()); }
+function ttsPlayPause(){ if(tts.state==="playing") ttsPause(); else ttsResume(); }
 // Turning the page yourself, or going somewhere else in the book, pauses the voice rather than
-// stopping it: play picks up again, and a tap on a paragraph reads from there instead.
+// stopping it: play then reads from the page you are on, and a tap on a paragraph from there.
 function ttsHush(){ if(tts.state==="playing") ttsPause(); }
 
 /* ---- What is read, in what order ----
@@ -6716,10 +6818,11 @@ function ttsScrollFollow(range){
 function ttsEndsOnPage(c, range){
   try{ var e=range.cloneRange(); if(e.endContainer.nodeType===3 && e.endOffset>0) e.setStart(e.endContainer, e.endOffset-1); return bcRangeSide(c, e)>=0; }catch(err){ return false; }
 }
-function ttsFirstOnScreen(){
-  var c=tts.contents, before=null;
-  for(var i=0;i<tts.chunks.length;i++){
-    var ss=tts.chunks[i].sentences;
+function ttsFirstOnScreen(c, chunks){
+  c=c||tts.contents; chunks=chunks||tts.chunks;
+  var before=null;
+  for(var i=0;i<chunks.length;i++){
+    var ss=chunks[i].sentences;
     for(var j=0;j<ss.length;j++){
       var side=bcRangeSide(c, ss[j].range);
       if(side<0){ before={cidx:i, ch:ss[j].cStart, range:ss[j].range}; continue; }
@@ -6728,7 +6831,7 @@ function ttsFirstOnScreen(){
     }
   }
   if(before && ttsEndsOnPage(c, before.range)) return {cidx:before.cidx, ch:before.ch};
-  return {cidx:tts.chunks.length, ch:0};
+  return {cidx:chunks.length, ch:0};
 }
 // Back: to the start of this paragraph, or to the one before when already there. Forward: the
 // next paragraph, and past the last one, the next chapter.
@@ -7225,9 +7328,13 @@ function bcPageSnap(){
   }catch(e){}
   if(!rtl) target=Math.max(0, Math.min(target, Math.round((box.scrollWidth-box.clientWidth)/d)*d));
   try{ m.scrollTo(target, 0); }catch(e){ box.scrollLeft=target; }
-  // The page change closes the selection menu; bring it back over the words still selected.
+  // The page change closes the selection menu; bring it back over the words still selected. Once
+  // the page has settled, and again a moment later: on a busy phone the page change can be reported
+  // after the menu is back, and closing it then would leave the words selected with no menu.
   if(sel && !sel.isCollapsed && String(sel).trim()){
-    setTimeout(function(){ try{ var s2=ct.window.getSelection(); if(rendition && s2 && !s2.isCollapsed && String(s2).trim()) onSelected(ct.cfiFromRange(s2.getRangeAt(0)), ct); }catch(e){} }, 250);
+    var reshow=function(only){ try{ var s2=ct.window.getSelection(); if(rendition && s2 && !s2.isCollapsed && String(s2).trim() && !(only && selPopOpen())) onSelected(ct.cfiFromRange(s2.getRangeAt(0)), ct); }catch(e){} };
+    setTimeout(function(){ reshow(false); }, 250);
+    setTimeout(function(){ reshow(true); }, 700);
   }
 }
 function bcChapWire(){
@@ -8019,7 +8126,6 @@ if(window.matchMedia){ try{ matchMedia("(prefers-color-scheme: dark)").addEventL
 $("#seg-font").onclick=function(e){ var b=e.target.closest("[data-font]"); if(!b) return; settings.font=b.dataset.font; segActive("#seg-font",b); saveSettings(); bcKeepPlace(applyTheme); };
 $("#seg-flow").onclick=function(e){ var b=e.target.closest("[data-flow]"); if(!b) return; segActive("#seg-flow",b); setReadFlow(b.dataset.flow); };
 $("#seg-faithful").onclick=function(e){ var b=e.target.closest("[data-faithful]"); if(!b) return; segActive("#seg-faithful",b); setFaithful(b.dataset.faithful==="on"); };
-$("#seg-tts").onclick=function(e){ var b=e.target.closest("[data-tts]"); if(!b) return; settings.tts=(b.dataset.tts==="on"); segActive("#seg-tts",b); saveSettings(); syncTtsControls(); if(!settings.tts){ try{ ttsStop(); }catch(_){} } };
 $("#help-close").onclick=closeHelp;
 $("#help-modal").onclick=function(e){ if(e.target===this) closeHelp(); };
 /* ============================================================
@@ -8086,11 +8192,11 @@ $("#meta-frombook").onclick=function(){
 };
 
 function syncTtsControls(){
-  var on=!!settings.tts;
+  var ok=ttsSupported();
   try{ ttsSetUI(); }catch(e){}
-  var btn=$("#tts-btn"); if(btn) btn.style.display=on?"":"none";
-  [].forEach.call(document.querySelectorAll("#seg-tts button"),function(b){ b.classList.toggle("active",(b.dataset.tts==="on")===on); });
-  var vf=$("#tts-voice"); if(vf){ var wrap=vf.closest(".field"); if(wrap) wrap.style.display=on?"":"none"; }
+  var btn=$("#tts-btn"); if(btn) btn.style.display=ok?"":"none";
+  var vf=$("#tts-voice"); if(vf){ var wrap=vf.closest(".field"); if(wrap) wrap.style.display=ok?"":"none"; }
+  var g=$("#tts-grp"); if(g) g.style.display=ok?"":"none";
 }
 function syncSettingsUI(){
   [].forEach.call(document.querySelectorAll("#seg-theme button, #seg-theme-app button"),function(b){ b.classList.toggle("active",b.dataset.theme===settings.theme); });

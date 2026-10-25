@@ -767,7 +767,6 @@ with sync_playwright() as p:
     sp.goto(URL); wait(sp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
     sp.set_input_files("#file-input", [LONG]); wait(sp, "DB.count('meta').then(n=>window.__sn=n), window.__sn>=2", 30000); settle(1)
     sp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Long Landing/.test(m.title))[0].id))"); wait(sp, "rendition && rendition.getContents().length>0"); settle(2)
-    sp.evaluate("()=>{ settings.tts=true; saveSettings(); syncTtsControls(); }")
     expect("the reader's top bar is one row on a small phone, read aloud included", ev(sp, "()=>Math.round(document.querySelector('#reader .topbar').getBoundingClientRect().height)"), lambda h: isinstance(h, int) and h < 70,
            "with read aloud on, the buttons wrapped to a second row and took the page's height")
     # Dragging a selection handle past the edge of the page scrolls the book sideways by part of a page.
@@ -820,14 +819,14 @@ with sync_playwright() as p:
         def gtouch(kind, pts): gcdp.send("Input.dispatchTouchEvent", {"type": kind, "touchPoints": [{"x": x, "y": y} for x, y in pts]})
         gp.goto(URL); wait(gp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
         gp.set_input_files("#file-input", [LONG, STYLED]); wait(gp, "DB.count('meta').then(n=>window.__gn=n), window.__gn>=3", 30000); settle(1)
-        gp.evaluate("()=>{ settings.tts=true; saveSettings(); }")
         gp.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Long Landing/.test(m.title))[0].id))"); wait(gp, "rendition && rendition.getContents().length>0"); settle(2.5)
         gp.evaluate("()=>rendition.next()"); settle(0.8)
+        gp.evaluate("()=>{ tts.on=true; ttsSetUI(); }"); settle(1.5)   # the player showing, without a voice to speak
         paged = ev(gp, INSET)
-        gp.evaluate("()=>document.querySelector('#seg-tts [data-tts=off]').click()"); settle(1.5)
+        gp.evaluate("()=>ttsTurnOff()"); settle(1.5)
         paged_off = ev(gp, INSET)
         expect("a page keeps its margins and spacing when read aloud is switched off", [paged_off.get(k) for k in ("left", "lh", "cut")], [paged.get(k) for k in ("left", "lh", "cut")],
-               "the player going away lays the book out again for the taller page; the text's width and spacing must not change with it")
+               "the player going away must not change the text's width or spacing")
         gp.evaluate("()=>setReadFlow('scrolled')"); settle(2.5)
         scrolled = ev(gp, INSET)
         expect("pages and scroll mode have the same margins and line spacing on a phone", [scrolled["left"], scrolled["lh"], abs(scrolled["right"] - scrolled["left"]) <= 30],
@@ -889,7 +888,7 @@ with sync_playwright() as p:
             rp = rctx.new_page(); watch(rp, "place-" + flow)
             rp.goto(URL); wait(rp, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
             rp.set_input_files("#file-input", [LONG]); wait(rp, "DB.count('meta').then(n=>window.__rn=n), window.__rn>=2", 30000); settle(1)
-            rp.evaluate("(f)=>{ settings.flow=f; settings.tts=true; saveSettings(); }", flow)
+            rp.evaluate("(f)=>{ settings.flow=f; saveSettings(); }", flow)
             rid = rp.evaluate("()=>DB.all('meta').then(ms=>ms.filter(m=>/Long Landing/.test(m.title))[0].id)")
             rp.evaluate("(id)=>openBook(id)", rid); wait(rp, "rendition && rendition.getContents().length>0"); settle(2.5)
             def read_on(n):
@@ -905,7 +904,7 @@ with sync_playwright() as p:
             rp.reload(); came = reopened(); settle(1.5)
             expect("a book open when Backchat went away opens again on its page" + F, [came, on_page(rp, at)], [True, True],
                    "a phone drops a tab in the background to save memory; coming back showed Home, not the book")
-            expect("after reopening, Back to my spot shows the saved spot is there" + F, ev(rp, "()=>document.querySelector('#tts-mark-go').style.opacity"), "1",
+            expect("after reopening, Back to my spot shows the saved spot is there" + F, ev(rp, "()=>{ tts.on=true; ttsSetUI(); const o=document.querySelector('#tts-mark-go').style.opacity; ttsTurnOff(); return o; }"), "1",
                    "the button stayed dimmed as if nothing were saved until a spot was saved again")
             rp.evaluate("()=>closeBook()"); settle(0.4); rp.reload(); wait(rp, "document.querySelectorAll('#home-recent .card').length>0"); settle(4)
             expect("a book closed before leaving does not open again" + F, ev(rp, "()=>bcScreen()"), "home", "going back to Home is a choice the next start keeps")
@@ -964,7 +963,7 @@ with sync_playwright() as p:
             acdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x0 + (x1 - x0) * i / steps, "y": y0 + (y1 - y0) * i / steps}]}); time.sleep(dur / steps)
         acdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
     def voice(**kw): ev(ap, "(o)=>Object.assign(window.__speech, o)", kw)
-    def heard(): return ev(ap, "()=>__speech.log.filter(r=>!r.error).map(r=>r.text.trim())")
+    def heard(): return ev(ap, "()=>__speech.log.filter(r=>!r.error && r.text.trim()).map(r=>r.text.trim())")
     def a_state(): return ev(ap, "()=>tts.state")
     def chapter(i):
         ev(ap, "()=>ttsStop()"); ev(ap, "()=>{ __speech.log=[]; __speech.cancels=0; }")
@@ -974,7 +973,6 @@ with sync_playwright() as p:
     try:
         ap.goto(URL); wait(ap, "document.querySelectorAll('#home-recent .card').length>0"); settle(1)
         ap.set_input_files("#file-input", [LISTEN]); wait(ap, "DB.count('meta').then(n=>window.__an=n), window.__an>=2", 30000); settle(1)
-        ap.evaluate("()=>{ settings.tts=true; saveSettings(); syncTtsControls(); }")
         ap.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Listening/.test(m.title))[0].id))"); wait(ap, "rendition && rendition.getContents().length>0"); settle(2)
 
         voice(cps=900, mode="boundary"); chapter(1); ev(ap, "()=>ttsStart()"); settle(2.5)
@@ -1019,8 +1017,11 @@ with sync_playwright() as p:
                "the voice turned the page under your finger and the highlight menu vanished")
         voice(cps=60); chapter(0); ev(ap, "()=>ttsStart()"); settle(1.2)
         a_swipe(PW * 0.8, PH * 0.5, PW * 0.2, PH * 0.5); settle(0.8)
-        swiped = a_state(); ev(ap, "()=>{ __speech.log=[]; ttsPlayPause(); }"); settle(0.8)
-        expect("turning the page yourself pauses the voice; play takes you back to it", [swiped, ev(ap, VOICE_ON_PAGE)], ["paused", 0], "a swipe stopped read aloud and lost its place")
+        swiped = a_state(); turned_to = ev(ap, "()=>(rendition.currentLocation().start.displayed||{}).page")
+        first_there = ev(ap, r"""()=>{ const c=rendition.getContents()[0]; for(const k of buildChunks(c)) for(const s of k.sentences) if(bcRangeSide(c,s.range)===0) return s.range.toString().trim().slice(0,40); return null; }""")
+        ev(ap, "()=>{ __speech.log=[]; ttsPlayPause(); }"); settle(0.8)
+        expect("turning the page yourself pauses the voice; play reads from the page you turned to", [swiped, ((heard() or [""])[0])[:40], ev(ap, "()=>(rendition.currentLocation().start.displayed||{}).page")], ["paused", first_there, turned_to],
+               "the voice is to start where you are reading; play used to turn back to the page where it had stopped")
         ev(ap, "()=>ttsPlayPause()"); settle(0.2); chapter_to = 3
         ap.evaluate("(i)=>bcGoTo(currentBook.id,{href:book.spine.spineItems[i].href,flash:false})", chapter_to); settle(1.3)
         ev(ap, "()=>{ __speech.log=[]; ttsPlayPause(); }"); settle(0.6)
@@ -1041,11 +1042,15 @@ with sync_playwright() as p:
         expect("while a book is open the page itself cannot scroll", ev(ap, "()=>[getComputedStyle(document.documentElement).overflowY, getComputedStyle(document.body).overflowY]"), ["hidden", "hidden"],
                "on a phone a swipe or a selection slid the address bar away, the window resized, and the book laid itself out again mid-gesture")
         voice(cps=120, mode="boundary"); chapter(0); ev(ap, "()=>ttsStop()"); settle(0.3)
-        idle_fit = ev(ap, "()=>[!document.querySelector('#audiobar').classList.contains('hidden'), Math.round(document.querySelector('#viewport iframe').getBoundingClientRect().height)===rendition.manager.container.clientHeight]")
+        FIT = "()=>[rendition.manager.container.clientHeight, Math.round(document.querySelector('#viewport iframe').getBoundingClientRect().height)===rendition.manager.container.clientHeight]"
+        idle_fit = ev(ap, FIT)
         ev(ap, "()=>ttsStart()"); settle(1.0)
-        playing_fit = ev(ap, "()=>Math.round(document.querySelector('#viewport iframe').getBoundingClientRect().height)===rendition.manager.container.clientHeight")
-        expect("with read aloud on, the player stays and the book always fits the space above it", [idle_fit, playing_fit], [[True, True], True],
-               "the player appeared over a book laid out for the taller page, hiding the last lines of every page")
+        playing_fit = ev(ap, FIT)
+        ev(ap, "()=>ttsTurnOff()"); settle(1.0)
+        off_fit = ev(ap, FIT)
+        expect("read aloud on or off, the page keeps its size and the book fits it", [playing_fit, off_fit], [idle_fit, idle_fit],
+               "the player appeared over a book laid out for the taller page, hiding the last lines; and a page laid out again for a new height moves the words you were reading")
+        ev(ap, "()=>{ tts.on=true; ttsSetUI(); }")
         ev(ap, "()=>ttsStop()"); ev(ap, START_LAST_SENTENCE); settle(0.3)
         f0 = a_page(); a_touch("touchStart", [(PW * 0.5, PH * 0.5)]); settle(3.5); f1 = a_page(); a_touch("touchCancel", []); settle(0.2)
         expect("a finger on the page keeps read aloud from turning it", [f0, f1], lambda v: v[0] == v[1], "the voice turned the page while you were pressing to select")
@@ -1083,6 +1088,72 @@ with sync_playwright() as p:
         expect("an engine that goes silent mid-sentence is noticed, and the voice repeats that sentence", [stall and stall[0], stall and stall[1] <= 12], [True, True],
                "Chrome's online voices can stop with no end and no error; the watchdog only looked for a stopped engine (got %s)" % stall)
         ev(ap, "()=>ttsStop()")
+
+        # 8b. The read aloud switch: the speaker in the top bar. Off when a book opens. On reads from
+        #     where you are, and the player takes the progress row's place; off pauses, keeps the
+        #     voice's place, and nothing on the page moves. The voice always starts where you are reading.
+        FIRST_ON_PAGE = r"""()=>{ const c=rendition.getContents()[0]; for(const k of buildChunks(c)) for(const s of k.sentences) if(bcRangeSide(c,s.range)===0) return s.range.toString().trim().slice(0,40); return null; }"""
+        SWITCH = r"""()=>{ const b=document.querySelector('#tts-btn'), on=b.querySelector('.ic-on'); return [getComputedStyle(b).display!=='none', b.getAttribute('aria-pressed'), on ? getComputedStyle(on).display : 'no on-icon',
+            !document.querySelector('#audiobar').classList.contains('hidden'), getComputedStyle(document.querySelector('.botbar')).display!=='none']; }"""
+        HEIGHT = "()=>rendition.manager.container.clientHeight"
+        def flip(): ap.tap("#tts-btn", timeout=4000)
+        def voice_at(): return ev(ap, "()=>{ const ch=tts.chunks[tts.cidx]; return ch ? ch.text.slice(tts.resumeAt||0).trim().slice(0,40) : null; }")
+        def select_on_page(k):
+            return ev(ap, r"""(k)=>{ const c=rendition.getContents()[0]; const on=[]; for(const x of buildChunks(c)) for(const s of x.sentences) if(bcRangeSide(c,s.range)===0) on.push(s.range);
+                const r=on[Math.max(0, Math.min(on.length-1, k<0 ? on.length+k : k))]; const sel=c.window.getSelection(); sel.removeAllRanges(); sel.addRange(r); return r.toString().trim().slice(0,40); }""", k)
+        def a_page(): return ev(ap, "()=>(rendition.currentLocation().start.displayed||{}).page")
+        voice(cps=40, mode="boundary", stallAfterMs=0, failAll=False, swallowAfterCancelMs=0)
+        ev(ap, "()=>closeBook()"); settle(0.4)
+        ap.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Listening/.test(m.title))[0].id))"); wait(ap, "rendition && rendition.getContents().length>0"); settle(2)
+        chapter(0)
+        ev(ap, "()=>{ delete currentBook.voiceCfi; delete currentBook.voiceAt; }")   # a book never listened to: the earlier checks read this one
+        expect("the speaker in the top bar is the read aloud switch: there from the start, off, and no switch in Display", ev(ap, SWITCH) + [ev(ap, "()=>!!document.querySelector('#seg-tts')")], [True, "false", "none", False, True, False],
+               "read aloud was switched on in Display, below the bottom of the panel on a phone, and the speaker only started and stopped it")
+        h0 = ev(ap, HEIGHT); first = ev(ap, FIRST_ON_PAGE)
+        ev(ap, "()=>{ __speech.log=[]; }"); flip(); settle(2.0)
+        expect("switched on, it reads from the top of the page, and the player takes the progress row's place", [((heard() or [""])[0])[:40], ev(ap, SWITCH)[1:], ev(ap, HEIGHT)], [first, ["true", "block", True, False], h0],
+               "on is shown by shape (sound waves on a solid button), and the page must keep its size")
+        top = ev(ap, FIRST_ON_PAGE); flip(); settle(0.8); said = voice_at(); n = len(heard() or []); settle(1.2)
+        expect("switched off, the voice pauses, the player goes, and nothing on the page moves", [a_state(), len(heard() or []) == n, ev(ap, SWITCH)[1:], ev(ap, FIRST_ON_PAGE), ev(ap, HEIGHT)], ["paused", True, ["false", "none", False, True], top, h0],
+               "a page laid out again for a new height re-flows the chapter, so the passage you meant to mark could move or slip to another page")
+        select_on_page(0); settle(0.8)
+        ev(ap, "()=>document.querySelector('#sel-pop .sw').click()"); settle(0.5)
+        ev(ap, "()=>{ const h=highlights.filter(x=>!x.deleted).slice(-1)[0]; editExistingNote(h.id); }"); settle(0.3)
+        ap.keyboard.type("Marked with read aloud off"); ev(ap, "()=>document.querySelector('#note-save').click()"); settle(0.5)
+        ev(ap, "()=>{ __speech.log=[]; }"); flip(); settle(1.5)
+        expect("off, highlight and comment, on: the voice carries on from the sentence where it stopped", [((heard() or [""])[0])[:40], ev(ap, "()=>highlights.some(h=>h.note==='Marked with read aloud off')")], [said, True],
+               "stopping forgot the voice's place, so it started again at the top of the page")
+        flip(); settle(0.8)
+        a_swipe(PW * 0.8, PH * 0.5, PW * 0.2, PH * 0.5); settle(1.0)
+        p_on = a_page(); first = ev(ap, FIRST_ON_PAGE); ev(ap, "()=>{ __speech.log=[]; }"); flip(); settle(1.5)
+        expect("off, read on a page, on: the voice starts at the top of the page you are on", [((heard() or [""])[0])[:40], a_page()], [first, p_on],
+               "where you are reading is where the voice goes on from, not back where it stopped")
+        flip(); settle(0.8)
+        marked = select_on_page(-2); settle(0.8); ev(ap, "()=>document.querySelector('#sel-pop .sw').click()"); settle(0.6)
+        ev(ap, "()=>{ __speech.log=[]; }"); flip(); settle(1.5)
+        expect("off, mark a passage further down the page, on: the voice starts at the passage you marked", ((heard() or [""])[0])[:40], marked,
+               "you read on to the passage you marked; going back to where the voice stopped repeats what you have read")
+        flip(); settle(0.8); ev(ap, "()=>{ __speech.log=[]; }")
+        a_touch("touchStart", [(PW * 0.5, PH * 0.45)]); time.sleep(0.05); a_touch("touchEnd", []); settle(1.2)
+        expect("with read aloud off, a tap on the words never starts the voice", [a_state(), heard()], ["paused", []], "a tap meant for marking moved the voice and set it talking")
+        flip(); settle(2.0); flip(); settle(0.8); said = voice_at()
+        ev(ap, "()=>closeBook()"); settle(0.4)
+        ap.evaluate("()=>DB.all('meta').then(ms=>openBook(ms.filter(m=>/Listening/.test(m.title))[0].id))"); wait(ap, "rendition && rendition.getContents().length>0"); settle(2.5)
+        ev(ap, "()=>{ __speech.log=[]; }"); flip(); settle(1.5)
+        expect("the voice's place stays with the book: reopened and switched on, it carries on from its sentence", [ev(ap, SWITCH)[1], ((heard() or [""])[0])[:40]], ["true", said],
+               "the place lived only while the book was open, so tomorrow's listening started again at the top of the page")
+        flip(); settle(0.5)
+        ev(ap, "()=>setReadFlow('scrolled')"); settle(3)
+        for _ in range(3): a_swipe(PW * 0.5, PH * 0.75, PW * 0.5, PH * 0.3); settle(0.3)   # read on by finger, as a reader scrolls
+        settle(1.2)
+        h1 = ev(ap, HEIGHT); first = ev(ap, FIRST_ON_PAGE)
+        ev(ap, "()=>{ __speech.log=[]; }"); flip(); settle(1.5); playing_h = ev(ap, HEIGHT); how = ev(ap, "()=>[tts.state, __speech.log.length]"); said_first = ((heard() or [""])[0])[:40]
+        flip(); settle(0.8)
+        expect("scroll mode: switched on, it reads from the first sentence in view, and the view keeps its size", [said_first, playing_h, ev(ap, HEIGHT), how[0] if isinstance(how, list) else how], [first, h1, h1, "playing"],
+               "the voice starts where you are reading in scroll mode too (voice state, utterances: %s)" % (how,))
+        ev(ap, "()=>setReadFlow('paginated')"); settle(1.5)
+        expect("the voice's place syncs, the newest wins", ev(ap, r"""()=>[mergeMeta({voiceCfi:'a',voiceAt:5},{voiceCfi:'b',voiceAt:9}).voiceCfi, mergeMeta({voiceCfi:'a',voiceAt:9},{voiceCfi:'b',voiceAt:5}).voiceCfi]"""), ["b", "a"],
+               "switch on at the desktop and carry on from where the phone stopped, when the desktop shows that page")
     except Exception as e:
         expect("the read-aloud checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
     actx.close()

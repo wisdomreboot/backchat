@@ -2,6 +2,26 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.69 (25 October 2026)
+
+Read aloud becomes a switch you flip while reading: the speaker in the top bar.
+
+**Changed**
+- **The speaker in the top bar switches read aloud on and off.** It is there from the start; nothing needs switching on in Display first. On: the voice reads from where you are, and the player takes the place of the progress row at the foot of the page. Off: the voice pauses, the player goes, and the page is yours to select, highlight and comment; no tap moves the voice. Before, the speaker only started and stopped the voice, stopping forgot where it was, and the real switch sat in Display, below the bottom of the panel on a phone.
+- **The voice always starts where you are reading.** On the page where it stopped, it carries on from the sentence it was in, or from a passage you marked further down, since you read on to it. On any other page, because you read on, went back or have just opened the book, it starts at the top of that page. The same rule serves the speaker, play in the player, and the next time you open the book: the voice's place is kept with the book and syncs, the newest winning.
+- **Nothing on the page moves when you switch.** The player and the progress row are the same height and share one place, so the page keeps its size. A page laid out again for a new height re-flows the whole chapter: the passage you were about to mark could move, or slip onto another page.
+- **On and off show by shape, not colour.** Off is a crossed-out speaker; on is a speaker with sound waves on a solid button.
+- **Play after turning the page yourself reads from the page you turned to.** It used to turn back to where the voice had stopped.
+- The Read aloud switch and its note have gone from Display; the voice is still chosen there. The player's Stop button has gone too: switching off is the stop, and it keeps the place.
+- The guide (revision 22) describes the switch and where the voice starts.
+- With the player now off by default, the progress row is a little taller (44px on a phone), the same height as the player it trades places with.
+
+**Fixed**
+- **The selection menu could vanish after a selection settled on a whole page.** When a dragged selection snaps back to a whole page, the menu is brought back over the words; on a busy phone the page change could be reported after that and close the menu again, leaving the words selected with no menu. The menu now comes back a second time if that happens.
+
+**Checks**
+- Ten new checks on a phone with a scripted voice: the speaker is the switch, there from the start and off; on reads from the top of the page with the player in the progress row's place; off pauses with nothing on the page moving; off, highlight and comment, on carries on from the sentence it stopped in; off, read on a page, on starts at the top of that page; off, mark further down, on starts at the mark; with read aloud off a tap never starts the voice; the voice's place survives closing and reopening the book; scroll mode starts at the first sentence in view and keeps its size; and the voice's place merges newest first. Three existing checks now describe the new behaviour: play after a page turn, the page keeping its size on or off, and the margins with the player gone.
+
 ## 1.0.68 (20 October 2026)
 
 Where you were: your place in a book and your saved listening spot, on one device and across devices.
