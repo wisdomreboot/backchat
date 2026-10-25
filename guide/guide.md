@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 21
+revision: 22
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -85,12 +85,12 @@ The top bar of the reader, from left to right:
 - {{icon:home}} **Home** goes to the home screen.
 - {{icon:find}} **Find** searches this book alone.
 - {{icon:contents}} **Contents** lists the chapters.
-- {{icon:listen}} **Read aloud** appears once you switch it on in Display.
+- {{icon:listen}} **Read aloud** switches the voice on and off. See the chapter Listen.
 - {{icon:highlights}} **Highlights and comments** lists every mark in this book.
 - {{icon:margins-panel}} **Margins** opens the book's blank pages.
 - {{icon:display}} **Display** sets how the book looks and sounds.
 
-Along the bottom run the chapter and page, a progress bar, how much you have read with an estimate of the time left, and a small dot: the sync light again.
+Along the bottom run the chapter and page, a progress bar, how much you have read with an estimate of the time left, and a small dot: the sync light again. While read aloud is on, the player takes their place.
 
 Turn pages by tapping the left or right edge, with the arrows at the sides, by swiping on a phone, or from the keyboard: the right arrow, Space or Page Down to go forward, the left arrow or Page Up to go back. C opens the contents, H the highlights, S the margins, and Esc closes whatever is open. Press ? to see them all.
 
@@ -107,7 +107,7 @@ Display {{icon:display}} holds the settings for reading.
 - **Font and font size.** Yours to set, and they apply to every book. Font size moves in steps with the two buttons, so scrolling the panel never changes it.
 - **Margins and line spacing** are set for you, and they are the same in Page and Scroll. On a phone the margins stay narrow, because a phone's line is already short and every bit of margin costs words. On a wider screen they widen to keep a line to about 66 characters, a length the eye can follow back to the start of the next line. Line spacing opens a little as lines get longer, for the same reason.
 - **Original styling.** This one is set per book. Original shows the book exactly as its maker designed it, with its own fonts, colours and layout, which suits books built on diagrams or coloured text. Reader puts your own settings back.
-- **Read aloud.** See the chapter Listen.
+- **Voice.** The voice that reads aloud. See the chapter Listen.
 
 Change any of them in the middle of a chapter and the words you were reading stay on the screen.
 
@@ -195,13 +195,15 @@ Two marks of affection, two scopes. The star {{icon:star}} on a highlight favour
 
 ## Listen
 
-Read aloud lives in Display {{icon:display}}. Turn it on and choose a voice: the player settles at the foot of the page and stays there, and the speaker {{icon:listen}} joins the top bar. Tap play to start with the first sentence on the page, or tap any paragraph to start there.
+Tap the speaker {{icon:listen}} in the top bar and the book reads aloud, starting from where you are. While read aloud is on, the speaker shows sound waves on a solid button, and the player takes the place of the progress bar at the foot of the page. Choose the voice in Display {{icon:display}}.
 
 The sentence being spoken is highlighted, and the page turns with the voice, word by word, so you can read along. The tracking learns each voice's pace, so it keeps step even with voices that report nothing as they speak. It carries on into the next chapter by itself.
 
-To mark a passage, pause, then select, highlight and comment as usual. Press play and the voice picks up at the start of the sentence it was in. Press on the page to select words while it is still reading and the page holds still until you are done, then catches up. Turning the page yourself pauses the voice: play takes you back to it, and a tap on a paragraph starts there instead. The screen stays on while you listen, and through a pause for as long as you keep using the page.
+To mark a passage, tap the speaker again. The voice stops, the player goes, and the page stays exactly as it was: select, highlight and comment as usual, and no tap moves the voice. Tap the speaker once more and the voice goes on from where you are. If you are still on the page where it stopped, that is the sentence where it stopped, or a passage you have marked further down. If you have moved to another page, it starts at the top of that page. The same goes for play in the player, and for the next time you open the book.
 
-The bar at the bottom steps back or forward a paragraph, plays, pauses and stops, and sets the speed. Save my spot pins the exact sentence; Back to my spot returns there, and if you were listening when you tapped it, the voice resumes from that very sentence. The spot stays saved when you close the book, and with sync on it follows you to your other devices.
+While it reads, a tap on a paragraph starts there, and pressing on the page to select words holds the page still until you are done. Turning the page yourself pauses the voice; play then reads from the page you are on. The screen stays on while you listen, and while read aloud is paused for as long as you keep using the page.
+
+The player steps back or forward a paragraph, plays and pauses, and sets the speed. Save my spot pins the exact sentence; Back to my spot returns there, and if the voice was reading when you tapped it, it reads on from that very sentence. The spot stays saved when you close the book, and with sync on it follows you to your other devices.
 
 ## Video books
 
