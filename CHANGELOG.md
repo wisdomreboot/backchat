@@ -2,6 +2,26 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.71 (7 November 2026)
+
+Folder sync, tidied: one copy of each rule where there were several, in less code. Testing the tidy-up with two devices opening Backchat in turn found three ways the folder was still being rewritten for nothing, and one thing Check folder promised that sync would not do. All four are fixed.
+
+**Fixed**
+- **Every notes file was rewritten once a day.** Each Markdown file in highlights/ carried the date it was written ("exported 2026-11-06"), so the first sync of each day, once the date turned in UTC (11am in Sydney), rewrote every one of them: 321 files on the folder checked, each a chance for the cloud client to make a conflict copy. The folder's copy now carries the date its notes last changed ("updated ...") and is written only when they change. A Markdown export you make yourself still carries the day of export.
+- **Two devices took turns rewriting a book's record.** When the phone and the computer held the same marks for a book, but in a different order (both marked it before either saw the other's marks) or with a different time of last change (each folded a duplicate at its own moment), each wrote its own copy back to the folder every time Backchat opened. Records are now compared by content, and a merge keeps the later time, so the two copies agree and neither is written again.
+- **Check folder promised to add a file sync had given up on.** A file Backchat could not add to the library (one holding thousands of files, say) was listed as new, to be added on the next sync, though sync does not try it again until the file changes. It is now listed with the files left alone, with the reason.
+
+**Changed**
+- **One set of rules for the files in books/**, followed by sync and by Check folder alike, so the report cannot promise what sync does not do. Check folder also no longer offers to rename a file already under its book's name, and judges a file with the same title and author but other contents the way sync does.
+- **One merge step** for a book's record, whether it arrives from the folder, from a notes file or from a conflict copy, where there were three copies of it.
+- **Book files are compared byte for byte** wherever sync decides whether two are the same file. Some places compared sampled signatures.
+- **A book gets 60 seconds to open** before Backchat gives up on it, not 20, so a large book on a slow phone is not taken for a broken one.
+- The header of each notes file, and the guide (revision 24), now say what is true: Backchat writes the file from your marks and never reads it back. Both used to say it was rewritten on every sync.
+
+**Checks**
+- Three new checks, all failing on 1.0.70: opening Backchat the next day rewrites no unchanged file; the same notes in another order, or with another time of change, are not rewritten; Check folder does not promise to add a file sync could not add. All 181 checks pass.
+- Replayed against the real folder's records and notes, as for 1.0.70: the first sync makes the same 679 one-time writes, later syncs and a reopen make none, and no mark is lost. Opening Backchat the next day made 321 writes on 1.0.70 and makes none on this build.
+
 ## 1.0.70 (6 November 2026)
 
 The folder, for a library where books come and go: added, deleted and added back, in Backchat and in the folder itself, with a cloud client carrying it between computers.
