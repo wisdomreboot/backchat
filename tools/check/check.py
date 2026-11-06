@@ -86,6 +86,12 @@ make_epub(ALPHA2, "Alpha Testing Book", "Ann Author", "urn:isbn:9780000000001", 
                      "A rare word appears here: zygomorphic flowers bloom in spring and summer."])])
 make_epub(GAMMA, "Gamma Third Book", "Cy Writer", "urn:isbn:9780000000003", [
     ("Only", ["A third book, so a library has more than one shelf mate."])])
+# A book whose title and identifier read fine but which the reader refuses to add (more files
+# inside than an EPUB has any reason to hold).
+CROWDED = os.path.join(TMP, "crowded.epub")
+make_epub(CROWDED, "Crowded Book", "Di Packer", "urn:isbn:9780000000004", [("Only", ["Too many files ride along with this one."])])
+with zipfile.ZipFile(CROWDED, "a") as _z:
+    for _i in range(5001): _z.writestr("OEBPS/extra/%d.txt" % _i, "")
 LONG = os.path.join(TMP, "long.epub")
 make_long_epub(LONG)
 # A book that sets its own tight line spacing and side margins, as many do.
@@ -461,7 +467,7 @@ with sync_playwright() as p:
     # 4b. The folder as people really use it: books added, deleted and added back, files dropped in
     #     by hand, cloud clients leaving conflict copies, two browsers on one folder. The mock folder
     #     logs every write, so "nothing to do" can be checked as "nothing written".
-    B64 = {k: base64.b64encode(open(v, "rb").read()).decode() for k, v in (("alpha", ALPHA), ("alpha2", ALPHA2), ("beta", BETA), ("gamma", GAMMA))}
+    B64 = {k: base64.b64encode(open(v, "rb").read()).decode() for k, v in (("alpha", ALPHA), ("alpha2", ALPHA2), ("beta", BETA), ("gamma", GAMMA), ("crowded", CROWDED))}
     MOCKFS = open(os.path.join(HERE, "mockfs.js"), encoding="utf-8").read()
     def folder_page(label):
         c = browser.new_context(bypass_csp=True); pg = c.new_page(); watch(pg, label)
@@ -499,6 +505,9 @@ with sync_playwright() as p:
     reopened = ev(gp, "async()=>{ _vaultLastWrite={}; _vaultIndexHash=''; return true; }") and ev(gp, SYNC)   # what reopening Backchat forgets
     expect("reopening Backchat rewrites no unchanged file", reopened[:2] if isinstance(reopened, list) else reopened, ["done", 0],
            "the first sync after opening wrote every record and note file again, since the browser no longer knew it had")
+    nextday = ev(gp, "()=>{ const D=Date, s=864e5; window.Date=class extends D{ constructor(...a){ a.length ? super(...a) : super(D.now()+s); } static now(){ return D.now()+s; } }; _vaultLastWrite={}; _vaultIndexHash=''; return true; }") and ev(gp, SYNC)
+    expect("opening Backchat the next day rewrites no unchanged file", nextday[:2] if isinstance(nextday, list) else nextday, ["done", 0],
+           "each notes file carried the day it was written, so the first sync of every day rewrote all of them")
     ev(gp, "async()=>{ await B.put('books/empty.epub', new Uint8Array([])); await B.put('books/broken.epub', new Uint8Array([80,75,3,4,9,9,9])); __toasts.length=0; return true; }")
     stuck = ev(gp, SYNC)
     expect("an unreadable file in books/ does not stop the sync", [stuck[0] if isinstance(stuck, list) else stuck, any("left 2 files" in t for t in ev(gp, "()=>__toasts"))], ["done", True],
@@ -547,6 +556,10 @@ with sync_playwright() as p:
     report = ev(gp, "async()=>{ await folderCheck(); return [document.querySelector('#folder-check-info').textContent, !document.querySelector('#folder-readd-field').classList.contains('hidden')]; }")
     expect("Check folder names the deleted book's file and offers Add back", [("you deleted: Gamma Third Book" in report[0]) if isinstance(report, list) else report, report[1] if isinstance(report, list) else None], [True, True], "the way to bring a deleted book back from its file")
     expect("Add back returns the deleted book", ev(gp, "async()=>{ document.getElementById('folder-readd-btn').click(); await B.quiet(1500); return !!(await DB.all('meta')).find(x=>x.title==='Gamma Third Book'); }"), True, "an explicit add-back clears the delete")
+    drop(gp, "crowded.epub", "crowded"); ev(gp, SYNC)
+    report = ev(gp, "async()=>{ await folderCheck(); return document.querySelector('#folder-check-info').textContent; }")
+    expect("Check folder does not promise to add a file sync could not add", [("crowded.epub (it could not be added" in report), ("new book file" in report)] if isinstance(report, str) else report, [True, False],
+           "it listed the file as new, to be added on the next sync, though sync had stopped trying it")
     gctx.close()
 
     # Two browsers on one folder, a cloud client carrying it between them.
@@ -561,6 +574,22 @@ with sync_playwright() as p:
         hand(ap_, bp_); w = ev(bp_, SYNC); quiet.append(w[1] if isinstance(w, list) else w)
     expect("two browsers sharing a folder settle on one record of a book", [ev(ap_, ALPHA_ID) == ev(bp_, ALPHA_ID), quiet[1:]], [True, [0, 0, 0]],
            "each kept its own record of the same book and removed the other's on every sync")
+    actx.close(); bctx.close()
+    # The same marks merged in another order, or with another time of last change (each browser
+    # folds a duplicate at its own moment), are the same notes. Backchat opened in turn on each.
+    actx, ap_ = folder_page("folder-same-a"); bctx, bp_ = folder_page("folder-same-b")
+    drop(ap_, "alpha.epub", "alpha"); ev(ap_, SYNC); hand(ap_, bp_); ev(bp_, SYNC)
+    mark_book(ap_, "Alpha Testing Book", 2, "a"); mark_book(bp_, "Alpha Testing Book", 2, "b")   # marked on both before either saw the other's
+    hand(ap_, bp_); ev(bp_, SYNC); hand(bp_, ap_); ev(ap_, SYNC)
+    STAMP = "async(d)=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); const h=await DB.get('highlights', m.id); h.updatedAt=Date.now()+d; await DB.put('highlights', h); return [h.items.map(i=>i.id.slice(0,1)).join(''), h.items.length]; }"
+    REOPEN = "()=>{ _vaultLastWrite={}; _vaultIndexHash=''; return true; }"
+    orders = [ev(ap_, STAMP, 1000), ev(bp_, STAMP, 2000)]
+    starts = []
+    for r in range(3):
+        for src, dst in ((bp_, ap_), (ap_, bp_)):
+            hand(src, dst); ev(dst, REOPEN); w = ev(dst, SYNC); starts.append(w[1] if isinstance(w, list) else w)
+    expect("the same notes in another order, or with another time of change, are not rewritten", [orders[0] != orders[1], starts[2:]], [True, [0, 0, 0, 0]],
+           "each browser wrote its own copy of the book's record back every time Backchat opened, one more collision for the cloud client")
     actx.close(); bctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words

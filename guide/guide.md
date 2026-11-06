@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 23
+revision: 24
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -215,7 +215,7 @@ If the video is taken down, the player says so and folds away. The book, its tim
 
 On a computer, in Chrome, Edge or Brave, open Settings {{icon:settings}} and tap Connect a folder {{icon:folder}}. Choose a folder inside your Obsidian vault if you use one. From that moment the folder is the source of truth.
 
-Your books are written into a books folder inside it, and the door swings both ways: drop any EPUB into that books folder and it joins your library on the next sync. Your highlights and comments are written as plain Markdown into a highlights folder, one file per book, with your tags and titles as links, readable in Obsidian or any text editor. These Markdown files are an export, not the source: the app rewrites them on every sync, so any edits made there are overwritten. Edit in the app, where your marks and location links stay live.
+Your books are written into a books folder inside it, and the door swings both ways: drop any EPUB into that books folder and it joins your library on the next sync. Your highlights and comments are written as plain Markdown into a highlights folder, one file per book, with your tags and titles as links, readable in Obsidian or any text editor. These Markdown files are an export, not the source: the app writes each one from your marks when they change and never reads it back, so any edits made there are overwritten. Edit in the app, where your marks and location links stay live.
 
 The browser keeps only a working copy of your twenty most recently opened books. Everything else lives in the folder and is fetched the moment you open it. Clearing the browser loses nothing, because the folder holds the library.
 
