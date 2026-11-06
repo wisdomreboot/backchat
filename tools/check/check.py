@@ -592,6 +592,67 @@ with sync_playwright() as p:
            "each browser wrote its own copy of the book's record back every time Backchat opened, one more collision for the cloud client")
     actx.close(); bctx.close()
 
+    # 4c. The open book keeps what arrives while it is open. Seven paths carry a record into the
+    #     library: the folder, a notes file, a hand-off, a cloud conflict copy, a restore, device sync
+    #     and the start-up tidy-up. Each delivers a mark for the book on screen, and the reader's next
+    #     save must keep it. One rule for every path, so a path that forgets the open book is caught.
+    octx, op_ = folder_page("open-book")
+    add_in_app(op_, "alpha", "alpha.epub"); ev(op_, SYNC)
+    oid = ev(op_, ALPHA_ID)
+    ev(op_, "(id)=>{ openBook(id); return true; }", oid)
+    wait(op_, "rendition && rendition.getContents().length && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent)")
+    settle(0.8)
+    ev(op_, """()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'quick brown fox');
+      lastSelection={cfiRange:c.cfiFromRange(r),text:'quick brown fox',contents:c}; return createHighlight('yellow').then(()=>true); }""")
+    ARRIVE = r"""async([id, path])=>{
+      const now=Date.now(), mark={ id:'arrived-'+path.replace(/\W+/g,'-'), text:'a mark that arrived by '+path, color:'green', created:now, updated:now };
+      const meta=Object.assign({}, await DB.get('meta', id)), had=((await DB.get('highlights', id))||{}).items||[];
+      const rec={ meta:meta, highlights:had.concat([mark]), updatedAt:now };
+      if(path==='folder'){ await B.put('.reader/'+id+'.json', JSON.stringify(rec)); await vaultPull(); }
+      else if(path==='notes file'){ await B.put('notes/WR-notes-phone.json', JSON.stringify({ app:'epub-reader', format:'wr-notes', version:1, device:'another-device', exportedAt:new Date().toISOString(), books:[rec] })); await vaultPull(); }
+      else if(path==='hand-off'){ await B.put('handoff-'+now+'.json', JSON.stringify({ app:'backchat-handoff', exportedAt:new Date().toISOString(), books:[{ meta:meta, highlights:[mark], updatedAt:now }] })); await vaultPull(); }
+      else if(path==='conflict copy'){ await B.put('.reader/'+id+' (conflicted copy).json', JSON.stringify(rec)); await vaultPull(); }
+      else if(path==='restore'){ await restoreFromObject({ app:'epub-reader', version:2, books:[meta], highlights:[{ id:id, items:[mark], updatedAt:now }], tombstones:{ids:{},keys:{}} }); }
+      else if(path==='device sync'){ await cloudApplyBundle({ app:'backchat-sync', v:1, device:'phone', name:'Phone', at:now, tombstones:{ids:{},keys:{},undo:{ids:{},keys:{}}}, books:[{ meta:meta, highlights:[mark], updatedAt:now }] }); }
+      else if(path==='tidy-up'){ const dup=Object.assign({}, meta, { id:'zz'+id }); await DB.put('meta', dup); await DB.put('highlights', { id:dup.id, items:[mark], updatedAt:now }); await reconcileLibrary(); }
+      await B.quiet(400);
+      const mine=highlights.filter(h=>!h.deleted && !/^arrived-/.test(h.id))[0];
+      toggleFav(mine.id);   // the reader's next save: any edit of a mark made here
+      await new Promise(r=>setTimeout(r,700)); await B.quiet(400);
+      return hlLive(((await DB.get('highlights', id))||{}).items).some(h=>h.id===mark.id);
+    }"""
+    PATHS = ("folder", "notes file", "hand-off", "conflict copy", "restore", "device sync", "tidy-up")
+    expect("a mark that arrives while its book is open survives the reader's next save, by every path", [pth for pth in PATHS if ev(op_, ARRIVE, [oid, pth]) is not True], [],
+           "the open book saved its own copy of the marks over the ones that had just arrived")
+    expect("what you change on the page of the book you are reading stays when you go back to it", ev(op_, r"""async(id)=>{
+      await openDetails(id); await new Promise(r=>setTimeout(r,300));
+      detailsNotesEdit(); document.querySelector('#det-notes-area').value='Written on the book page.'; detailsNotesSave();
+      addDetTag('kept-tag'); const was=!!(await DB.get('meta', id)).fav; await bcToggleFav(id, null);
+      await new Promise(r=>setTimeout(r,500));
+      await openBookAt(id); await new Promise(r=>setTimeout(r,300));      // Continue: back to the reader, which never closed
+      await rendition.next(); await new Promise(r=>setTimeout(r,1200));   // a page turn saves the reader's copy of the record
+      const m=await DB.get('meta', id), lost=[];
+      if(!/Written on the book page/.test(m.scratch||'')) lost.push('margins');
+      if((m.tags||[]).indexOf('kept-tag')<0) lost.push('tag');
+      if(!!m.fav===was) lost.push('favourite');
+      return lost; }""", oid), [],
+           "the page and the reader each held a copy of the book's record, and the reader's next save wrote its older copy back")
+    expect("refreshing a closed book from the folder leaves you on its page", ev(op_, r"""async(id)=>{
+      closeBook(); await new Promise(r=>setTimeout(r,500));
+      await openDetails(id); await new Promise(r=>setTimeout(r,300));
+      await refreshBookFromFolder(await DB.get('meta', id)); await new Promise(r=>setTimeout(r,2000));
+      return bcScreen(); }""", oid), "details",
+           "a closed book still counted as the open one, so the refresh opened it in the reader")
+    expect("the start-up tidy-up reads the library a fixed number of times, however many books have no file here", ev(op_, r"""async()=>{
+      const now=Date.now();
+      for(let i=0;i<40;i++){ const id='ghost'+i; await DB.put('meta', { id, title:'Ghost Book '+i, author:'Nobody', bookKey:'id:urn:ghost:'+i, addedAt:now, updated:now, tags:[] }); await DB.put('highlights', { id, items:[], updatedAt:now }); }
+      let n=0; const all=DB.all; DB.all=function(s){ if(s==='meta') n++; return all.apply(DB, arguments); };
+      try{ await reconcileLibrary(); } finally { DB.all=all; }
+      for(let i=0;i<40;i++){ await DB.del('meta','ghost'+i); await DB.del('highlights','ghost'+i); }
+      return n; }"""), lambda n: isinstance(n, int) and n <= 3,
+           "it read the whole library again for every book without its file here: on a phone that holds most books that way, seconds at every start")
+    octx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.
