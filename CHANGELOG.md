@@ -19,7 +19,8 @@ Folder sync, tidied: one copy of each rule where there were several, in less cod
 - The header of each notes file, and the guide (revision 24), now say what is true: Backchat writes the file from your marks and never reads it back. Both used to say it was rewritten on every sync.
 
 **Checks**
-- Three new checks, all failing on 1.0.70: opening Backchat the next day rewrites no unchanged file; the same notes in another order, or with another time of change, are not rewritten; Check folder does not promise to add a file sync could not add.
+- Three new checks, all failing on 1.0.70: opening Backchat the next day rewrites no unchanged file; the same notes in another order, or with another time of change, are not rewritten; Check folder does not promise to add a file sync could not add. All 181 checks pass.
+- Replayed against the real folder's records and notes, as for 1.0.70: the first sync makes the same 679 one-time writes, later syncs and a reopen make none, and no mark is lost. Opening Backchat the next day made 321 writes on 1.0.70 and makes none on this build.
 
 ## 1.0.70 (6 November 2026)
 
