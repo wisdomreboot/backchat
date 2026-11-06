@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 22
+revision: 23
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -71,7 +71,7 @@ Tap a cover and you arrive at the book's own page, one step before the book itse
 - {{icon:backup}} **Save a backup of this book** makes one file that brings this book back whole: the book, every mark, your place.
 - {{icon:book-link}} **Copy book link** copies a link to this page, ready to paste into another book's margins.
 - {{icon:edit}} **Edit metadata** changes the cover, title, author, year, rating, summary, tags and related books.
-- {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark.
+- {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark. Put a corrected copy of the book in the books folder under any name and Refresh switches the book to it.
 - {{icon:remove}} **Remove from this device** frees the space a book takes and keeps every mark. It appears when no folder is connected, which usually means a phone.
 - {{icon:delete}} **Delete book** removes it, after saving a complete backup first.
 
@@ -219,7 +219,7 @@ Your books are written into a books folder inside it, and the door swings both w
 
 The browser keeps only a working copy of your twenty most recently opened books. Everything else lives in the folder and is fetched the moment you open it. Clearing the browser loses nothing, because the folder holds the library.
 
-The Backchat name on the home screen is the sync light, and the dot at the bottom of the reader repeats it. In Settings, under Advanced, Check folder reads the folder back to you: which books and notes are present, what is waiting, what is left over, with one tap to clean up files that nothing reads any more. And once a week, with the folder connected, a small backup writes itself into a backups folder, keeping the four newest.
+The Backchat name on the home screen is the sync light, and the dot at the bottom of the reader repeats it. In Settings, under Advanced, Check folder reads the folder back to you and says what the next sync will do with each part of it: books with notes but no file, new files, copies of books you have, books you deleted whose files are back, files it cannot read, and conflict copies left by a cloud client. One tap brings deleted books back from their files, and one cleans up files that nothing reads any more. And once a week, with the folder connected, a small backup writes itself into a backups folder, keeping the four newest.
 
 ## Sync your devices
 
@@ -267,7 +267,7 @@ With a folder {{icon:folder}} connected, Save keeps the file small by storing on
 
 ## Deleting is safe
 
-Delete a book from its page and Backchat saves a complete backup of it first: the file, your highlights, comments and reading position, into the backups folder or your downloads. Bring it back later with Load {{icon:load}} and the book returns whole, open to the same page. So you can clear a finished book off your shelf without ever losing the words you wrote.
+Delete a book from its page and Backchat saves a complete backup of it first: the file, your highlights, comments and reading position, into the backups folder or your downloads. Each delete keeps its own backup, so deleting a book you had added back never replaces the first one. Bring it back later with Load {{icon:load}} and the book returns whole, open to the same page. So you can clear a finished book off your shelf without ever losing the words you wrote. A deleted book does not return just because its file turns up in the folder again; if you put it there to bring it back, Check folder offers Add back, and the book returns without its old marks, which stay in its backup.
 
 One button goes further, and it says so. Delete everything in this browser, at the bottom of Settings under Advanced, erases this browser's whole library. It leaves your folder untouched, and it offers to download a backup before it starts.
 

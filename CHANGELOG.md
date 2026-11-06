@@ -2,6 +2,38 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.70 (6 November 2026)
+
+The folder, for a library where books come and go: added, deleted and added back, in Backchat and in the folder itself, with a cloud client carrying it between computers.
+
+Checked against a real folder (315 book files, 333 notes records, 20 files in notes/) and against every way of adding, deleting and adding back a book. Two faults were doing real damage there: four books had lost their EPUB and five their notes file to the first, and the second had every sync rewriting the whole folder.
+
+**Fixed**
+- **Tidying a duplicate deleted the book's file and notes.** A second record of the same book (left by a second browser connecting to the folder, or by two syncs running at once) shares the book's file names, and removing it removed the surviving record's EPUB and Markdown notes as well. When this browser no longer held the book itself, the EPUB was gone from the folder for good. Duplicates are now folded into one record and the files stay. Every browser folds a duplicate into the same record, so two browsers on one folder no longer each remove the other's.
+- **A duplicate came back on every sync.** Old notes snapshots in notes/ (latest.json and its cloud conflict copies) brought the removed record back, and tidying it removed the files again. A record of a book the library holds under another id is now folded into that book, from the folder, from notes files and from conflict copies alike.
+- **One unreadable .epub in books/ stopped folder sync for good.** An empty file, one still downloading, or anything else named .epub made the reader wait forever at that file, silently, and nothing after it in the sync ran. Check folder waited forever too. Such a file is now left alone and named once; Check folder lists it with the reason. Add EPUB refuses it with the reason instead of hanging.
+- **A new copy of a book you have was deleted.** A corrected edition dropped into books/ under another name, or a different book with the same title and author and no identifier, was removed as a stray copy, with the message "Tidied 1 book file name". A copy is now removed only when it is byte for byte the book's own file; any other copy is kept and named. To switch a book to a corrected copy, use Refresh EPUB from folder on its page: it now reads from that copy.
+- **Adding a changed EPUB in the app did not reach the folder.** "Updated the book file" changed this browser's copy only; the folder kept the old file, which came back once the browser let go of its copy. The folder's copy is now replaced too, and a change is noticed by content, not only by a change in size.
+- **Deleting a book again overwrote its first backup.** Delete, add back, delete: the second backup replaced the first, the one holding the marks. Each backup now gets a name of its own.
+- **A book added back could be deleted again.** Another browser, the phone or an older copy of the folder still holding the delete passed it back, and the book went again, new marks and all. Adding back is now recorded with its time, and for any book the later of delete and add-back holds, on every device.
+- **Two syncs at once imported a new book twice**, and folding the twins removed its file. A sync started while one is running now joins it.
+- **Connecting or reopening wrote before it read.** This browser's records went into the folder first, over newer ones another browser had saved there. Sync now reads the folder first.
+- **A delete made while the folder was disconnected stayed in this browser.** It is now written to the folder at the next sync, so other browsers learn of it.
+
+**Changed**
+- **A sync with nothing new writes nothing.** Each sync merged every file in notes/ again and marked every book as changed, so it rewrote every book's record once for each notes file: on the folder checked, about 6,400 writes a sync, each a chance for the cloud client to make a conflict copy. Notes files are now merged only when they change, this browser's own snapshot not at all, and a merge writes only what it changes.
+- **Opening Backchat no longer rewrites the folder.** The first sync after opening wrote every record and note file again, unchanged, because the browser no longer remembered writing them. It now compares with what the folder holds and writes only differences.
+- **A sync no longer reads the whole library into the browser.** It read every book file the browser had let go of (about 270 MB on the folder checked), only for the browser to let them go again. A book's file is read when you open it.
+- **Cloud conflict copies in notes/ are merged and removed**, as copies of the records in .reader already were. Conflict copies of the Markdown notes in highlights/ are listed by Check folder, with a button to remove them: Backchat writes those notes from your records, so the copies hold nothing it needs.
+- **Check folder says what each part of the folder is and what the next sync will do with it**, judging book files by their content, as sync does: duplicate records, books with notes but no EPUB anywhere, new files, copies of books you have (the same file, or different contents), books you deleted whose files are back, files it cannot read, conflict copies, leftovers. It used to say a deleted book's file would import on the next sync, which it never would. It now offers **Add back** for those books.
+- **A deleted book's file dropped back into books/ is mentioned once**, instead of being passed over without a word.
+- "Books with notes but no EPUB" is said once each time the set of such books changes, not at every sync.
+- The guide (revision 23) describes Check folder, Add back, Refresh from a corrected copy, and backups that are never replaced.
+
+**Checks**
+- Seventeen new checks against a mock folder that keeps real file times, can lose permission or vanish, and logs every write: two syncs at once keep every book and its file; a notes snapshot's conflict copies are merged once and removed; a sync with nothing new writes nothing; a sync reads no book file into the browser; reopening Backchat rewrites no unchanged file; an unreadable file does not stop the sync and is mentioned once; folding a second record keeps the book's file and notes; a copy with different contents is kept; Refresh EPUB from folder reads from that copy and keeps the marks; adding a changed EPUB in the app replaces the folder's copy; deleting a book again keeps its first backup; a book added back stays when an older delete returns through the folder or the relay; a deleted book's file dropped back is left alone and mentioned; Check folder names it and offers Add back; Add back returns it; and two browsers sharing a folder settle on one record of a book. All seventeen fail on 1.0.69.
+- Replayed against the real folder's records and notes: its first sync on 1.0.69 made 6,642 file operations, removing the notes file of six books and the EPUB of two (rewritten from the browser's copy), and its second made 12,944. On this build the first sync made 679 (one-time: duplicates folded, 26 conflict copies merged and removed, missing note files written again), every later sync none, and no mark was lost.
+
 ## 1.0.69 (25 October 2026)
 
 Read aloud becomes a switch you flip while reading: the speaker in the top bar.
