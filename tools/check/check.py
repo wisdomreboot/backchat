@@ -79,6 +79,13 @@ make_epub(ALPHA, "Alpha Testing Book", "Ann Author", "urn:isbn:9780000000001", [
 make_epub(BETA, "Beta Second Book", "Bob Writer", "urn:isbn:9780000000002", [
     ("Opening", ["Another quick brown fox appears in a second book to test rhymes across books.",
                  "Zygomorphic symmetry is a botanical term used by careful readers."])])
+# The same book (same identifier) as a corrected file with different contents, and a third book.
+ALPHA2, GAMMA = os.path.join(TMP, "alpha2.epub"), os.path.join(TMP, "gamma.epub")
+make_epub(ALPHA2, "Alpha Testing Book", "Ann Author", "urn:isbn:9780000000001", [
+    ("Chapter One", ["The quick brown fox jumps over the lazy dog near the riverbank, corrected.",
+                     "A rare word appears here: zygomorphic flowers bloom in spring and summer."])])
+make_epub(GAMMA, "Gamma Third Book", "Cy Writer", "urn:isbn:9780000000003", [
+    ("Only", ["A third book, so a library has more than one shelf mate."])])
 LONG = os.path.join(TMP, "long.epub")
 make_long_epub(LONG)
 # A book that sets its own tight line spacing and side margins, as many do.
@@ -450,6 +457,111 @@ with sync_playwright() as p:
           return [!(await DB.get('meta',id)), (await searchFullText('zygomorphic',60,{},parseSearch('zygomorphic'))).length];
         }""", res["id"]), [True, 0], "a remote delete removes the record and its search rows")
     fctx.close()
+
+    # 4b. The folder as people really use it: books added, deleted and added back, files dropped in
+    #     by hand, cloud clients leaving conflict copies, two browsers on one folder. The mock folder
+    #     logs every write, so "nothing to do" can be checked as "nothing written".
+    B64 = {k: base64.b64encode(open(v, "rb").read()).decode() for k, v in (("alpha", ALPHA), ("alpha2", ALPHA2), ("beta", BETA), ("gamma", GAMMA))}
+    MOCKFS = open(os.path.join(HERE, "mockfs.js"), encoding="utf-8").read()
+    def folder_page(label):
+        c = browser.new_context(bypass_csp=True); pg = c.new_page(); watch(pg, label)
+        pg.goto(URL); wait(pg, "typeof vaultPull==='function'"); settle(1.5)
+        pg.evaluate(MOCKFS); pg.evaluate("()=>B.init()")
+        pg.evaluate("()=>{ window.__toasts=[]; const t=window.toast; window.toast=function(m){ __toasts.push(String(m)); return t.apply(this, arguments); }; }")
+        return c, pg
+    SYNC = "async()=>{ B.mark(); const r=await Promise.race([vaultPull().then(()=>vaultPushAll()).then(()=>'done'), new Promise(r=>setTimeout(()=>r('stuck'),25000))]); await B.quiet(600); return [r, B.log('w').length, B.log('r')]; }"
+    ALPHA_ID = "async()=>((await DB.all('meta')).find(x=>x.title==='Alpha Testing Book')||{}).id"
+    def drop(pg, name, key): ev(pg, "([n,b])=>B.putB64('books/'+n, b)", [name, B64[key]])
+    def add_in_app(pg, key, name):
+        return ev(pg, "async([b,n])=>{ const u=Uint8Array.from(atob(b),c=>c.charCodeAt(0)); await importFiles([new File([u], n)]); await B.quiet(); return true; }", [B64[key], name])
+    def mark_book(pg, title, n, tag):
+        return ev(pg, """async([t,n,g])=>{ const m=(await DB.all('meta')).find(x=>x.title===t); const h=(await DB.get('highlights',m.id))||{id:m.id,items:[]}; const now=Date.now();
+          for(let i=0;i<n;i++) h.items.push({id:g+i+'-'+now, text:g+' '+i, color:'yellow', note:'', created:now+i, updated:now+i}); await DB.put('highlights',h); await vaultPushBook(m.id,false); await B.quiet(); return h.items.length; }""", [title, n, tag])
+    def delete_book(pg, title):
+        return ev(pg, """async(t)=>{ const m=(await DB.all('meta')).find(x=>x.title===t); detailsBook=m; detailsItems=((await DB.get('highlights',m.id))||{}).items||[]; detailsDelete(); await B.quiet(1200); return !(await DB.get('meta', m.id)); }""", title)
+
+    gctx, gp = folder_page("folder-robust-1")
+    for nm, k in (("a.epub", "alpha"), ("b.epub", "beta"), ("g.epub", "gamma")): drop(gp, nm, k)
+    expect("two syncs at once keep every book and its file", ev(gp, """async()=>{ await Promise.all([vaultPull(), vaultPull()]); await B.quiet();
+        return [(await DB.all('meta')).filter(m=>m.kind!=='text').length, Object.keys(await B.ls('books')).filter(n=>!/talk-back/i.test(n)).length]; }"""), [3, 3],
+        "a second sync started while one runs joins it; two at once imported a book twice, and folding the twins removed the book file")
+    ev(gp, SYNC)
+    ev(gp, "async()=>{ const s=JSON.stringify(await buildNotesBundle()); await B.put('notes/latest.json', s); await B.put('notes/latest [conflicted].json', s); await B.put('notes/latest (conflicted 1).json', s); return true; }")
+    first = ev(gp, SYNC)
+    expect("a notes snapshot's cloud conflict copies are merged once, then removed", [first[0], sorted(ev(gp, "async()=>Object.keys(await B.ls('notes'))"))] if isinstance(first, list) else first, ["done", ["notes/latest.json"]],
+           "they piled up beside latest.json, and every sync merged every one of them")
+    ev(gp, "async()=>{ for(const m of await DB.all('meta')) if(m.kind!=='text') await DB.del('blob', m.id); window.__bp=0; const p=DB.put; DB.put=function(s){ if(s==='blob') __bp++; return p.apply(DB, arguments); }; return true; }")
+    again = ev(gp, SYNC)
+    expect("a sync with nothing new writes nothing to the folder", again[:2] if isinstance(again, list) else again, ["done", 0],
+           "each sync rewrote every book's record once per notes file: thousands of writes for a cloud client to collide over")
+    expect("a sync reads no book file into the browser", ev(gp, "()=>window.__bp"), 0,
+           "every sync read each book the browser had let go of, only for the cache to let it go again")
+    reopened = ev(gp, "async()=>{ _vaultLastWrite={}; _vaultIndexHash=''; return true; }") and ev(gp, SYNC)   # what reopening Backchat forgets
+    expect("reopening Backchat rewrites no unchanged file", reopened[:2] if isinstance(reopened, list) else reopened, ["done", 0],
+           "the first sync after opening wrote every record and note file again, since the browser no longer knew it had")
+    ev(gp, "async()=>{ await B.put('books/empty.epub', new Uint8Array([])); await B.put('books/broken.epub', new Uint8Array([80,75,3,4,9,9,9])); __toasts.length=0; return true; }")
+    stuck = ev(gp, SYNC)
+    expect("an unreadable file in books/ does not stop the sync", [stuck[0] if isinstance(stuck, list) else stuck, any("left 2 files" in t for t in ev(gp, "()=>__toasts"))], ["done", True],
+           "an empty or half-downloaded .epub made the reader wait forever, so every sync stopped there, silently")
+    expect("the next sync passes the unreadable files by quietly", ev(gp, "async()=>{ __toasts.length=0; const r=await Promise.race([vaultPull().then(()=>'done'), new Promise(r=>setTimeout(()=>r('stuck'),25000))]); return r==='done' ? __toasts.filter(t=>/alone/.test(t)).length : r; }"), 0, "said once, not on every sync")
+    gctx.close()
+
+    gctx, gp = folder_page("folder-robust-2")
+    drop(gp, "alpha.epub", "alpha"); ev(gp, SYNC); mark_book(gp, "Alpha Testing Book", 2, "keep")
+    canon = ev(gp, "async()=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); return vaultPathName(m); }")
+    ev(gp, """async()=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); const t=Object.assign({}, m, {id:'zz0twin0000000'}); delete t.cover;
+        await B.put('.reader/zz0twin0000000.json', JSON.stringify({meta:t, highlights:[], updatedAt:1})); return true; }""")
+    folded = ev(gp, SYNC)
+    files = ev(gp, "()=>B.ls()")
+    expect("folding a second record of a book keeps the book's file and notes", [("books/%s.epub" % canon) in files, ("highlights/%s.md" % canon) in files, ".reader/zz0twin0000000.json" in files, folded[2] if isinstance(folded, list) else folded],
+           [True, True, False, [".reader/zz0twin0000000.json"]], "the duplicate shares the book's file names, and removing it removed the surviving book's EPUB and notes")
+    drop(gp, "Alpha corrected.epub", "alpha2"); ev(gp, SYNC)
+    expect("a copy of a book with different contents is kept, not tidied away", "books/Alpha corrected.epub" in ev(gp, "()=>B.ls('books')"), True,
+           "a corrected edition dropped into books/ was deleted as a stray copy of the book")
+    expect("Refresh EPUB from folder reads from that copy and keeps the marks", ev(gp, """async()=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); await refreshBookFromFolder(m); await B.quiet();
+        const f=await B.ls('books'), bl=await DB.get('blob', m.id), h=await DB.get('highlights', m.id); return [f['books/'+vaultPathName(m)+'.epub']===bl.data.byteLength, bl.data.byteLength, !!f['books/Alpha corrected.epub'], h.items.length]; }"""),
+           [True, os.path.getsize(ALPHA2), False, 2], "the refresh is the deliberate way to switch a book to a new file")
+    ev(gp, "async(b)=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); const u=Uint8Array.from(atob(b),c=>c.charCodeAt(0)); await B.put('books/'+vaultPathName(m)+'.epub', u); await DB.put('blob', {id:m.id, data:u.buffer}); return true; }", B64["alpha2"])   # the book reads from the corrected file, here and in the folder
+    add_in_app(gp, "alpha", "alpha-original.epub")
+    expect("adding a changed EPUB in the app replaces the folder's copy", ev(gp, "async()=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); return (await B.ls('books'))['books/'+vaultPathName(m)+'.epub']; }"), os.path.getsize(ALPHA),
+           "Updated the book file left the old file in the folder, and it came back once the browser let go of its copy")
+    gctx.close()
+
+    gctx, gp = folder_page("folder-robust-3")
+    add_in_app(gp, "alpha", "alpha.epub"); mark_book(gp, "Alpha Testing Book", 5, "first")
+    delete_book(gp, "Alpha Testing Book"); add_in_app(gp, "alpha", "alpha.epub"); delete_book(gp, "Alpha Testing Book")
+    expect("deleting a book again keeps its first backup, marks and all", ev(gp, """async()=>{ const out=[]; for(const n of Object.keys(await B.ls('backups')).sort()){ if(!/Alpha-Testing-Book-backup/.test(n)) continue; const j=JSON.parse(await B.text(n)); out.push(((j.highlights||[])[0]||{items:[]}).items.length); } return out.sort(); }"""), [0, 5],
+           "the second delete overwrote the first backup, the one holding the marks")
+    stale = ev(gp, "()=>B.text('.reader/_tombstones.json')")
+    add_in_app(gp, "alpha", "alpha.epub"); mark_book(gp, "Alpha Testing Book", 2, "back")
+    ev(gp, "(t)=>B.put('.reader/_tombstones.json', t)", stale)
+    ev(gp, SYNC)
+    key = ev(gp, "async()=>bookKeyOf((await DB.all('meta')).find(x=>x.title==='Alpha Testing Book')||{})")
+    ev(gp, "async(k)=>{ const t={ids:{}, keys:{}}; t.keys[k]=Date.now()-60000; await cloudApplyBundle({app:'backchat-sync', v:1, name:'phone', tombstones:t, books:[]}); await B.quiet(); return true; }", key)
+    expect("a book added back stays when an older delete comes back from another copy", ev(gp, "async()=>{ const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'); return m ? ((await DB.get('highlights', m.id)).items||[]).length : 'deleted again'; }"), 2,
+           "another browser's tombstones in the folder, or the phone's through the relay, deleted the re-added book again")
+    drop(gp, "g.epub", "gamma"); ev(gp, SYNC); delete_book(gp, "Gamma Third Book")
+    drop(gp, "Gamma again.epub", "gamma"); ev(gp, "()=>{ __toasts.length=0; return true; }"); ev(gp, SYNC)
+    expect("a deleted book's file dropped back into books/ is left alone, and said so", [ev(gp, "async()=>!!(await DB.all('meta')).find(x=>x.title==='Gamma Third Book')"), any("you deleted" in t for t in ev(gp, "()=>__toasts"))], [False, True],
+           "it was ignored without a word, and Check folder promised it would import on the next sync")
+    report = ev(gp, "async()=>{ await folderCheck(); return [document.querySelector('#folder-check-info').textContent, !document.querySelector('#folder-readd-field').classList.contains('hidden')]; }")
+    expect("Check folder names the deleted book's file and offers Add back", [("you deleted: Gamma Third Book" in report[0]) if isinstance(report, list) else report, report[1] if isinstance(report, list) else None], [True, True], "the way to bring a deleted book back from its file")
+    expect("Add back returns the deleted book", ev(gp, "async()=>{ document.getElementById('folder-readd-btn').click(); await B.quiet(1500); return !!(await DB.all('meta')).find(x=>x.title==='Gamma Third Book'); }"), True, "an explicit add-back clears the delete")
+    gctx.close()
+
+    # Two browsers on one folder, a cloud client carrying it between them.
+    actx, ap_ = folder_page("folder-browser-a"); bctx, bp_ = folder_page("folder-browser-b")
+    def hand(src, dst): ev(dst, "(m)=>B.load(m)", ev(src, "()=>B.dump()"))
+    drop(ap_, "alpha.epub", "alpha"); ev(ap_, SYNC); mark_book(ap_, "Alpha Testing Book", 3, "a")
+    ev(bp_, "()=>{ vault.handle=null; vault.connected=false; return true; }"); add_in_app(bp_, "alpha", "alpha.epub"); ev(bp_, "()=>{ vault.handle=B.root; vault.connected=true; return true; }")
+    hand(ap_, bp_); ev(bp_, SYNC)
+    quiet = []
+    for r in range(2):
+        hand(bp_, ap_); w = ev(ap_, SYNC); quiet.append(w[1] if isinstance(w, list) else w)
+        hand(ap_, bp_); w = ev(bp_, SYNC); quiet.append(w[1] if isinstance(w, list) else w)
+    expect("two browsers sharing a folder settle on one record of a book", [ev(ap_, ALPHA_ID) == ev(bp_, ALPHA_ID), quiet[1:]], [True, [0, 0, 0]],
+           "each kept its own record of the same book and removed the other's on every sync")
+    actx.close(); bctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that

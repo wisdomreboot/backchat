@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-IYIfD/hivA60VVx7pfGSnXyZjGgc6fUCsJHiRgB4jHc=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-zmOuNNf/ymDtz3pmpLANGVVa9MVv2dILt7lLK6otmmQ=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -836,8 +836,9 @@
       <div class="grp">Maintenance</div>
     <div class="grp-note">Optional housekeeping.</div>
     <div class="field"><button class="btn-primary" id="index-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Index favorite books</button><div class="hint" id="index-info">Lets you search inside book text. Runs once per book.</div></div>
-    <div class="field"><button class="btn-primary" id="folder-check-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Check folder</button><div class="hint" id="folder-check-info">Compares the connected folder with this library: notes without a book file, book files not yet imported, hand-offs waiting to merge.</div></div>
-    <div class="field hidden" id="folder-clean-field"><button class="btn-primary" id="folder-clean-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Remove leftover files</button><div class="hint">Deletes internal files from older builds and their cloud conflict copies. This build never reads them. Books, notes records and tombstones are not touched.</div></div>
+    <div class="field"><button class="btn-primary" id="folder-check-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Check folder</button><div class="hint" id="folder-check-info" style="white-space:pre-line">Compares the connected folder with this library and says what the next sync will do: books without a file, new and duplicate files, deleted books whose files are back, conflict copies.</div></div>
+    <div class="field hidden" id="folder-readd-field"><button class="btn-primary" id="folder-readd-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Add back deleted books</button><div class="hint">Adds back the books you deleted whose files are in books/ again. They return without their old marks; each book's delete backup in backups/ holds those, and Load on the home screen restores a backup whole.</div></div>
+    <div class="field hidden" id="folder-clean-field"><button class="btn-primary" id="folder-clean-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Remove leftover files</button><div class="hint">Deletes internal files from older builds and cloud conflict copies of note files in highlights/. Backchat never reads them. Books, notes records and tombstones are not touched.</div></div>
     <div class="field hidden" id="folder-merge-field"><button class="btn-primary" id="folder-merge-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Merge conflict copies</button><div class="hint">Folds any cloud conflict copies of your notes back into the real record, keeping the newest version of every mark, then removes the copies. Nothing is deleted until its marks are safely merged.</div></div>
     <div class="field"><label>Storage</label><div class="hint" id="storage-info">&nbsp;</div></div>
       <div class="grp danger">Danger zone</div>
@@ -1211,10 +1212,10 @@ var DB = (function () {
 
 var $ = function(s){ return document.querySelector(s); };
 // A short status message at the bottom of the screen.
-function toast(msg){
+function toast(msg, ms){
   var t=document.getElementById("toast"); if(!t) return;
   t.textContent=msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove("show"); }, 2400);
+  clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove("show"); }, ms||2400);
 }
 /* ---- Core in-memory state for the open session ----
    settings    reader preferences (persisted to localStorage)
@@ -1247,7 +1248,7 @@ var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.69";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.70";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -1330,14 +1331,39 @@ function looksSameBook(a,b){
 // Key for an existing record that has none yet: the EPUB's own dc:identifier, so the same
 // file resolves to one key on every browser, else the record's title+author.
 function computeBookKey(meta, buf){
-  try{
+  return bcEpubMetadata(buf).then(function(md){
+    var ident=md && md.identifier ? String(md.identifier).trim() : "";
+    return ident ? ("id:"+ident) : looseTitleKey(meta);
+  }, function(){ return looseTitleKey(meta); });
+}
+/* Reading an EPUB the reader cannot open (an empty file, one still downloading, something else
+   renamed .epub) used to stop folder sync for good: epub.js reports the failure as an event and
+   its promises never settle, so everything waiting on them waited forever. Every metadata read
+   now comes through here. Bytes that are not a readable EPUB are refused before epub.js sees
+   them, and anything epub.js still cannot open fails within a time limit. */
+function bcZipProblem(buf){
+  var n=0; try{ n=(buf && buf.byteLength) || 0; }catch(e){}
+  if(!n) return Promise.resolve("the file is empty");
+  if(typeof JSZip==="undefined") return Promise.resolve(null);
+  return JSZip.loadAsync(buf).then(function(zip){
+    return zip.file("META-INF/container.xml") ? null : "it is not an EPUB";
+  }, function(){ return "it is damaged or still downloading"; });
+}
+function bcEpubReady(epb, ms){
+  return new Promise(function(res, rej){
+    var done=false, t=setTimeout(function(){ fin(false, new Error("it could not be read in time")); }, ms||20000);
+    function fin(ok, v){ if(done) return; done=true; clearTimeout(t); if(ok) res(v); else rej(v); }
+    try{ epb.on("openFailed", function(e){ fin(false, e || new Error("it could not be opened")); }); }catch(e){}
+    epb.ready.then(function(){ fin(true, epb); }, function(e){ fin(false, e || new Error("it could not be opened")); });
+  });
+}
+function bcEpubMetadata(buf, ms){
+  return bcZipProblem(buf).then(function(why){
+    if(why) throw new Error(why);
     var epb=ePub(buf.slice(0));
-    return epb.ready.then(function(){ return epb.loaded.metadata; }).then(function(md){
-      try{ epb.destroy(); }catch(e){}
-      var ident=md && md.identifier ? String(md.identifier).trim() : "";
-      return ident ? ("id:"+ident) : looseTitleKey(meta);
-    }, function(){ try{ epb.destroy(); }catch(e){} return looseTitleKey(meta); });
-  }catch(e){ return Promise.resolve(looseTitleKey(meta)); }
+    return bcEpubReady(epb, ms).then(function(){ return epb.loaded.metadata; })
+      .then(function(md){ try{ epb.destroy(); }catch(e){} return md || {}; }, function(e){ try{ epb.destroy(); }catch(_e){} throw e; });
+  });
 }
 // Content signature: byte length plus a sampled FNV-1a hash. Used only as a negative guard
 // (bcSigConflict): two records whose signatures differ are provably different files.
@@ -1357,23 +1383,22 @@ function bcSigConflict(a,b){ var sa=a&&a.sig, sb=b&&b.sig; return !!(sa && sb &&
 // Content identity read straight from an EPUB's bytes: its own dc:identifier when it
 // has one (stable on every device), else title+author. This is the SAME key the import
 // path assigns, so a file recognised here matches the record import would have made.
-function readEpubKey(buf){
-  try{
-    var epb=ePub(buf.slice(0));
-    return epb.ready.then(function(){ return epb.loaded.metadata; }).then(function(md){
-      try{ epb.destroy(); }catch(e){}
-      var ident=md && md.identifier ? String(md.identifier).trim() : "";
-      if(ident) return "id:"+ident;
-      return looseTitleKey({ title:(md&&md.title)||"", author:(md&&(md.creator||md.author))||"" });
-    }, function(){ try{ epb.destroy(); }catch(e){} return ""; });
-  }catch(e){ return Promise.resolve(""); }
+function readEpubInfo(buf){
+  return bcEpubMetadata(buf).then(function(md){
+    var ident=md && md.identifier ? String(md.identifier).trim() : "";
+    var title=(md && md.title) || "", author=(md && (md.creator || md.author)) || "";
+    return { key: ident ? "id:"+ident : looseTitleKey({ title:title, author:author }), title:title, bad:"" };
+  }, function(e){ return { key:"", title:"", bad:(e && e.message) || "it could not be read" }; });
 }
 var TOMB_KEY="tombstones";
 /* ============================================================
    TOMBSTONES
    Remember deletes so a sync never resurrects a removed book.
    ============================================================ */
-function loadTombstones(){ return DB.get("app", TOMB_KEY).then(function(r){ return (r&&r.val) || {ids:{},keys:{}}; }).catch(function(){ return {ids:{},keys:{}}; }); }
+function loadTombstones(){ return DB.get("app", TOMB_KEY).then(function(r){ return bcTombShape(r && r.val); }).catch(function(){ return bcTombShape(null); }); }
+// ids/keys: what is deleted, each with when. undo.ids/undo.keys: what was added back after a
+// delete, each with when. For any one book the later of the two holds (foldTombstones).
+function bcTombShape(t){ t=t||{}; t.ids=t.ids||{}; t.keys=t.keys||{}; t.undo=t.undo||{}; t.undo.ids=t.undo.ids||{}; t.undo.keys=t.undo.keys||{}; return t; }
 function isTombstoned(t, id, key){ if(!t) return false; return !!((id && t.ids && t.ids[id]) || (key && t.keys && t.keys[key])); }
 /* Every change to the tombstone record goes through this one queue. Two writers working from
    the same snapshot would otherwise each save their own copy, and the later save would drop
@@ -1384,7 +1409,7 @@ var _tombQ=Promise.resolve();
 function mutateTombstones(fn){
   var run=_tombQ.then(function(){
     return loadTombstones().then(function(t){
-      t.ids=t.ids||{}; t.keys=t.keys||{};
+      bcTombShape(t);
       return Promise.resolve(fn(t)).then(function(changed){
         if(!changed) return { tomb:t, changed:false };
         return DB.put("app", {key:TOMB_KEY, val:t}).then(function(){ return { tomb:t, changed:true }; });
@@ -1394,10 +1419,19 @@ function mutateTombstones(fn){
   _tombQ=run.then(function(){}, function(){});
   return run;
 }
-// Merge another copy's tombstones into t (newest stamp of each wins). True when t changed.
+// Merge another copy's tombstones into t. A delete and an add-back each carry when they happened,
+// and for any one book the later of the two holds. Before add-backs were recorded, a book deleted
+// and then added back was deleted again by the first other browser, phone or folder copy that
+// still held the old delete. True when t changed.
 function foldTombstones(t, src){
-  var changed=false;
-  ["ids","keys"].forEach(function(g){ var from=(src&&src[g])||{}; Object.keys(from).forEach(function(k){ var v=+from[k]||0; if(v>(t[g][k]||0)){ t[g][k]=v; changed=true; } }); });
+  bcTombShape(t);
+  var changed=false, su=(src && src.undo) || {};
+  ["ids","keys"].forEach(function(g){
+    var fu=su[g]||{}, from=(src && src[g])||{};
+    Object.keys(fu).forEach(function(k){ var v=+fu[k]||0; if(v>(t.undo[g][k]||0)){ t.undo[g][k]=v; changed=true; } });
+    Object.keys(from).forEach(function(k){ var v=+from[k]||0; if(v>(t[g][k]||0) && v>(t.undo[g][k]||0)){ t[g][k]=v; changed=true; } });
+    Object.keys(t[g]).forEach(function(k){ var u=t.undo[g][k]; if(u && u>=(+t[g][k]||0)){ delete t[g][k]; changed=true; } });   // added back after it was deleted
+  });
   return changed;
 }
 function tombPushIfChanged(r){ if(r.changed && vault.handle){ try{ vaultPushTombstones(); }catch(e){} } return r.tomb; }
@@ -1409,11 +1443,11 @@ function clearTombstone(id, key){ return clearTombstones([[id, key]]); }
 // Un-delete many books in one write (an explicit restore clears every book it carries).
 function clearTombstones(pairs){
   return mutateTombstones(function(t){
-    var changed=false;
+    var changed=false, now=Date.now();
     (pairs||[]).forEach(function(pr){
       var id=pr&&pr[0], key=pr&&pr[1];
-      if(id && t.ids[id]){ delete t.ids[id]; changed=true; }
-      if(key && t.keys[key]){ delete t.keys[key]; changed=true; }
+      if(id && t.ids[id]){ delete t.ids[id]; t.undo.ids[id]=now; changed=true; }
+      if(key && t.keys[key]){ delete t.keys[key]; t.undo.keys[key]=now; changed=true; }
     });
     return changed;
   }).then(tombPushIfChanged);
@@ -1425,8 +1459,9 @@ function findLiveBookFor(metas, m, tomb){
   for(i=0;i<metas.length;i++){ e=metas[i]; if(isTombstoned(tomb, e.id, bookKeyOf(e))) continue; if(looksSameBook(e, m) && !bcSigConflict(e, m)) return e; }
   return null;
 }
-// Import path that merges into an existing copy instead of minting a duplicate.
-function upsertImportedBook(m, buf){
+// Import path that merges into an existing copy instead of minting a duplicate. fromFolder: the
+// file came from books/ itself, so the folder's own copy of the book is never written over.
+function upsertImportedBook(m, buf, fromFolder){
   return Promise.all([DB.all("meta"), loadTombstones()]).then(function(r){
     var metas=r[0]||[], tomb=r[1];
     var clearP = isTombstoned(tomb, m.id, bookKeyOf(m)) ? clearTombstone(m.id, m.bookKey) : Promise.resolve();
@@ -1439,18 +1474,22 @@ function upsertImportedBook(m, buf){
           // Re-importing a book already in the library: replace the stored EPUB bytes when the
           // incoming file differs (a corrected or updated edition), not only when none exist.
           // Notes, highlights and progress live in separate stores keyed by id, so they survive.
-          var incLen = buf ? (buf.byteLength!=null ? buf.byteLength : (buf.length||0)) : 0;
-          var curLen = (bl && bl.data) ? (bl.data.byteLength!=null ? bl.data.byteLength : (bl.data.length||0)) : 0;
-          var replaced = !!bl && !!bl.data && incLen>0 && incLen!==curLen;
+          // "Differs" is by content, not length, and holds when this browser no longer caches the
+          // bytes (the record keeps the file's signature). The folder's copy of the book is
+          // replaced too: it used to keep the old file, which came back once the cache let go.
+          var incSig = m.sig || (buf && buf.byteLength ? bcContentSig(buf) : "");
+          var curSig = (bl && bl.data) ? bcContentSig(bl.data) : (existing.sig || "");
+          var replaced = !!incSig && !!curSig && incSig!==curSig;
           var needBlob = !bl || !bl.data || replaced;
           return DB.put("meta", merged)
             .then(function(){ return needBlob ? DB.put("blob", {id:existing.id, data:buf}) : null; })
+            .then(function(){ return (needBlob && vault.handle && !fromFolder) ? vaultPushEpub(existing.id, true).catch(function(){}) : null; })   // writes only when the folder's copy is missing or different
             .then(function(){ return DB.get("highlights", existing.id); })
             .then(function(h){ if(!h) return DB.put("highlights", {id:existing.id, items:[], updatedAt:Date.now()}); })
             .then(function(){ toast((replaced?"Updated the book file: \u201c":"Already in your library: \u201c")+(merged.title||"book")+"\u201d"); return existing.id; });
         });
       }
-      return DB.put("meta", m).then(function(){ return DB.put("blob", {id:m.id, data:buf}); }).then(function(){ return DB.put("highlights", {id:m.id, items:[]}); }).then(function(){ return m.id; });
+      return DB.put("meta", m).then(function(){ return DB.put("blob", {id:m.id, data:buf}); }).then(function(){ return DB.put("highlights", {id:m.id, items:[], updatedAt:Date.now()}); }).then(function(){ return m.id; });
     });
   });
 }
@@ -1810,8 +1849,10 @@ async function connectVault(){
   try{ await DB.put("app", { key:"vaultHandle", handle:handle }); }catch(e){}
   updateVaultUI();
   toast("Folder connected. Syncing…");
-  await vaultPushAll();
+  // Read the folder first, then write: writing first put this browser's older copy of a book's
+  // record over a newer one another browser had saved, before this browser had read it.
   await vaultPull();
+  await vaultPushAll();
   toast("Folder in sync");
 }
 async function disconnectVault(){
@@ -1828,7 +1869,7 @@ async function reconnectVault(){
       // Chromium drops directory permission to "prompt" on reload. queryPermission tells us
       // the truth without a gesture; if it lapsed we hold the handle and offer Reconnect.
       var st = await rec.handle.queryPermission({mode:"readwrite"});
-      if(st==="granted"){ vault.connected=true; vault.needsReauth=false; updateVaultUI(); await vaultPushAll(); await vaultPull(); }
+      if(st==="granted"){ vault.connected=true; vault.needsReauth=false; updateVaultUI(); await vaultPull(); await vaultPushAll(); }
       else { vault.connected=false; vault.needsReauth=true; updateVaultUI(); }
     }
   }catch(e){}
@@ -1849,7 +1890,7 @@ async function reauthVault(){
       vault.connected=true; vault.needsReauth=false; _syncPausedToasted=false; updateVaultUI();
       vault.lastError="";
       toast("Folder reconnected. Catching up…");
-      await vaultPushAll(); await vaultPull();
+      await vaultPull(); await vaultPushAll();
       toast("Folder in sync");
     } else { toast("Folder permission was not granted"); }
   }catch(e){ toast("Could not reconnect folder"); }
@@ -1937,7 +1978,7 @@ function importEpubBuffer(buf, fallbackName, tomb){
   return epubSafetyReject(buf).then(function(_reason){
   if(_reason){ toast("Skipped a book: "+_reason); return null; }
   var tmp=ePub(buf.slice(0));
-  return tmp.ready.then(function(){ return tmp.loaded.metadata; }).then(function(md){
+  return bcEpubReady(tmp).then(function(){ return tmp.loaded.metadata; }).then(function(md){
     return tmp.coverUrl().catch(function(){ return null; }).then(function(c){ return c ? blobToDataUrl(c).then(makeCoverThumb) : extractCoverFromEpub(buf); }).then(function(cover){
       var ident = md && md.identifier ? String(md.identifier).trim() : "";
       var m = { id:uid(), title:(md&&md.title)||String(fallbackName||"Untitled").replace(/\.epub$/i,""), author:(md&&(md.creator||md.author))||"", cover:null, addedAt:Date.now(), progress:0, lastCfi:null, lastOpened:null, readMs:0, tags:[], finished:false, year:(md&&md.pubdate?(""+md.pubdate).slice(0,4):""), publisher:(md&&md.publisher)||"" };
@@ -1946,7 +1987,7 @@ function importEpubBuffer(buf, fallbackName, tomb){
       if(tomb && isTombstoned(tomb, null, m.bookKey)) return null;
       return bcExtractMediaSource(buf).then(function(ms){
         m.videoId = ms.videoId || ""; if(ms.sourceUrl) m.sourceUrl = ms.sourceUrl;   // capture the source at import so notes can name it
-        return upsertImportedBook(m, buf);
+        return upsertImportedBook(m, buf, true);
       }).then(function(keptId){ if(cover) putCover(keptId, cover); indexBook(keptId).catch(function(e){ console.warn("index on import", e); }); markCorpusDirty(); return keptId; });
     });
   }).then(function(r){ try{ tmp.destroy(); }catch(e){} return r; })
@@ -1995,77 +2036,96 @@ async function vaultHealNotes(dirs){
   }catch(e){ console.warn("heal notes", e); }
   return removed;
 }
-/* The folder IS the library: any EPUB found in books/ that we do not recognise is
-   imported. Recognised means its filename is a book's canonical name, or failing that
-   its content key matches a book we hold. After import the file is renamed to the
-   canonical name (copy first, delete only once the copy verifiably exists), so the next
-   sync sees a known file. A book you deleted stays deleted: its key is tombstoned and
-   the scan skips it. */
+/* The folder IS the library: any EPUB found in books/ that we do not recognise is imported.
+   Recognised means its filename is a book's canonical name, or failing that its content key
+   matches a book we hold. A copy of a book we hold takes the canonical name when the book has no
+   file there yet, and is removed only when it is the same file as the one already there. A copy
+   with different contents (a corrected edition, or another book that shares its title) is never
+   deleted, only reported: removing it used to destroy the newer file. A book you deleted stays
+   deleted: its key is tombstoned, so its file is left alone, and the scan says so once. A file
+   that is not a readable EPUB is left alone and reported once, and can no longer stop the sync.
+   What each file is gets cached by name, size and modification time, so a steady folder is not
+   re-read on every sync. Anything the scan leaves alone goes into vault.notices for Check folder. */
 async function vaultScanNewEpubs(dirs, tomb){
   var imported=0;
   try{
     var metas=await DB.all("meta"), knownCanon={}, knownByKey={};
     (metas||[]).forEach(function(m){
       knownCanon[(vaultPathName(m)+".epub").toLowerCase()]=1;
+      if(isTombstoned(tomb, m.id, bookKeyOf(m))) return;
       var k=bookKeyOf(m); if(k) knownByKey[k.toLowerCase()]=m;
     });
-    var renamed=0;
-    // Fast path recognises a file by its exact canonical name (title + id), which is
-    // title-aware and so never collides the way a bare 6-char id suffix does. Anything
-    // else is examined by CONTENT below before we treat it as new.
-    var files=[];
+    var tidied=0, files=[], present={};
     for await (var be of dirs.books.values()){
       if(be.kind!=="file" || !/\.epub$/i.test(be.name)) continue;
+      present[be.name.toLowerCase()]=be.name;
       if(knownCanon[be.name.toLowerCase()]) continue;
       files.push(be.name);
     }
     var vkeyCache={}; try{ var _vc=await DB.get("app","vkeycache"); if(_vc&&_vc.val) vkeyCache=_vc.val; }catch(e){}
     var vkeyDirty=false, vkeySeen={};
+    function note(cc, msg){ if(cc.told) return; cc.told=1; vkeyDirty=true; (vault.notices=vault.notices||[]).push(msg); }
+    function drop(name){ return dirs.books.removeEntry(name).then(function(){ delete present[name.toLowerCase()]; delete vkeyCache[name]; vkeyDirty=true; }); }
+    // Byte-for-byte the same book file? Sizes first, so a different file is rarely read at all.
+    async function sameFile(other, file, buf){
+      try{
+        var fo=await (await dirs.books.getFileHandle(other)).getFile();
+        if(fo.size!==file.size) return false;
+        return bcContentSig(await fo.arrayBuffer())===bcContentSig(buf || await file.arrayBuffer());
+      }catch(e){ return false; }
+    }
     for(var i=0;i<files.length;i++){
       var name=files[i];
       try{
         var fh=await dirs.books.getFileHandle(name);
         var file=await fh.getFile();
-        // CONTENT-IDENTITY: recognise a book by the EPUB's own identity, not its filename.
-        // If we already hold this book (matched by content key) we rename its file to the
-        // content-based canonical name and drop any stray copy, importing nothing, so no
-        // duplicate record forms and the book ends up as one file named the same on every
-        // device. Parsed keys are cached by name+size+mtime so a steady folder does not
-        // re-parse every sync.
-        var buf=null, fileKey;
-        var cc=vkeyCache[name]; vkeySeen[name]=1;
-        if(cc && cc.s===file.size && cc.m===file.lastModified){ fileKey=cc.k; }
-        else { buf=await file.arrayBuffer(); fileKey=await readEpubKey(buf); vkeyCache[name]={s:file.size,m:file.lastModified,k:fileKey}; vkeyDirty=true; }
-        var em = fileKey ? knownByKey[fileKey.toLowerCase()] : null;
-        if(em && !isTombstoned(tomb, null, fileKey)){
-          // Already held: give the file its content-based canonical name and drop any stray
-          // copy, so every book becomes exactly one file whose name is stable everywhere.
-          var want = vaultPathName(em)+".epub";
-          if(want.toLowerCase()!==name.toLowerCase()){
-            var wok=false;
-            try{ await dirs.books.getFileHandle(want); wok=true; }
-            catch(e){ try{ if(!buf) buf=await file.arrayBuffer(); await writeFileInDir(dirs.books, want, buf); wok=true; }catch(e2){} }
-            if(wok){ try{ await dirs.books.removeEntry(name); renamed++; delete vkeyCache[name]; vkeyDirty=true; }catch(e){} }
+        var buf=null, cc=vkeyCache[name]; vkeySeen[name]=1;
+        if(!(cc && cc.s===file.size && cc.m===file.lastModified)){
+          buf=await file.arrayBuffer();
+          var inf=await readEpubInfo(buf);
+          cc=vkeyCache[name]={ s:file.size, m:file.lastModified, k:inf.key, t:inf.title, bad:inf.bad }; vkeyDirty=true;
+        }
+        var fileKey=cc.k||"";
+        if(cc.bad || !fileKey){ note(cc, "Left books/"+name+" alone: "+(cc.bad||"it could not be read")+"."); continue; }
+        if(isTombstoned(tomb, null, fileKey)){ note(cc, "\u201c"+(cc.t||name)+"\u201d is a book you deleted, so its file in books/ was left alone. Check folder, in Settings > Advanced, can add it back."); continue; }
+        var em=knownByKey[fileKey.toLowerCase()];
+        if(em){
+          var want=vaultPathName(em)+".epub";
+          if(want.toLowerCase()===name.toLowerCase()) continue;
+          var have=present[want.toLowerCase()];
+          if(have){
+            if(await sameFile(have, file, buf)){ try{ await drop(name); tidied++; }catch(e){} }
+            else if(fileKey.indexOf("ta:")===0) note(cc, "books/"+name+" has the same title and author as \u201c"+(em.title||"a book")+"\u201d but different contents, so it was not added. Give it its own title (in Calibre, say) and it will be.");
+            else note(cc, "books/"+name+" is another copy of \u201c"+(em.title||"a book")+"\u201d with different contents, so it was kept. To read from it instead, open the book's details and choose Refresh EPUB from folder.");
+            continue;
           }
+          if(!buf) buf=await file.arrayBuffer();
+          if(fileKey.indexOf("ta:")===0 && em.sig && em.sig!==bcContentSig(buf)){
+            note(cc, "books/"+name+" has the same title and author as \u201c"+(em.title||"a book")+"\u201d but different contents, so it was not added. Give it its own title (in Calibre, say) and it will be.");
+            continue;
+          }
+          // The book has no file in the folder yet: this copy becomes it (copy first, remove after).
+          try{ await writeFileInDir(dirs.books, want, buf); present[want.toLowerCase()]=want; await drop(name); tidied++; }catch(e){}
           continue;
         }
+        if(cc.skip) continue;   // could not be added before and has not changed since
         if(!buf) buf=await file.arrayBuffer();
         var keptId=await importEpubBuffer(buf, name, tomb);
-        if(!keptId) continue;
+        if(!keptId){ cc.skip=1; vkeyDirty=true; note(cc, "Left books/"+name+" alone: it could not be added to the library."); continue; }
         imported++;
-        var m2=await DB.get("meta", keptId);
+        var m2=await DB.get("meta", keptId); if(!m2) continue;
+        knownByKey[bookKeyOf(m2).toLowerCase()]=m2;   // a second copy of it later in this scan is recognised, not imported again
         var canon=vaultPathName(m2)+".epub";
         if(canon.toLowerCase()!==name.toLowerCase()){   // case-only differences are the same file on macOS and Windows: removing "the original" would delete the only copy
-          var canonOk=false;
-          try{ await dirs.books.getFileHandle(canon); canonOk=true; }
-          catch(e){ try{ await writeFileInDir(dirs.books, canon, buf); canonOk=true; }catch(e2){} }
-          if(canonOk){ try{ await dirs.books.removeEntry(name); }catch(e){} }
+          var at=present[canon.toLowerCase()];
+          if(!at){ try{ await writeFileInDir(dirs.books, canon, buf); present[canon.toLowerCase()]=canon; await drop(name); }catch(e){} }
+          else if(await sameFile(at, file, buf)){ try{ await drop(name); }catch(e){} }
         }
         try{ vaultPushBook(keptId, false); }catch(e){}
       }catch(e){ console.warn("folder import", name, e); }
     }
     try{ Object.keys(vkeyCache).forEach(function(k){ if(!vkeySeen[k]){ delete vkeyCache[k]; vkeyDirty=true; } }); if(vkeyDirty) await DB.put("app",{key:"vkeycache",val:vkeyCache}); }catch(e){}
-    if(renamed){ toast("Tidied "+renamed+" book file name"+(renamed===1?"":"s")); }
+    if(tidied){ toast("Tidied "+tidied+" book file name"+(tidied===1?"":"s")); }
     if(imported){ toast("Imported "+imported+" book"+(imported===1?"":"s")+" from the folder"); try{ renderHome(); }catch(e){} }
   }catch(e){ console.warn("scan epubs", e); }
   return imported;
@@ -2109,6 +2169,21 @@ async function vaultConsumeHandoffs(dirs, tomb){
     }
   }
   return added;
+}
+// The newest file in books/ that the folder scan recognised as this book but kept under another
+// name because its contents differ from the book's own file. Null when there is none.
+async function bcNewestOtherCopy(m){
+  if(!vault.handle || !vault.connected || !m) return null;
+  var dirs=await vaultDirs(), key=(bookKeyOf(m)||"").toLowerCase(), canon=(vaultPathName(m)+".epub").toLowerCase();
+  var vc={}; try{ var r=await DB.get("app","vkeycache"); if(r && r.val) vc=r.val; }catch(e){}
+  var best=null;
+  for await (var e of dirs.books.values()){
+    if(e.kind!=="file" || !/\.epub$/i.test(e.name) || e.name.toLowerCase()===canon) continue;
+    var c=vc[e.name]; if(!c || c.bad || (c.k||"").toLowerCase()!==key) continue;
+    var f=await e.getFile(); if(c.s!==f.size || c.m!==f.lastModified) continue;
+    if(!best || f.lastModified>best.file.lastModified) best={ name:e.name, file:f };
+  }
+  return best ? { name:best.name, buf:await best.file.arrayBuffer() } : null;
 }
 async function fetchEpubFromFolder(m){
   if(!vault.handle || !m) return null;
@@ -2154,8 +2229,19 @@ async function refreshBookFromFolder(m){
   }
   toast("Refreshing this EPUB from your folder…");
   try{
-    var buf = await fetchEpubFromFolder(m);
+    // A copy of this book that the folder scan kept because its contents differ (a corrected
+    // edition dropped into books/ under another name) is what a refresh is for: the newest such
+    // copy becomes the book's file, and the copy is removed once the book's file holds it.
+    var copy=null; try{ copy=await bcNewestOtherCopy(m); }catch(e){ console.warn("refresh copy", e); }
+    var buf = copy ? copy.buf : await fetchEpubFromFolder(m);
     if(!buf){ toast("No EPUB found in the folder for this book. Check the filename or reconnect the folder."); return; }
+    if(copy){
+      var _why=await epubSafetyReject(buf);
+      if(_why){ toast("Could not use books/"+copy.name+": "+_why); return; }
+      var _dirs=await vaultDirs();
+      await writeFileInDir(_dirs.books, vaultPathName(m)+".epub", buf);
+      try{ await _dirs.books.removeEntry(copy.name); }catch(e){}
+    }
     await DB.put("blob", { id: m.id, data: buf });
     // Refresh re-ingests the EPUB, so re-capture its source from the new bytes (video id / source url).
     try{
@@ -2218,30 +2304,42 @@ function _hashStr(s){ var h=5381,i=(s=String(s||"")).length; while(i){ h=(h*33)^
    then remove the copy. Same logic as the manual Merge button, run automatically on sync so
    conflict copies never pile up. It only touches files with "conflicted" in the name and only
    after their contents are safely merged; it never removes a real book record or its file. */
-async function mergeConflictCopies(dirs){
+async function mergeConflictCopies(dirs, tomb){
   if(!vault.handle) return 0;
   try{
     if(!dirs) dirs = await vaultDirs();
+    if(!tomb) tomb = await loadTombstones();
     var names=[];
     for await (var e of dirs.data.values()){
-      if(e.kind==="file" && /\.json$/i.test(e.name) && /conflicted/i.test(e.name)) names.push(e.name);
+      if(e.kind==="file" && /\.json$/i.test(e.name) && /conflict/i.test(e.name)) names.push(e.name);
     }
-    var merged=0;
+    var merged=0, metas=null;
     for(var i=0;i<names.length;i++){
       var name=names[i], fh=null;
       try{ fh=await dirs.data.getFileHandle(name); }catch(e){ continue; }
       try{
         var rec=JSON.parse(await (await fh.getFile()).text());
-        if(rec && rec.meta && rec.meta.id){
-          var id=rec.meta.id;
-          var ex0=await DB.get("meta", id); if(bcKeyMismatch(ex0, rec.meta)){ continue; }   // mislabeled conflict copy: refuse
-          var lh=await DB.get("highlights", id); var li=(lh&&lh.items)||[];
-          var un=mergeHighlights(li, rec.highlights||[]);
-          await DB.put("highlights", {id:id, items:un, updatedAt:Math.max((lh&&lh.updatedAt)||0, rec.updatedAt||0)});
-          var ex=await DB.get("meta", id); if(ex) await DB.put("meta", mergeMeta(ex, rec.meta));
-          try{ await dirs.data.removeEntry(name); }catch(e){}
-          merged++;
+        if(!(rec && rec.meta && rec.meta.id)) continue;
+        if(isTombstoned(tomb, rec.meta.id, bookKeyOf(rec.meta))){ try{ await dirs.data.removeEntry(name); merged++; }catch(e){} continue; }   // a copy of a deleted book's record: nothing in it to keep
+        var id=rec.meta.id, ex=await DB.get("meta", id);
+        if(ex && bcKeyMismatch(ex, rec.meta)) continue;   // mislabeled conflict copy: refuse
+        if(!ex){
+          // Not under this id here, but the same book under this library's own id: fold into that.
+          // Neither: leave the copy, and the record sync adds the book from its own file first.
+          metas=metas || (await DB.all("meta")) || [];
+          var live=findLiveBookFor(metas, rec.meta, tomb);
+          if(!live || bcKeyMismatch(live, rec.meta)) continue;
+          ex=live; id=live.id;
         }
+        var lh=await DB.get("highlights", id); var li=(lh&&lh.items)||[];
+        var un=mergeHighlights(li, rec.highlights||[]);
+        await DB.put("highlights", {id:id, items:un, updatedAt:Math.max((lh&&lh.updatedAt)||0, rec.updatedAt||0)});
+        var mm=mergeMeta(ex, rec.meta); mm.id=id; if(ex.bookKey) mm.bookKey=ex.bookKey;
+        await DB.put("meta", mm);
+        if(currentBook && currentBook.id===id) cloudAdoptOpen(id, mm, _highlightsOwnerId===id ? un : null);   // the open book's marks in memory take the merge too, or the next save would drop it
+        if(vault.connected) vaultPushBook(id);
+        try{ await dirs.data.removeEntry(name); }catch(e){}
+        merged++;
       }catch(e){}
     }
     if(merged) markCorpusDirty();
@@ -2264,8 +2362,13 @@ async function vaultPushBook(id, allowPrompt){
       file:function(k){ var t=_byKey[(k||"").toLowerCase()]; return t?vaultPathName(t):""; },
       fileByTitle:function(tl){ var t=_byTitle[(tl||"").toLowerCase()]; return t?vaultPathName(t):""; } };
     var mdStr = buildHighlightMarkdown(m, items, _linkCtx, tagRelatedTitles(m, _rm));
-    var jsonStr = JSON.stringify({ meta:m, highlights:items, updatedAt:(hr && hr.updatedAt) || Date.now() });
+    var jsonStr = JSON.stringify({ meta:m, highlights:items, updatedAt:(hr && hr.updatedAt) || 0 });   // never the clock: a record without a stamp was rewritten with a new one on every push
     var _lw = _vaultLastWrite[id] || {}, mh=_hashStr(mdStr), jh=_hashStr(jsonStr);
+    // The first push of a book in a session compares with what the folder already holds, so
+    // opening Backchat no longer rewrites every unchanged record and note file (each rewrite is
+    // work, and a chance of a conflict copy, for the cloud client).
+    if(_lw.md===undefined){ try{ if(_hashStr(await (await (await dirs.hl.getFileHandle(base+".md")).getFile()).text())===mh) _lw.md=mh; }catch(e){} }
+    if(_lw.json===undefined){ try{ if(_hashStr(await (await (await dirs.data.getFileHandle(id+".json")).getFile()).text())===jh) _lw.json=jh; }catch(e){} }
     if(_lw.md !== mh){ await writeFileInDir(dirs.hl, base+".md", mdStr); _lw.md = mh; }
     if(_lw.json !== jh){ await writeFileInDir(dirs.data, id+".json", jsonStr); _lw.json = jh; }
     _vaultLastWrite[id] = _lw;
@@ -2287,15 +2390,19 @@ async function vaultPushBook(id, allowPrompt){
     }
   }
 }
-async function vaultPushEpub(id){
+// Write the book's EPUB into books/ when it is missing there. With overwrite (a new file was just
+// added for a book already held), also replace a folder copy whose contents differ.
+async function vaultPushEpub(id, overwrite){
   if(!vault.handle) return;
   if(!(await ensureVaultWritable(false))) return;
   try{
     var m = await DB.get("meta", id); if(!m) return;
     var dirs = await vaultDirs();
-    var name = vaultPathName(m)+".epub";
-    try{ await dirs.books.getFileHandle(name); return; }catch(e){} // already there: no blob read needed
+    var name = vaultPathName(m)+".epub", cur=null;
+    try{ cur = await (await dirs.books.getFileHandle(name)).getFile(); }catch(e){}
+    if(cur && !overwrite) return;   // already there: no blob read needed
     var bl = await DB.get("blob", id); if(!bl || !bl.data) return;
+    if(cur && cur.size===bl.data.byteLength && bcContentSig(await cur.arrayBuffer())===bcContentSig(bl.data)) return;   // the same file: nothing to write
     await writeFileInDir(dirs.books, name, bl.data);
   }catch(e){ console.warn("vault push epub", e); }
 }
@@ -2309,23 +2416,44 @@ async function vaultWriteIndex(dirs, metas){
     books.sort(function(a,b){ return String(a.t).localeCompare(String(b.t)); });
     var lines=["# Backchat Library","","> Your commonplace book. "+books.length+" book"+(books.length===1?"":"s")+". Backchat rewrites this on every sync; it is a front door to the vault.",""];
     lines.push("## Books",""); books.forEach(function(x){ lines.push(x.s); });
-    await writeFileInDir(dirs.hl, "Backchat Library.md", lines.join("\n"));
+    var txt=lines.join("\n"), h=_hashStr(txt), there=false;
+    try{ var cur=await (await (await dirs.hl.getFileHandle("Backchat Library.md")).getFile()).text(); there=true; if(!_vaultIndexHash) _vaultIndexHash=_hashStr(cur); }catch(e){}
+    if(there && h===_vaultIndexHash) return;   // unchanged and present: an identical rewrite is only work for the cloud client
+    await writeFileInDir(dirs.hl, "Backchat Library.md", txt);
+    _vaultIndexHash=h;
   }catch(e){ console.warn("index note", e); }
 }
+var _vaultIndexHash="";
 /* ---------------- FOLDER SYNC: PUSH ALL - probe folder once, then every book ---------------- */
-async function vaultPushAll(){
+var _pushAllRun=null;
+function vaultPushAll(){
+  if(_pushAllRun) return _pushAllRun;   // one full write at a time; a second request joins the one running
+  _pushAllRun=_vaultPushAllOnce().then(function(r){ _pushAllRun=null; return r; }, function(e){ _pushAllRun=null; throw e; });
+  return _pushAllRun;
+}
+async function _vaultPushAllOnce(){
   if(!vault.connected) return;
   vault.busy = true; updateVaultUI();
-  try{ await vaultDirs(); }
+  var dirs;
+  try{ dirs = await vaultDirs(); }
   catch(pe){
     vault.busy=false;
     vault.lastError = (pe&&pe.name==="NotFoundError") ? "The folder could not be found. It may have been moved or renamed." : (((pe&&pe.name)?pe.name+": ":"")+((pe&&pe.message)?pe.message:String(pe)));
     vault.connected=false; vault.needsReauth=true; updateVaultUI(); markSyncPaused(); return;
   }
   try{
-    var ids = await DB.keys("meta");
-    for(var i=0;i<ids.length;i++){ await vaultPushEpub(ids[i]); await vaultPushBook(ids[i]); }
-    try{ var _idx=await vaultDirs(); await vaultWriteIndex(_idx); }catch(e){}
+    // A book whose record or note file is missing from the folder (deleted by hand, or by a cloud
+    // client) is written again, even though this browser remembers having written it already.
+    var haveRec={}, haveMd={};
+    try{ for await (var d of dirs.data.values()){ if(d.kind==="file") haveRec[d.name.toLowerCase()]=1; } }catch(e){}
+    try{ for await (var h of dirs.hl.values()){ if(h.kind==="file") haveMd[h.name.toLowerCase()]=1; } }catch(e){}
+    var metas = (await DB.all("meta")) || [];
+    for(var i=0;i<metas.length;i++){
+      var m=metas[i]; if(!m || !m.id) continue;
+      if(!haveRec[(m.id+".json").toLowerCase()] || !haveMd[(vaultPathName(m)+".md").toLowerCase()]) delete _vaultLastWrite[m.id];
+      await vaultPushEpub(m.id); await vaultPushBook(m.id);
+    }
+    try{ await vaultWriteIndex(dirs); }catch(e){}
   }catch(e){ console.warn(e); }
   vault.busy = false;
   if(vault.connected) stampSync();
@@ -2335,15 +2463,44 @@ async function vaultPushAll(){
    Read the chosen folder back in: import books not present here, and merge the notes for
    each book by id. The folder is a peer, never authoritative: we add and merge, and remove
    only what a tombstone says was deleted on purpose. */
-async function vaultPull(){
+var _pullRun=null;
+function vaultPull(){
+  if(_pullRun) return _pullRun;   // one sync at a time: two at once imported a new book twice, and folding the twins removed its file
+  _pullRun=_vaultPullOnce().then(function(r){ _pullRun=null; return r; }, function(e){ _pullRun=null; throw e; });
+  return _pullRun;
+}
+// Marks and records compared by content: writes happen only when a merge really changed something.
+function bcHlSig(items){ return (items||[]).map(function(h){ return h.id+":"+(h.updated||h.created||0); }).sort().join("|"); }
+function bcMetaDiffers(a, b){
+  if(!a || !b) return a!==b;
+  if((a.cover||"")!==(b.cover||"")) return true;
+  return cloudCanon(cloudCleanMeta(a))!==cloudCanon(cloudCleanMeta(b));
+}
+// Books the library has notes for but no file anywhere: none in books/ and none in this browser.
+// Counted from one listing of books/, without reading a single book file.
+async function bcBooksWithoutFile(dirs){
+  var names={}, tags={}, blobs={};
+  for await (var be of dirs.books.values()){
+    if(be.kind!=="file" || !/\.epub$/i.test(be.name)) continue;
+    names[be.name.toLowerCase()]=1;
+    var t=be.name.match(/-([a-z0-9]{6})\.epub$/i); if(t) tags[t[1].toLowerCase()]=1;
+  }
+  ((await DB.keys("blob"))||[]).forEach(function(k){ blobs[k]=1; });
+  var metas=(await DB.all("meta"))||[], tomb=await loadTombstones();
+  return metas.filter(function(m){ return m && m.kind!=="page" && !blobs[m.id] && !isTombstoned(tomb, m.id, bookKeyOf(m)) && !names[(vaultPathName(m)+".epub").toLowerCase()] && !tags[bookTag(m)]; });
+}
+async function _vaultPullOnce(){
   if(!vault.connected || !vault.handle) return;
+  vault.notices=[];
   try{
     var dirs = await vaultDirs();
     try{ await vaultPullTombstones(); }catch(e){}
-    try{ await mergeConflictCopies(dirs); }catch(e){}
     var tomb = await loadTombstones();
-    var added = 0, noEpub = 0;
+    try{ await mergeConflictCopies(dirs, tomb); }catch(e){}
+    var added = 0, absorbedFiles = [];
     try{ added += await vaultConsumeHandoffs(dirs, tomb); }catch(e){}
+    var metas = (await DB.all("meta")) || [];
+    var metaSig=function(x){ return JSON.stringify([(x&&x.updated)||0, x&&x.scratch, x&&x.summary, x&&x.rating, x&&x.related, x&&x.bookmarkCfi, (x&&x.bookmarkAt)||0, x&&x.fav]); };
     for await (var entry of dirs.data.values()){
       if(entry.kind!=="file" || !/\.json$/.test(entry.name) || entry.name.charAt(0)==="_") continue;
       try{
@@ -2359,57 +2516,70 @@ async function vaultPull(){
         }
         var existing = await DB.get("meta", rec.meta.id);
         if(bcKeyMismatch(existing, rec.meta)){ continue; }   // id maps to a different book here: refuse the merge
-        var localHl = await DB.get("highlights", rec.meta.id);
-        var localUA = (localHl && localHl.updatedAt) || 0;
-        var folderUA = rec.updatedAt || 0;
-        // merge highlights per-item so nothing added on either device is lost
-        var merged = mergeHighlights((localHl && localHl.items) || [], rec.highlights || []);
-        await DB.put("highlights", { id:rec.meta.id, items:merged, updatedAt: Math.max(localUA, folderUA) });
-        var mm = mergeMeta(existing, rec.meta);
-        await DB.put("meta", mm);
+        // A record of a book this library already holds under its own id (another browser's
+        // record of it, or a duplicate merged away earlier): fold it into that book. Adding it
+        // under its old id made a duplicate on every sync, and tidying the duplicate removed
+        // the book's file.
+        var tid = rec.meta.id, absorbed = false, live = null;
+        if(!existing){
+          live = findLiveBookFor(metas, rec.meta, tomb);
+          // Folded the same way on every browser (pickKeeper): a record with a lower id than the
+          // one here is the one to keep, so it comes in under its own id and the tidy-up below folds
+          // this browser's copy into it. Unless the book is open: then the open record stays.
+          var keepIncoming = live && String(rec.meta.id) < String(live.id) && !(currentBook && currentBook.id===live.id);
+          if(live && !bcKeyMismatch(live, rec.meta) && !keepIncoming){ existing = live; tid = live.id; absorbed = true; }
+        }
+        var localHl = await DB.get("highlights", tid);
+        var localItems = (localHl && localHl.items) || [];
+        // merge marks per item so nothing added on either device is lost
+        var merged = mergeHighlights(localItems, rec.highlights || []);
+        var mm = mergeMeta(existing, rec.meta); mm.id = tid; if(existing && existing.bookKey) mm.bookKey = existing.bookKey;
+        var hlChanged = !localHl || bcHlSig(merged)!==bcHlSig(localItems);
+        var metaChanged = !existing || bcMetaDiffers(existing, mm);
+        if(hlChanged) await DB.put("highlights", { id:tid, items:merged, updatedAt: Math.max((localHl && localHl.updatedAt) || 0, rec.updatedAt || 0) });
+        if(metaChanged) await DB.put("meta", mm);
+        if(!existing) metas.push(mm);
+        else if(metaChanged){ for(var q=0;q<metas.length;q++){ if(metas[q].id===tid){ metas[q]=mm; break; } } }
         // Book open: adopt the merged record and marks in memory, so the next local save cannot
         // overwrite what the pull just merged in (the record too: a page turn saves all of it).
-        if(currentBook && currentBook.id===rec.meta.id) cloudAdoptOpen(rec.meta.id, mm, _highlightsOwnerId===rec.meta.id ? merged : null);
-        // Push back only when the merged result actually differs from what the folder
-        // holds. Content signatures, not counts or clocks: any edit bumps a mark's
-        // 'updated', so [id:updated] pairs catch edits, adds and removes; the meta
-        // signature catches margins, summary, rating, bookmarks and favourites. If the
-        // two sides already agree we write nothing, which is what starves the cloud
-        // client of collisions. If anything real differs, we write, which is what
-        // guarantees both sides converge.
-        var hlSig=function(items){ return (items||[]).map(function(h){ return h.id+":"+(h.updated||h.created||0); }).sort().join("|"); };
-        var metaSig=function(x){ return JSON.stringify([x&&x.updated, x&&x.scratch, x&&x.summary, x&&x.rating, x&&x.related, x&&x.bookmarkCfi, x&&x.bookmarkAt, x&&x.fav]); };
-        var reallyChanged = hlSig(merged)!==hlSig(rec.highlights||[]) || metaSig(mm)!==metaSig(rec.meta);
-        if(vault.connected && reallyChanged) vaultPushBook(rec.meta.id);
-        var blob = await DB.get("blob", rec.meta.id);
-        if(!blob){
-          // pull the epub bytes from books/ whenever we lack them - new book or old ghost alike
-          try{
-            var efh=null;
-            try{ efh = await dirs.books.getFileHandle(vaultPathName(rec.meta)+".epub"); }catch(e){}
-            if(!efh){
-              var sfx="-"+bookTag(rec.meta)+".epub";
-              for await (var be of dirs.books.values()){ if(be.kind==="file" && be.name.slice(-sfx.length)===sfx){ efh=await dirs.books.getFileHandle(be.name); break; } }
-            }
-            if(efh){ var ef = await efh.getFile(); await DB.put("blob", { id:rec.meta.id, data: await ef.arrayBuffer() }); }
-            else { noEpub++; }
-          }catch(e){ noEpub++; }
+        if(currentBook && currentBook.id===tid && (hlChanged || metaChanged)) cloudAdoptOpen(tid, mm, _highlightsOwnerId===tid ? merged : null);
+        if(absorbed){
+          absorbedFiles.push(entry.name);   // its content now lives in the book's own record
+          if(vault.connected && (hlChanged || metaChanged)) vaultPushBook(tid);
+        } else {
+          // Push back only when the merged result actually differs from what the folder holds.
+          // Content signatures, not counts or clocks: any edit bumps a mark's 'updated', so
+          // [id:updated] pairs catch edits, adds and removes; the meta signature catches margins,
+          // summary, rating, bookmarks and favourites. When the two sides agree nothing is written,
+          // which is what starves the cloud client of collisions.
+          var reallyChanged = bcHlSig(merged)!==bcHlSig(rec.highlights||[]) || metaSig(mm)!==metaSig(rec.meta);
+          if(vault.connected && reallyChanged) vaultPushBook(tid);
         }
-        if(!existing) added++;
+        if(!existing && !(live && !bcKeyMismatch(live, rec.meta))) added++;   // a second record of a book already here is folded below, not a new book
       }catch(e){}
     }
+    for(var a=0;a<absorbedFiles.length;a++){ try{ await dirs.data.removeEntry(absorbedFiles[a]); }catch(e){} }
+    // The book files themselves are not read here. Opening a book, or indexing it, fetches its
+    // bytes from the folder when this browser does not hold them. Reading every missing one on
+    // each sync pulled the whole library into the browser, only for the cache to let it go again.
     try{ added += await vaultScanNewEpubs(dirs, tomb); }catch(e){}
     try{ await vaultHealNotes(dirs); }catch(e){}
-    try{ await vaultPullNotes(); }catch(e){}
+    try{ await vaultPullNotes(tomb); }catch(e){}
     try{ await reconcileLibrary(); }catch(e){}
     try{ await enforceBlobCache(); }catch(e){}
+    var noFile=[]; try{ noFile=await bcBooksWithoutFile(dirs); }catch(e){}
     if(added){ toast("Pulled "+added+" book"+(added===1?"":"s")+" from folder"); }
-    if(noEpub){ toast(noEpub+" book"+(noEpub===1?" has":"s have")+" notes here but no EPUB in the folder's books directory"); }
+    // Said once for each new set of such books, not on every sync: Check folder lists them.
+    var nfKey=noFile.map(function(m){ return m.id; }).sort().join(","), nfSeen="";
+    try{ nfSeen=localStorage.getItem("bc-nofile")||""; }catch(e){}
+    if(noFile.length && nfKey!==nfSeen) toast(noFile.length+" book"+(noFile.length===1?" has":"s have")+" notes but no EPUB, in the folder or in this browser. Check folder, in Settings > Advanced, lists them.", 6000);
+    try{ localStorage.setItem("bc-nofile", nfKey); }catch(e){}
+    if(vault.notices.length) toast(vault.notices.length===1 ? vault.notices[0] : ("Sync left "+vault.notices.length+" files in the folder alone. Check folder, in Settings > Advanced, explains each."), 8000);
     if(vault.connected) stampSync();
     maybeAutoBackup();
   }catch(e){ console.warn("vault pull", e); }
   // Repaint the shelf after every pull, failed or not, so a connect never looks empty.
-  try{ renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); }catch(e){}
+  try{ renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); updateVaultUI(); }catch(e){}
 }
 async function vaultWriteOutput(subdir, name, contents){
   var dir = await vault.handle.getDirectoryHandle(subdir, {create:true});
@@ -2462,9 +2632,16 @@ async function vaultRemoveBook(m){
   if(!vault.handle || !m) return;
   try{
     var dirs = await vaultDirs();
-    var base = vaultPathName(m);
-    try{ await dirs.hl.removeEntry(base+".md"); }catch(e){}
+    var base = vaultPathName(m), tag = bookTag(m);
+    delete _vaultLastWrite[m.id];
     try{ await dirs.data.removeEntry(m.id+".json"); }catch(e){}
+    // A book's .epub and notes file are named by its title and content tag, so a second record of
+    // the same book shares them. While another live record still owns that name or tag (a
+    // duplicate being folded into its keeper), the files are the keeper's: leave them. Removing
+    // them here deleted the surviving copy's book file and notes.
+    var _metas = (await DB.all("meta")) || [], _tomb = await loadTombstones();
+    if(_metas.some(function(x){ return x && x.id!==m.id && !isTombstoned(_tomb, x.id, bookKeyOf(x)) && (bookTag(x)===tag || vaultPathName(x).toLowerCase()===base.toLowerCase()); })) return;
+    try{ await dirs.hl.removeEntry(base+".md"); }catch(e){}
     try{ await dirs.books.removeEntry(base+".epub"); }catch(e){}
     // title may have drifted since these were written; sweep every file carrying this book's
     // content tag, so the .epub and any renamed twin of the .epub or .md are all removed.
@@ -2482,10 +2659,20 @@ async function vaultPushTombstones(){
 async function vaultPullTombstones(){
   if(!vault.handle) return;
   try{
-    var dirs = await vaultDirs(), fh;
-    try{ fh = await dirs.data.getFileHandle("_tombstones.json"); }catch(e){ return; }
-    var remote = JSON.parse(await (await fh.getFile()).text()); if(!remote) return;
-    await mutateTombstones(function(local){ return foldTombstones(local, remote); });
+    var dirs = await vaultDirs(), fh=null, remote={ids:{}, keys:{}};
+    try{ fh = await dirs.data.getFileHandle("_tombstones.json"); }catch(e){}
+    if(fh){ remote = JSON.parse(await (await fh.getFile()).text()) || remote; }   // unreadable: throws, and nothing is written back over it
+    var r = await mutateTombstones(function(local){ return foldTombstones(local, remote); });
+    // This browser knows of deletes the folder does not (made while it was disconnected, or the
+    // file was lost): write them, so other browsers sharing the folder learn of them too.
+    var t=r.tomb, behind=false, ru=(remote && remote.undo) || {};
+    ["ids","keys"].forEach(function(g){
+      var rg=(remote && remote[g]) || {}, rug=ru[g] || {};
+      Object.keys(t[g]).forEach(function(k){ if((+rg[k]||0) < t[g][k]) behind=true; });
+      Object.keys(t.undo[g]).forEach(function(k){ if((+rug[k]||0) < t.undo[g][k]) behind=true; });
+      Object.keys(rg).forEach(function(k){ if(!t[g][k]) behind=true; });   // a delete in the folder copy that a later add-back here overrides
+    });
+    if(behind) await vaultPushTombstones();
   }catch(e){ console.warn("vault pull tombstones", e); }
 }
 function updateVaultUI(){
@@ -2496,7 +2683,8 @@ function updateVaultUI(){
   if(!fsaSupported()){ btn.textContent="Folder sync unavailable"; btn.disabled=true; info.textContent="Open this reader in Chrome, Edge or Brave on desktop to store your library as files you own."; if(sync) sync.style.display="none"; return; }
   if(vault.connected){
     btn.textContent="Disconnect folder";
-    info.textContent = vault.busy ? "Syncing your library to the folder…" : ("Connected."+(vault.lastSync?(" Last synced "+fmtSyncAgo()+"."):"")+" Your books and highlights (as Markdown) are written to your folder. Put it in Dropbox, Drive or iCloud to sync across devices.");
+    var _left=(vault.notices||[]).length;
+    info.textContent = vault.busy ? "Syncing your library to the folder…" : ("Connected."+(vault.lastSync?(" Last synced "+fmtSyncAgo()+"."):"")+(_left?(" That sync left "+_left+" file"+(_left===1?"":"s")+" alone; Check folder under Advanced says why."):"")+" Your books and highlights (as Markdown) are written to your folder. Put it in Dropbox, Drive or iCloud to sync across devices.");
     if(sync) sync.style.display="";
   } else if(vault.needsReauth){
     btn.textContent="Reconnect folder";
@@ -2580,9 +2768,9 @@ function importFiles(files){
       toast("Importing "+file.name+"…");
       return file.arrayBuffer().then(function(buf){
         return epubSafetyReject(buf).then(function(_reason){
-        if(_reason){ toast("Skipped "+file.name+": "+_reason); return; }
+        if(_reason){ toast("Skipped "+file.name+": "+_reason, 5000); return; }
         var tmp = ePub(buf.slice(0));
-        return tmp.ready.then(function(){ return tmp.loaded.metadata; }).then(function(md){
+        return bcEpubReady(tmp).then(function(){ return tmp.loaded.metadata; }).then(function(md){
           return tmp.coverUrl().catch(function(){ return null; }).then(function(c){ return c ? blobToDataUrl(c).then(makeCoverThumb) : extractCoverFromEpub(buf); }).then(function(cover){
             var id = uid();
             var ident = md && md.identifier ? String(md.identifier).trim() : "";
@@ -2678,6 +2866,7 @@ var EPUB_MAX_TOTAL_UNCOMPRESSED = 500 * 1024 * 1024;
 var EPUB_MAX_ENTRIES = 5000;
 function epubSafetyReject(buf){
   try{ if(buf && buf.byteLength > EPUB_MAX_BYTES) return Promise.resolve("file too large ("+Math.round(buf.byteLength/1048576)+" MB)"); }catch(e){}
+  try{ if(!buf || !buf.byteLength) return Promise.resolve("the file is empty"); }catch(e){}
   if(typeof JSZip==="undefined") return Promise.resolve(null);
   return JSZip.loadAsync(buf).then(function(zip){
     var total = 0, count = 0;
@@ -2688,8 +2877,9 @@ function epubSafetyReject(buf){
     });
     if(count > EPUB_MAX_ENTRIES) return "too many files inside ("+count+")";
     if(total > EPUB_MAX_TOTAL_UNCOMPRESSED) return "contents expand too large ("+Math.round(total/1048576)+" MB)";
+    if(!zip.file("META-INF/container.xml")) return "it is not an EPUB";
     return null;
-  }).catch(function(){ return null; });
+  }).catch(function(){ return "it is damaged or still downloading"; });   // used to pass as safe, and then the reader waited on it forever
 }
 function extractCoverFromEpub(buf){
   if(typeof JSZip==="undefined") return Promise.resolve(null);
@@ -3641,7 +3831,7 @@ function makeAnchorId(bookKey, href, blockIdx, text){
    block (bi) is the position among BLOCK_SEL elements in the section and is half of
    what makeAnchorId hashes, so the ordering established here defines anchor identity. */
 function extractBookIndex(epb, bookKey){
-  return epb.ready.then(function(){
+  return bcEpubReady(epb, 60000).then(function(){   // an unreadable book fails here instead of holding up indexing for good
     var items=(epb.spine && epb.spine.spineItems) || [];
     var toc=(epb.navigation && epb.navigation.toc) || [];
     function chapLabel(href){ var tail=href.split("#")[0].split("/").pop(); var m=toc.filter(function(t){ return t.href && t.href.split("#")[0].split("/").pop()===tail; })[0]; return m?m.label.trim():""; }
@@ -5662,26 +5852,46 @@ function mergeMeta(local, inc){
 // Merge an exported notes bundle in by id (meta + highlights), additively - nothing deleted.
 // A book deleted here is skipped, so an old notes file in the folder cannot bring it back;
 // an explicit restore clears those tombstones first (importNotesFile), so it still restores.
+// A book this library holds under another id (another browser's copy, or a duplicate merged
+// away since) is folded into that book rather than brought back under its old id. Only what
+// actually changes is written: stamping every book as changed on every import made folder sync
+// rewrite every book's record once for each notes file, on every sync.
 function importNotesBundle(bundle){
   if(!bundle || !bundle.books || !bundle.books.length) return Promise.resolve({books:0, added:0});
-  var chain=loadTombstones(), tomb=null, books=0, added=0;
-  chain=chain.then(function(t){ tomb=t; });
+  var chain=Promise.all([loadTombstones(), DB.all("meta")]), tomb=null, metas=[], books=0, added=0;
+  chain=chain.then(function(r){ tomb=r[0]; metas=r[1]||[]; });
   bundle.books.forEach(function(entry){
     var meta=(entry && entry.meta) ? entry.meta : entry;
     var id=meta && meta.id; if(!id) return;
     var incHl=(entry && entry.highlights) || [];
     chain=chain.then(function(){
       if(isTombstoned(tomb, id, bookKeyOf(meta))) return;
-      return Promise.all([DB.get("meta", id), DB.get("highlights", id)]).then(function(r){
-        var localMeta=r[0], localHl=r[1], localItems=(localHl&&localHl.items)||[];
+      return DB.get("meta", id).then(function(localMeta){
         if(bcKeyMismatch(localMeta, meta)){ return; }   // id maps to a different book here: refuse the merge
-        var before=localItems.length;
-        var merged=mergeHighlights(localItems, incHl);
-        added += Math.max(0, merged.length - before);
-        var ua=Math.max((localHl&&localHl.updatedAt)||0, (entry&&entry.updatedAt)||0, Date.now());
-        return DB.put("highlights", {id:id, items:merged, updatedAt:ua})
-          .then(function(){ return DB.put("meta", mergeMeta(localMeta, meta)); })
-          .then(function(){ books++; if(vault.handle) vaultPushBook(id, false); });
+        var tid=id;
+        if(!localMeta){
+          var live=findLiveBookFor(metas, meta, tomb);
+          if(live && !bcKeyMismatch(live, meta)){ localMeta=live; tid=live.id; }
+        }
+        return DB.get("highlights", tid).then(function(localHl){
+          var localItems=(localHl&&localHl.items)||[];
+          var merged=mergeHighlights(localItems, incHl);
+          added += Math.max(0, hlLive(merged).length - hlLive(localItems).length);
+          var mm=mergeMeta(localMeta, meta); mm.id=tid; if(localMeta && localMeta.bookKey) mm.bookKey=localMeta.bookKey;
+          var hlChanged = !localHl || bcHlSig(merged)!==bcHlSig(localItems);
+          var metaChanged = !localMeta || bcMetaDiffers(localMeta, mm);
+          books++;
+          if(!hlChanged && !metaChanged) return;
+          var ua=Math.max((localHl&&localHl.updatedAt)||0, (entry&&entry.updatedAt)||0) || Date.now();
+          return (hlChanged ? DB.put("highlights", {id:tid, items:merged, updatedAt:ua}) : Promise.resolve())
+            .then(function(){ return metaChanged ? DB.put("meta", mm) : null; })
+            .then(function(){
+              if(!localMeta) metas.push(mm);
+              else if(metaChanged){ for(var q=0;q<metas.length;q++){ if(metas[q].id===tid){ metas[q]=mm; break; } } }
+              if(currentBook && currentBook.id===tid) cloudAdoptOpen(tid, mm, (hlChanged && _highlightsOwnerId===tid) ? merged : null);
+              if(vault.handle) vaultPushBook(tid, false);
+            });
+        });
       });
     });
   });
@@ -5736,14 +5946,35 @@ function importNotesFile(file){
   };
   fr.readAsText(file);
 }
-async function vaultPullNotes(){
+/* notes/ holds latest.json (a snapshot of every note, written a few seconds after any change)
+   and any notes exports you keep there. Merging one is additive and safe, but merging every file
+   on every sync, with a cloud client's conflict copies of latest.json piling up beside it, made
+   each sync rewrite every book's record many times over. Now this browser's own snapshot is
+   skipped (it holds nothing this library lacks), a file is merged again only when it has changed
+   since, and a cloud conflict copy is merged once and then removed. Returns copies removed. */
+async function vaultPullNotes(tomb){
+  var cleared=0;
   try{
-    var notesDir = await vault.handle.getDirectoryHandle("notes", {create:false});
-    for await (var entry of notesDir.values()){
-      if(entry.kind!=="file" || !/\.json$/i.test(entry.name)) continue;
-      try{ var f=await entry.getFile(); var b=JSON.parse(await f.text()); if(b && b.format==="wr-notes") await importNotesBundle(b); }catch(e){}
+    var notesDir; try{ notesDir = await vault.handle.getDirectoryHandle("notes", {create:false}); }catch(e){ return 0; }
+    var seen={}; try{ var r=await DB.get("app","notescache"); if(r && r.val) seen=r.val; }catch(e){}
+    var next={}, copies=[], me=getDeviceId(), list=[];
+    for await (var entry of notesDir.values()){ if(entry.kind==="file" && /\.json$/i.test(entry.name)) list.push(entry); }
+    for(var i=0;i<list.length;i++){
+      var en=list[i];
+      try{
+        var f=await en.getFile(), stamp=f.size+":"+f.lastModified, isCopy=/conflict/i.test(en.name);
+        if(!isCopy && seen[en.name]===stamp){ next[en.name]=stamp; continue; }
+        var b=JSON.parse(await f.text());
+        if(!b || b.format!=="wr-notes"){ next[en.name]=stamp; continue; }
+        if(!isCopy && b.device && b.device===me){ next[en.name]=stamp; continue; }
+        await importNotesBundle(b);
+        if(isCopy) copies.push(en.name); else next[en.name]=stamp;
+      }catch(e){}
     }
+    for(var c=0;c<copies.length;c++){ try{ await notesDir.removeEntry(copies[c]); cleared++; }catch(e){} }
+    try{ await DB.put("app", {key:"notescache", val:next}); }catch(e){}
   }catch(e){}
+  return cleared;
 }
 
 /* ============================================================
@@ -6142,7 +6373,7 @@ function detailsExport(){
     toast("Exported "+(bits.length?bits.join(" and "):"this book"));
   });
 }
-function detailsBackup(){ if(!detailsBook) return; DB.get("blob", detailsBook.id).then(function(bl){ var blobs={}; if(bl) blobs[detailsBook.id]=bl.data; var out=JSON.stringify(buildBackup([detailsBook], blobs, [{id:detailsBook.id,items:detailsItems}])); saveOrDownload(safeName(detailsBook.title)+"-backup.json", out, "application/json", "backups").then(function(){ if(!vault.connected) toast("Backed up this book"); }); }); }
+function detailsBackup(){ if(!detailsBook) return; DB.get("blob", detailsBook.id).then(function(bl){ var blobs={}; if(bl) blobs[detailsBook.id]=bl.data; var out=JSON.stringify(buildBackup([detailsBook], blobs, [{id:detailsBook.id,items:detailsItems}])); bcFreeBackupName(detailsBook.title).then(function(nm){ return saveOrDownload(nm, out, "application/json", "backups"); }).then(function(){ if(!vault.connected) toast("Backed up this book"); }); }); }
 var metaDraftCover=null, metaDraftRating=0, metaDraftRelated=[];
 function renderMetaCover(){ var _cu=safeCoverUrl(metaDraftCover); $("#meta-cover").innerHTML = _cu ? '\x3cimg src="'+_cu+'" alt="">' : '<div class="ph">No cover</div>'; }
 function renderMetaStars(){ [].forEach.call(document.querySelectorAll("#meta-stars [data-r]"), function(s){ s.classList.toggle("on", Number(s.dataset.r) <= metaDraftRating); }); }
@@ -6231,6 +6462,19 @@ function detailsRemoveLocal(){
     renderDetails(); renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary();
   }).catch(function(e){ console.error("remove from device", e); toast("Could not remove the file"); });
 }
+// A book's backup never replaces an earlier one. Deleting a book, adding it back and deleting it
+// again used to overwrite the first backup, the one holding its marks, with the second, empty one.
+async function bcFreeBackupName(title){
+  var base=safeName(title||"book")+"-backup";
+  if(!(vault.connected && vault.handle)) return base+".json";   // a download: the browser numbers repeats itself
+  try{
+    var dir=await vault.handle.getDirectoryHandle("backups", {create:true});
+    var cands=[base+".json", base+"-"+saveStamp()+".json"];
+    for(var n=2;n<20;n++) cands.push(base+"-"+saveStamp()+"-"+n+".json");
+    for(var i=0;i<cands.length;i++){ try{ await dir.getFileHandle(cands[i]); }catch(e){ return cands[i]; } }
+  }catch(e){}
+  return base+"-"+saveStamp()+"-"+Date.now()+".json";
+}
 function detailsDelete(){
   if(!detailsBook) return; if(!confirm("Delete “"+(detailsBook.title||"this book")+"”?\n\nA complete backup is saved first: the book file, your highlights, comments and reading position. Import it later to get the book back exactly where you left off. This removes it from your library."+((typeof cloudOn==="function" && cloudOn())?"\n\nSync is on, so it is deleted on all your devices. To free space on this device only, cancel and use Remove from this device.":""))) return;
   var id=detailsBook.id; var dm=detailsBook;
@@ -6246,7 +6490,7 @@ function detailsDelete(){
     var snapshot={ app:"epub-reader", version:2, build:BC_VERSION, exportedAt:new Date().toISOString(),
       books:[book], highlights:[{ id:id, items:(rec&&rec.items)||[], updatedAt:(rec&&rec.updatedAt)||0 }],
       covers:snapCovers, tombstones:{ids:{},keys:{}} };
-    return saveOrDownload(safeName(dm.title||"book")+"-backup.json", JSON.stringify(snapshot), "application/json", "backups").catch(function(e){ console.warn("book backup", e); });
+    return bcFreeBackupName(dm.title).then(function(nm){ return saveOrDownload(nm, JSON.stringify(snapshot), "application/json", "backups"); }).catch(function(e){ console.warn("book backup", e); });
   }).then(function(){
     return addTombstone(id, bookKeyOf(dm));
   }).then(function(){
@@ -7518,7 +7762,7 @@ function cloudBuildBundle(){
     var books=(r[0]||[]).map(function(m){ var hr=hmap[m.id]||{}; return { meta:cloudCleanMeta(m), highlights:(hr.items||[]).map(cloudCleanItem).sort(cloudById), updatedAt:hr.updatedAt||0 }; });
     books.sort(function(a,b){ return cloudById(a.meta,b.meta); });
     var t=r[2]||{};
-    return { app:"backchat-sync", v:1, build:BC_VERSION, device:cloudSlotId(), name:cloudDeviceName(), at:Date.now(), tombstones:{ ids:t.ids||{}, keys:t.keys||{} }, books:books };
+    return { app:"backchat-sync", v:1, build:BC_VERSION, device:cloudSlotId(), name:cloudDeviceName(), at:Date.now(), tombstones:{ ids:t.ids||{}, keys:t.keys||{}, undo:t.undo||{ids:{},keys:{}} }, books:books };
   });
 }
 // Content fingerprint: ignores the reading-time counters that tick while you read, so only real changes cause an upload.
@@ -7531,11 +7775,13 @@ function cloudApplyBundle(b){
   if(!b || b.app!=="backchat-sync" || !Array.isArray(b.books)) return Promise.resolve(0);
   var changed=0, tombChanged=false;
   return mutateTombstones(function(local){
-    var rt=b.tombstones||{}, dirty=false;
+    var rt=b.tombstones||{}, src={ ids:{}, keys:{}, undo:rt.undo||{} }, before={};
     ["ids","keys"].forEach(function(g){
-      var src=rt[g]||{};
-      Object.keys(src).forEach(function(k){ var v=+src[k]||0; if(!local[g][k]){ local[g][k]=v||Date.now(); dirty=true; tombChanged=true; } else if(v>local[g][k]){ local[g][k]=v; dirty=true; } });
+      Object.keys(local[g]).forEach(function(k){ before[g+"|"+k]=1; });
+      var s=rt[g]||{}; Object.keys(s).forEach(function(k){ src[g][k]=(+s[k]||0) || Date.now(); });   // an unstamped delete counts from now, as it always has
     });
+    var dirty=foldTombstones(local, src);
+    ["ids","keys"].forEach(function(g){ Object.keys(local[g]).forEach(function(k){ if(!before[g+"|"+k]) tombChanged=true; }); });   // a newly deleted book: reconcile drops it below
     return dirty;
   }).then(tombPushIfChanged).then(function(tomb){
     return DB.all("meta").then(function(metas){
@@ -7947,111 +8193,116 @@ document.addEventListener("click", function(e){
   card.innerHTML='\x3ciframe class="md-embed" src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1" title="Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
 });
 $("#folder-check-btn").onclick=function(){ folderCheck(); };
-/* Inspect the connected folder's health: every notes record should have its book file,
-   stray epubs are future imports, hand-off files are marks waiting to merge. */
-/* ---------------- FOLDER HEALTH: check, classify, manual merge and cleanup ---------------- */
+/* ---------------- FOLDER HEALTH: check, classify, act ----------------
+   Check folder reads the connected folder and says what each part of it is, and what the next
+   sync will do about it. It classifies the way sync does, by a book's content rather than its
+   filename, so what it promises is what happens. It changes nothing itself; each button under it
+   does one thing. */
 async function folderCheck(){
   var info=$("#folder-check-info"); if(!info) return;
   if(!fsaSupported()){ info.textContent="Folder sync is not available in this browser."; return; }
   if(!vault.handle){ info.textContent="No folder connected."; return; }
   if(!(await ensureVaultWritable(true))){ info.textContent="Folder permission needed. Use Reconnect folder above, then check again."; return; }
-  info.textContent="Checking\u2026";
+  info.textContent="Checking…";
+  function s(n){ return n===1?"":"s"; }
+  function L(a){ var n=a.length; return a.slice(0,12).join(", ")+(n>12?", and "+(n-12)+" more":""); }
   try{
-    var dirs=await vaultDirs();
-    var epubs=[], recs=[], handoffs=[], junk=[], conflicts=[];
-    for await (var be of dirs.books.values()){
-      if(be.kind!=="file" || !/\.epub$/i.test(be.name)) continue;
-      if(/conflict/i.test(be.name)){ conflicts.push("books/"+be.name); continue; }
-      epubs.push(be.name);
-    }
+    var dirs=await vaultDirs(), tomb=await loadTombstones();
+    var epubs=[], recFiles=[], handoffs=[], junk=[], recCopies=[], noteCopies=[], mdCopies=[];
+    for await (var be of dirs.books.values()){ if(be.kind==="file" && /\.epub$/i.test(be.name)) epubs.push(be); }
     for await (var de of dirs.data.values()){
       if(de.kind!=="file") continue;
       if(/^_(manifest|settings)/i.test(de.name)){ junk.push({dir:"data", name:de.name}); continue; }
-      if(/^_tombstones\.json$/i.test(de.name)) continue;
-      if(/conflict/i.test(de.name)){ conflicts.push(de.name); continue; }
-      if(!/\.json$/i.test(de.name)) continue;
-      if(/^handoff-/i.test(de.name)) handoffs.push(de.name); else recs.push(de);
+      if(/^_tombstones\.json$/i.test(de.name) || !/\.json$/i.test(de.name)) continue;
+      if(/^handoff-/i.test(de.name)){ handoffs.push(de.name); continue; }
+      if(/conflict/i.test(de.name)){ recCopies.push(de.name); continue; }
+      recFiles.push(de);
     }
+    for await (var he of dirs.hl.values()){ if(he.kind==="file" && /conflict/i.test(he.name)) mdCopies.push(he.name); }
+    try{ var nd=await vault.handle.getDirectoryHandle("notes", {create:false}); for await (var ne of nd.values()){ if(ne.kind==="file" && /\.json$/i.test(ne.name) && /conflict/i.test(ne.name)) noteCopies.push(ne.name); } }catch(e){}
     for await (var re of vault.handle.values()){
       if(re.kind!=="file") continue;
       if(/^handoff-.*\.json$/i.test(re.name)){ handoffs.push(re.name); continue; }
       if(/^_(manifest|settings)/i.test(re.name)) junk.push({dir:"root", name:re.name});
     }
-    var epubSet={}; epubs.forEach(function(n){ epubSet[n]=1; });
-    var epubBySuffix={};
-    epubs.forEach(function(n){ var m=n.match(/-([a-z0-9]{6})\.epub$/i); if(m){ (epubBySuffix[m[1].toLowerCase()]=epubBySuffix[m[1].toLowerCase()]||[]).push(n); } });
-    var missing=[], matched={};
-    for(var i=0;i<recs.length;i++){
-      var id=recs[i].name.replace(/\.json$/i,""), rmeta=null;
-      try{ var f=await recs[i].getFile(); var j=JSON.parse(await f.text()); rmeta=j&&j.meta; }catch(e){}
-      var canon=rmeta?(vaultPathName(rmeta)+".epub"):null, hit=null;
-      if(canon && epubSet[canon] && !matched[canon]) hit=canon;                              // title-aware exact name survives suffix collisions
-      if(!hit && rmeta){ var cands=(epubBySuffix[bookTag(rmeta)]||[]).filter(function(n){ return !matched[n]; }); if(cands.length) hit=cands[0]; }
-      if(hit){ matched[hit]=1; continue; }
-      if(rmeta && rmeta.kind==="page") continue;   // pages have no EPUB by design; not a missing book
-      missing.push((rmeta&&rmeta.title)||id);
+    var byName={}, byTag={};
+    epubs.forEach(function(e){ byName[e.name.toLowerCase()]=e.name; var t=e.name.match(/-([a-z0-9]{6})\.epub$/i); if(t){ var k=t[1].toLowerCase(); (byTag[k]=byTag[k]||[]).push(e.name); } });
+    // this library, and the book files this browser holds
+    var localByKey={}, blobs={};
+    ((await DB.all("meta"))||[]).forEach(function(m){ if(m && !isTombstoned(tomb, m.id, bookKeyOf(m))) localByKey[bookKeyOf(m).toLowerCase()]=m; });
+    ((await DB.keys("blob"))||[]).forEach(function(k){ blobs[k]=1; });
+    // the notes records, grouped by book
+    var recs=[];
+    for(var i=0;i<recFiles.length;i++){ try{ var j=JSON.parse(await (await recFiles[i].getFile()).text()); if(j && j.meta && j.meta.id) recs.push(j.meta); }catch(e){} }
+    var gone=0, byKey={};
+    recs.forEach(function(m){ if(isTombstoned(tomb, m.id, bookKeyOf(m))){ gone++; return; } var k=bookKeyOf(m).toLowerCase(); (byKey[k]=byKey[k]||[]).push(m); });
+    var used={}, twice=[], willWrite=[], missing=[];
+    Object.keys(byKey).forEach(function(k){
+      var g=byKey[k], m=g[0], hit=null;
+      if(g.length>1) twice.push(m.title||m.id);
+      if(m.kind==="page") return;   // pages have no EPUB by design
+      g.forEach(function(x){ var c=byName[(vaultPathName(x)+".epub").toLowerCase()]; if(c && !hit) hit=c; });
+      var lm=localByKey[k]; if(!hit && lm){ var c2=byName[(vaultPathName(lm)+".epub").toLowerCase()]; if(c2) hit=c2; }
+      if(!hit){ var cs=byTag[bookTag(m)]||[]; if(cs.length) hit=cs[0]; }
+      if(hit){ used[hit.toLowerCase()]=1; return; }
+      if(lm && blobs[lm.id]) willWrite.push(m.title||m.id); else missing.push(m.title||m.id);
+    });
+    var notInFolder=Object.keys(localByKey).filter(function(k){ return !byKey[k]; }).map(function(k){ return localByKey[k].title||localByKey[k].id; });
+    // the book files no notes record accounts for, by content
+    var vc={}; try{ var _r=await DB.get("app","vkeycache"); if(_r && _r.val) vc=_r.val; }catch(e){}
+    var fresh=[], deleted=[], dupes=[], differ=[], sameTitle=[], adopt=[], unreadable=[];
+    for(var x=0;x<epubs.length;x++){
+      var en=epubs[x].name; if(used[en.toLowerCase()]) continue;
+      var file=await epubs[x].getFile(), c=vc[en], key="", title="", bad="";
+      if(c && c.s===file.size && c.m===file.lastModified){ key=c.k||""; title=c.t||""; bad=c.bad||""; }
+      else { var inf=await readEpubInfo(await file.arrayBuffer()); key=inf.key; title=inf.title; bad=inf.bad; }
+      if(bad || !key){ unreadable.push(en+" ("+(bad||"it could not be read")+")"); continue; }
+      if(isTombstoned(tomb, null, key)){ deleted.push({name:en, title:title||en}); continue; }
+      var kl=key.toLowerCase(), owners=[].concat(byKey[kl]||[], localByKey[kl]?[localByKey[kl]]:[]);
+      if(!owners.length){ fresh.push(en); continue; }
+      var own=null; owners.forEach(function(r){ var cn=byName[(vaultPathName(r)+".epub").toLowerCase()]; if(cn && !own && cn.toLowerCase()!==en.toLowerCase()) own=cn; });
+      if(!own){ adopt.push(en); continue; }
+      var same=false;
+      try{ var of=await (await dirs.books.getFileHandle(own)).getFile(); if(of.size===file.size) same=bcContentSig(await of.arrayBuffer())===bcContentSig(await file.arrayBuffer()); }catch(e){}
+      if(same) dupes.push(en); else if(kl.indexOf("ta:")===0) sameTitle.push(en); else differ.push(en);
     }
-    var tombTags={};
-    try{ var tt=await loadTombstones(); Object.keys((tt&&tt.keys)||{}).forEach(function(k){ tombTags[hashTag(k)]=1; }); }catch(e){}
-    // Cross-check leftover files against the LIVE library by content, so a book already
-    // held (just stored under a different filename, e.g. from another device) reads as
-    // known rather than as a phantom "new arrival".
-    var liveMetas=await DB.all("meta"), liveCanon={}, liveByKey={};
-    (liveMetas||[]).forEach(function(m){ liveCanon[(vaultPathName(m)+".epub").toLowerCase()]=1; var k=bookKeyOf(m); if(k) liveByKey[k.toLowerCase()]=1; });
-    var orphans=[], deletedFiles=[], knownElsewhere=[];
-    for(var e2=0;e2<epubs.length;e2++){
-      var en=epubs[e2];
-      if(matched[en]) continue;
-      var m2=en.match(/-([a-z0-9]{6})\.epub$/i);
-      if(m2 && tombTags[m2[1].toLowerCase()]){ deletedFiles.push(en); continue; }
-      if(liveCanon[en.toLowerCase()]){ knownElsewhere.push(en); continue; }
-      var isKnown=false;
-      try{ var fh2=await dirs.books.getFileHandle(en); var kf=await readEpubKey(await (await fh2.getFile()).arrayBuffer()); if(kf && liveByKey[kf.toLowerCase()]) isKnown=true; }catch(e){}
-      if(isKnown) knownElsewhere.push(en); else orphans.push(en);
-    }
-    var parts=[epubs.length+" book file"+(epubs.length===1?"":"s")+" and "+recs.length+" notes record"+(recs.length===1?"":"s")+" in the folder."];
-    if(missing.length) parts.push(missing.length+" with notes but no book file: "+missing.join(", ")+".");
-    if(orphans.length) parts.push(orphans.length+" book file"+(orphans.length===1?"":"s")+" not matched to notes, new arrivals import on the next sync: "+orphans.join(", ")+".");
-    if(knownElsewhere.length) parts.push(knownElsewhere.length+" book file"+(knownElsewhere.length===1?" is":"s are")+" already in your library, just under a different filename: "+knownElsewhere.join(", ")+". Recognised by content, so they will not import again as duplicates.");
-    if(deletedFiles.length) parts.push(deletedFiles.length+" book file"+(deletedFiles.length===1?" belongs":"s belong")+" to books you deleted: "+deletedFiles.join(", ")+". A deleted book does not come back just because its file reappears; to reinstall one, use Add EPUB inside the app.");
-    if(handoffs.length) parts.push(handoffs.length+" hand-off file"+(handoffs.length===1?"":"s")+" waiting to merge: "+handoffs.join(", ")+".");
-    if(junk.length) parts.push(junk.length+" leftover internal file"+(junk.length===1?"":"s")+" from older builds, including cloud conflict copies. This build never reads them; the button below removes them.");
-    if(conflicts.length) parts.push(conflicts.length+" cloud conflict cop"+(conflicts.length===1?"y":"ies")+" of live files, left alone for you to inspect: "+conflicts.join(", ")+".");
-    if(!missing.length && !orphans.length && !knownElsewhere.length && !deletedFiles.length && !handoffs.length && !junk.length && !conflicts.length) parts.push("Everything lines up.");
-    folderCheck._junk=junk;
-    folderCheck._conflicts=conflicts;
-    var mf=$("#folder-merge-field"); if(mf) mf.classList.toggle("hidden", !conflicts.length);
-    var mb=$("#folder-merge-btn"); if(mb && conflicts.length) mb.textContent="Merge "+conflicts.length+" conflict cop"+(conflicts.length===1?"y":"ies");
-    var cf=$("#folder-clean-field"); if(cf) cf.classList.toggle("hidden", !junk.length);
-    var cb=$("#folder-clean-btn"); if(cb && junk.length) cb.textContent="Remove "+junk.length+" leftover file"+(junk.length===1?"":"s");
-    info.textContent=parts.join(" ");
+    var P=[epubs.length+" book file"+s(epubs.length)+" and "+recFiles.length+" notes record"+s(recFiles.length)+" in the folder."];
+    if(twice.length) P.push(twice.length+" book"+(twice.length===1?" has":"s have")+" more than one notes record, the same book saved under two ids (usually by two browsers): "+L(twice)+". The next sync folds each into one. Nothing is lost.");
+    if(missing.length) P.push(missing.length+" book"+(missing.length===1?" has":"s have")+" notes but no EPUB, in the folder or in this browser: "+L(missing)+". The notes are safe. Add the EPUB again (Add EPUB, or drop it into books/) and it rejoins them.");
+    if(willWrite.length) P.push(willWrite.length+" book"+s(willWrite.length)+" with no file in the folder but one in this browser: "+L(willWrite)+". The next sync writes "+(willWrite.length===1?"it":"them")+" to the folder.");
+    if(notInFolder.length) P.push(notInFolder.length+" book"+s(notInFolder.length)+" in this library not yet in the folder: "+L(notInFolder)+". The next sync writes "+(notInFolder.length===1?"it":"them")+".");
+    if(fresh.length) P.push(fresh.length+" new book file"+s(fresh.length)+": "+L(fresh)+". The next sync adds "+(fresh.length===1?"it":"them")+" to your library.");
+    if(adopt.length) P.push(adopt.length+" file"+s(adopt.length)+" of books you have, under another name: "+L(adopt)+". The next sync gives each its book's name.");
+    if(dupes.length) P.push(dupes.length+" duplicate cop"+(dupes.length===1?"y":"ies")+" of book files you have: "+L(dupes)+". Each is byte for byte the book's own file; the next sync removes "+(dupes.length===1?"it":"them")+".");
+    if(differ.length) P.push(differ.length+" other cop"+(differ.length===1?"y":"ies")+" of books you have, with different contents (a corrected edition, say): "+L(differ)+". Kept. To read from one instead, open its book's details and choose Refresh EPUB from folder.");
+    if(sameTitle.length) P.push(sameTitle.length+" file"+s(sameTitle.length)+" with the same title and author as a book you have but different contents: "+L(sameTitle)+". Not added. Give "+(sameTitle.length===1?"it":"each")+" its own title (in Calibre, say) and it will be.");
+    if(deleted.length) P.push((deleted.length===1?"1 file of a book":deleted.length+" files of books")+" you deleted: "+L(deleted.map(function(d){ return d.title; }))+". A deleted book does not come back just because its file reappears. To bring "+(deleted.length===1?"it":"them")+" back, use Add back below.");
+    if(unreadable.length) P.push(unreadable.length+" file"+s(unreadable.length)+" that cannot be read as an EPUB, left alone: "+L(unreadable)+".");
+    if(gone) P.push(gone+" notes record"+s(gone)+" of deleted books. The next sync removes "+(gone===1?"it":"them")+".");
+    if(handoffs.length) P.push(handoffs.length+" hand-off file"+s(handoffs.length)+" waiting to merge: "+L(handoffs)+". The next sync merges "+(handoffs.length===1?"it":"them")+".");
+    var copies=recCopies.length+noteCopies.length;
+    if(copies) P.push(copies+" cloud conflict cop"+(copies===1?"y":"ies")+" of Backchat's records"+(noteCopies.length?(", "+noteCopies.length+" of them in notes/"):"")+". The next sync merges "+(copies===1?"it":"them")+" and removes the cop"+(copies===1?"y":"ies")+"; Merge below does it now.");
+    if(mdCopies.length) P.push(mdCopies.length+" cloud conflict cop"+(mdCopies.length===1?"y":"ies")+" of note files in highlights/: "+L(mdCopies)+". Backchat writes those notes from your records, so "+(mdCopies.length===1?"it is":"they are")+" not needed; Remove below clears "+(mdCopies.length===1?"it":"them")+".");
+    if(junk.length) P.push(junk.length+" leftover internal file"+s(junk.length)+" from older builds; Remove below clears "+(junk.length===1?"it":"them")+".");
+    if(P.length===1) P.push("Everything lines up.");
+    var clean=junk.concat(mdCopies.map(function(n){ return {dir:"hl", name:n}; }));
+    folderCheck._junk=clean; folderCheck._deleted=deleted;
+    var mf=$("#folder-merge-field"); if(mf) mf.classList.toggle("hidden", !copies);
+    var mb=$("#folder-merge-btn"); if(mb && copies) mb.textContent="Merge "+copies+" conflict cop"+(copies===1?"y":"ies");
+    var cf=$("#folder-clean-field"); if(cf) cf.classList.toggle("hidden", !clean.length);
+    var cb=$("#folder-clean-btn"); if(cb && clean.length) cb.textContent="Remove "+clean.length+" leftover file"+s(clean.length);
+    var af=$("#folder-readd-field"); if(af) af.classList.toggle("hidden", !deleted.length);
+    var ab=$("#folder-readd-btn"); if(ab && deleted.length) ab.textContent="Add back "+deleted.length+" deleted book"+s(deleted.length);
+    info.textContent=P.join("\n\n");
   }catch(e){ console.warn("folder check", e); info.textContent="Check failed: "+(e && e.message ? e.message : e); }
 }
 $("#folder-merge-btn").onclick=async function(){
-  var list=(folderCheck._conflicts||[]).filter(function(n){ return n.indexOf("books/")!==0; });
-  if(!list.length){ toast("No conflict copies to merge"); return; }
   if(!(await ensureVaultWritable(true))){ toast("Folder permission needed"); return; }
   try{
-    var dirs=await vaultDirs(), merged=0, skipped=0;
-    for(var i=0;i<list.length;i++){
-      var name=list[i], fh=null;
-      try{ fh=await dirs.data.getFileHandle(name); }catch(e){ skipped++; continue; }
-      try{
-        var rec=JSON.parse(await (await fh.getFile()).text());
-        if(rec && rec.meta && rec.meta.id){
-          var id=rec.meta.id;
-          var ex0=await DB.get("meta", id); if(bcKeyMismatch(ex0, rec.meta)){ continue; }   // mislabeled conflict copy: refuse
-          var lh=await DB.get("highlights", id); var li=(lh&&lh.items)||[];
-          var un=mergeHighlights(li, rec.highlights||[]);
-          await DB.put("highlights", {id:id, items:un, updatedAt:Math.max((lh&&lh.updatedAt)||0, rec.updatedAt||0)});
-          var ex=await DB.get("meta", id); if(ex) await DB.put("meta", mergeMeta(ex, rec.meta));
-          if(vault.connected) vaultPushBook(id);
-          await dirs.data.removeEntry(name); merged++;
-        } else { skipped++; }
-      }catch(e){ skipped++; }
-    }
-    toast(merged?("Merged and cleared "+merged+" conflict cop"+(merged===1?"y":"ies")+(skipped?(", "+skipped+" left for you to check"):"")):"Nothing merged");
-    folderCheck();
+    var dirs=await vaultDirs(), tomb=await loadTombstones();
+    var n=(await mergeConflictCopies(dirs, tomb)) + (await vaultPullNotes(tomb));
+    toast(n ? ("Merged and cleared "+n+" conflict cop"+(n===1?"y":"ies")) : "Nothing to merge");
+    renderHome(); folderCheck();
   }catch(e){ console.warn("conflict merge", e); toast("Merge failed"); }
 };
 $("#folder-clean-btn").onclick=async function(){
@@ -8061,12 +8312,42 @@ $("#folder-clean-btn").onclick=async function(){
   try{
     var dirs=await vaultDirs(), n=0;
     for(var i=0;i<list.length;i++){
-      var d=(list[i].dir==="root")?vault.handle:dirs.data;
+      var d=list[i].dir==="root" ? vault.handle : (list[i].dir==="hl" ? dirs.hl : dirs.data);
       try{ await d.removeEntry(list[i].name); n++; }catch(e){}
     }
     toast("Removed "+n+" file"+(n===1?"":"s"));
     folderCheck();
   }catch(e){ console.warn("folder clean", e); toast("Cleanup failed"); }
+};
+// Add back books you deleted whose files are in books/ again. Explicit, because a file can also
+// reappear without you (a cloud client restoring it, another browser that had not heard of the
+// delete yet), and those must not undo a delete. The book comes back without its old marks;
+// its delete backup in backups/ holds them (Load restores it whole instead).
+$("#folder-readd-btn").onclick=async function(){
+  var list=folderCheck._deleted||[];
+  if(!list.length) return;
+  if(!(await ensureVaultWritable(true))){ toast("Folder permission needed"); return; }
+  var n=0;
+  try{
+    var dirs=await vaultDirs();
+    for(var i=0;i<list.length;i++){
+      try{
+        var name=list[i].name, buf=await (await (await dirs.books.getFileHandle(name)).getFile()).arrayBuffer();
+        var id=await importEpubBuffer(buf, name, null);   // no tombstone check: adding it back is the point, and the import clears the delete
+        if(!id) continue;
+        n++;
+        var m=await DB.get("meta", id), canon=vaultPathName(m)+".epub";
+        if(canon.toLowerCase()!==name.toLowerCase()){
+          var there=false; try{ await dirs.books.getFileHandle(canon); there=true; }catch(e){}
+          if(!there){ await writeFileInDir(dirs.books, canon, buf); try{ await dirs.books.removeEntry(name); }catch(e){} }
+        }
+        vaultPushBook(id, false);
+      }catch(e){ console.warn("add back", e); }
+    }
+  }catch(e){ console.warn("add back", e); }
+  toast(n ? ("Added back "+n+" book"+(n===1?"":"s")) : "Nothing was added back");
+  renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary();
+  folderCheck();
 };
 $("#vault-btn").onclick = vaultToggle;
 $("#vault-sync").onclick = function(){ ensureVaultWritable(true).then(function(ok){ if(!ok){ toast("Folder access needed. Tap the folder button to reconnect."); return; } toast("Syncing with folder…"); vaultPull().then(vaultPushAll).then(function(){ toast("Synced with folder"); }); }); };
@@ -8221,13 +8502,15 @@ function removeBookEverywhere(m){
     if(vault.handle) try{ vaultRemoveBook(m); }catch(e){}
   });
 }
-// Of a duplicate group, choose the survivor (prefer the copy that has the actual .epub blob).
+// Of a duplicate group, choose the survivor: the same one on every browser (the lowest id), so two
+// browsers sharing a folder fold a book into the same record instead of each removing the other's
+// on every sync. The book open right now is kept, so the reader never loses its record mid-read.
+// Nothing rides on which record survives: the loser's marks, place and cached file all move to
+// the keeper (mergeInto). This used to prefer whichever copy this browser had the file for, which
+// differs from browser to browser.
 function pickKeeper(g, hasBlob){
-  return g.slice().sort(function(a,b){
-    var ad=hasBlob[a.id]?1:0, bd=hasBlob[b.id]?1:0; if(ad!==bd) return bd-ad;          // a file beats no file
-    var ap=a.progress||0, bp=b.progress||0; if(ap!==bp) return bp-ap;                    // more progress
-    return (b.lastOpened||b.addedAt||0)-(a.lastOpened||a.addedAt||0);                     // most recent
-  })[0];
+  if(currentBook){ for(var i=0;i<g.length;i++){ if(g[i].id===currentBook.id) return g[i]; } }
+  return g.slice().sort(function(a,b){ var x=String(a.id), y=String(b.id); return x<y?-1:(x>y?1:0); })[0];
 }
 // Fold the marks and metadata of a duplicate into the keeper before the loser is removed.
 function mergeInto(keeper, loser){
@@ -8236,7 +8519,13 @@ function mergeInto(keeper, loser){
   return Promise.all([DB.get("highlights", keeper.id), DB.get("highlights", loser.id)]).then(function(h){
     var items=mergeHighlights((h[0]&&h[0].items)||[], (h[1]&&h[1].items)||[]);
     var ua=Math.max((h[0]&&h[0].updatedAt)||0, (h[1]&&h[1].updatedAt)||0, Date.now());
-    return DB.put("meta", merged).then(function(){ return DB.put("highlights", {id:keeper.id, items:items, updatedAt:ua}); });
+    return DB.put("meta", merged).then(function(){ return DB.put("highlights", {id:keeper.id, items:items, updatedAt:ua}); })
+      .then(function(){ return DB.keys("blob"); })
+      .then(function(keys){   // the loser's cached book file goes to the keeper when the keeper has none, so the bytes are never lost with the loser
+        var has={}; (keys||[]).forEach(function(k){ has[k]=1; });
+        if(has[keeper.id] || !has[loser.id]) return;
+        return DB.get("blob", loser.id).then(function(lb){ if(lb && lb.data) return DB.put("blob", {id:keeper.id, data:lb.data}); });
+      });
   });
 }
 function collapseGroup(g, hasBlob){
