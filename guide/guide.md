@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 26
+revision: 27
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -71,7 +71,7 @@ Tap a cover and you arrive at the book's own page, one step before the book itse
 - {{icon:backup}} **Save a backup of this book** makes one file that brings this book back whole: the book, every mark, your place.
 - {{icon:book-link}} **Copy book link** copies a link to this page, ready to paste into another book's margins.
 - {{icon:edit}} **Edit metadata** changes the cover, title, author, year, rating, summary, tags and related books.
-- {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark. Put a corrected copy of the book in the books folder under any name and Refresh switches the book to it.
+- {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark. Put a corrected copy of the book in the books folder under any name and Refresh switches the book to it. A file that cannot be read, damaged or still downloading, is refused, and the book stays as it was.
 - {{icon:remove}} **Remove from this device** frees the space a book takes and keeps every mark. It appears on a phone, and on any device without a folder.
 - {{icon:delete}} **Delete book** removes it, after saving a complete backup first.
 

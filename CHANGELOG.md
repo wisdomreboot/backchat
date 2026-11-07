@@ -2,6 +2,27 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.75 (7 November 2026)
+
+One EPUB reader. Every way a book file comes in reads it with one function, once, by the rules epub.js has always used, so every book keeps the identity it has.
+
+**Changed**
+- **One reader for a book file's bytes.** Checking a file was safe, reading its metadata, finding its cover, finding its video source and taking its content signature were five readers, two of them epub.js opening the whole book. Now one function reads the file once and answers all of it. Add EPUB, a file in the folder's books/, Refresh EPUB from folder, the folder's verdict on a file, the tidy-up's key backfill and the cover taken from the book all ask it. Adding a book in the app reads its file once instead of three times; a book dropped into books/ is read twice, once to know what it is and once to add it, instead of five times.
+- **The same identity as before, proved.** The new reader follows epub.js's own rules element by element: the first rootfile, the package's metadata, the first Dublin Core element of each name and its first text, the cover by the same selectors. Read by 1.0.74 and by this build through every way in, 100 EPUBs came out the same in key, title, author, year, publisher, signature, video source and cover: 43 built to probe the awkward cases, 47 published samples and 10 of the checks' own books. The one difference is intended, below. Then a real library of 319 books, most built from PDFs and the rest from elsewhere, came out the same on every path, every one of them.
+- **One ingest.** Add EPUB and a file in books/ make a book the same way.
+- **A file too large, or with too many files inside, is named as such when the folder first looks at it.** It was taken for a new book, then refused when added, and Check folder said only that it could not be added.
+
+**Fixed**
+- **Refresh EPUB from folder let a damaged or half-downloaded file replace a good copy.** The book then would not open. The file is now refused, with the reason, and the book stays as it was.
+- **A book epub.js could never open held things up for a minute.** A file naming a table of contents it does not hold kept epub.js waiting sixty seconds before it was refused, when you added it, and in a sync with it in books/. It is now refused at once.
+- **The cover on a book's page and on the shelf could differ from the one it was added with.** Cover from the book, and the shelf filling in a missing cover, took the first image with cover in its name, not the cover the book names. All three now take the cover the book names, else its likeliest image. A book whose named cover is not a picture gets that image when it is added, rather than later, from the shelf.
+- **A book with no picture for a cover was unzipped again at every paint** of Home and the Library. It is read once a session, and two paints of the same book at once share one read.
+
+The guide, at revision 27, says Refresh refuses a file that cannot be read.
+
+**Checks**
+- New section 4g, seven checks. Six fail on 1.0.74: adding a book reads its file once (1.0.74: twice, plus epub.js); a book dropped into books/ is read twice (1.0.74: three times, plus epub.js twice); Refresh refuses a damaged file and keeps the book's copy; a file epub.js could never open is refused at once (1.0.74: after a minute); the cover from the book is the one it names, at import, on its page and on the shelf; a book with no cover picture is not read again at every paint (1.0.74: at every one). One passes on both and guards what held: every way in gives a book the same key, title and author. Check folder's report for an over-crowded file now gives the reason. All 211 checks pass.
+
 ## 1.0.74 (7 November 2026)
 
 One merge and one format. Every way a record comes into the library goes through one merge, and every file that carries notes between devices, or brings a book back, is built one way.
