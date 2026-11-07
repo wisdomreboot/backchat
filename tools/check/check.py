@@ -758,6 +758,148 @@ with sync_playwright() as p:
            "a plain highlight inside a new one was dropped without a tombstone, so the next save (since 1.0.72) or the next sync brought it back; one carrying a note was dropped with its note")
     wctx.close()
 
+    # 4f. One merge. Seven paths carry a record into the library: the folder, a notes file, a
+    #     hand-off, a cloud conflict copy, a restore, device sync and the tidy-up's fold. Each rule
+    #     below is checked on every path, so a path that keeps its own copy of the merge is caught.
+    mctx, mp_ = folder_page("one-merge")
+    add_in_app(mp_, "alpha", "alpha.epub")
+    mid = ev(mp_, ALPHA_ID)
+    orig = ev(mp_, "async(id)=>JSON.parse(JSON.stringify(await DB.get('meta', id)))", mid)   # as the import made it: never opened, never merged
+    ev(mp_, SYNC)
+    ev(mp_, r"""()=>{
+      window.__deliver=async(path, rec)=>{
+        const now=Date.now(), id=rec.meta.id, n=Math.random().toString(36).slice(2,7);
+        if(path==='folder'){ await B.put('.reader/'+id+'.json', JSON.stringify(rec)); await vaultPull(); }
+        else if(path==='notes file'){ await B.put('notes/WR-notes-elsewhere-'+n+'.json', JSON.stringify({ app:'epub-reader', format:'wr-notes', version:1, device:'another-device', exportedAt:new Date().toISOString(), books:[rec] })); await vaultPull(); }
+        else if(path==='hand-off'){ await B.put('handoff-'+n+'.json', JSON.stringify({ app:'backchat-handoff', exportedAt:new Date().toISOString(), books:[rec] })); await vaultPull(); }
+        else if(path==='conflict copy'){ await B.put('.reader/'+id+' (conflicted copy '+n+').json', JSON.stringify(rec)); await vaultPull(); }
+        else if(path==='restore'){ await restoreFromObject({ app:'epub-reader', version:2, books:[Object.assign({}, rec.meta)], highlights:[{ id:id, items:rec.highlights, updatedAt:rec.updatedAt }], tombstones:{ids:{},keys:{}} }); }
+        else if(path==='device sync'){ await cloudApplyBundle({ app:'backchat-sync', v:1, device:'phone', name:'Phone', at:now, tombstones:{ids:{},keys:{},undo:{ids:{},keys:{}}}, books:[rec] }); }
+        else if(path==='tidy-up'){ const dup=Object.assign({}, rec.meta, { id:'zz'+id }); await DB.put('meta', dup); await DB.put('highlights', { id:dup.id, items:rec.highlights, updatedAt:rec.updatedAt }); await reconcileLibrary(); }
+        await B.quiet(300);
+      };
+      window.__rec=async(id)=>{ const m=await DB.get('meta', id), h=await DB.get('highlights', id); return JSON.parse(JSON.stringify({ meta:m, highlights:(h&&h.items)||[], updatedAt:(h&&h.updatedAt)||0 })); };
+      window.__put=async(rec)=>{ await DB.put('meta', rec.meta); await DB.put('highlights', { id:rec.meta.id, items:rec.highlights, updatedAt:rec.updatedAt }); _vaultLastWrite={}; await vaultPushBook(rec.meta.id, false);
+        for(const p of Object.keys(await B.ls('.reader'))) if(/conflict/i.test(p)) await B.rm(p); await B.quiet(200); };
+      return true; }""")
+    MERGE_PATHS = ("folder", "notes file", "hand-off", "conflict copy", "restore", "device sync", "tidy-up")
+    def each_path(js, paths=MERGE_PATHS):   # the paths that break the rule, with what each did
+        def held(r): return r is True or (isinstance(r, list) and not r) or (type(r) is int and r == 0)
+        return [[p, r] for p in paths for r in [ev(mp_, js, [mid, p])] if not held(r)]
+
+    expect("merging any record with itself changes nothing", ev(mp_, r"""()=>{
+      const shapes=[
+        { id:'s1', title:'Never Opened', author:'A', lastOpened:null, progress:0, lastCfi:null, readMs:0, tags:[], finished:false, addedAt:1700000000000 },
+        { id:'s2', title:'An Old Record', author:'B', addedAt:1700000000000 },
+        { id:'s3', title:'Read and Marked', author:'C', lastOpened:1700000500000, posAt:1700000500000, lastCfi:'epubcfi(/6/4!/4/2/1:0)', progress:0.25, readMs:60000, tags:['x','y'], tagsUpdated:1700000400000, updated:1700000300000, addedAt:1700000000000, scratch:'notes', fav:true },
+        { id:'s4', title:'Tagged Once', author:'D', tagsUpdated:1700000400000 } ];
+      const bad=shapes.filter(s=>cloudCanon(mergeMeta(JSON.parse(JSON.stringify(s)), JSON.parse(JSON.stringify(s))))!==cloudCanon(s)).map(s=>s.title);
+      const items=[{ id:'h1', text:'a', created:1, updated:2 }, { id:'h2', text:'b', created:3, updated:4, deleted:true }, { id:'h3', text:'c', created:5 }];
+      if(cloudCanon(mergeHighlights(JSON.parse(JSON.stringify(items)), JSON.parse(JSON.stringify(items))).sort(cloudById))!==cloudCanon(items)) bad.push('marks');
+      return bad; }"""), [],
+           "a book never opened came out with its last-opened time changed from none to 0, so the record looked changed and was written again")
+    expect("a record that brings nothing new writes nothing, by every path", each_path(r"""async([id, path])=>{
+      await __put({ meta:%s, highlights:((await DB.get('highlights', id))||{}).items||[], updatedAt:((await DB.get('highlights', id))||{}).updatedAt||0 });
+      const rec=await __rec(id), p=DB.put, log=[];
+      DB.put=function(s, v){ if((s==='meta'||s==='highlights') && v && v.id===id) log.push(s); return p.apply(DB, arguments); };
+      try{ await __deliver(path, rec); } finally { DB.put=p; }
+      return log.length; }""" % json.dumps(orig)), [],
+           "the same record, arriving again, was written again: every connect rewrote each book never opened, and some paths wrote whatever arrived")
+    expect("a record whose id names a different book here changes nothing, by every path", each_path(r"""async([id, path])=>{
+      const before=await __rec(id), now=Date.now();
+      const other={ meta:Object.assign({}, before.meta, { bookKey:'id:urn:another-book', title:'Another Book Entirely', author:'Someone Else', scratch:'margins of another book', updated:now+5000 }),
+        highlights:[{ id:'other-'+path.replace(/\W+/g,'-'), text:'a mark in another book', color:'yellow', created:now, updated:now }], updatedAt:now };
+      await __deliver(path, other);
+      const after=await __rec(id), changed=[];
+      if(after.meta.title!==before.meta.title) changed.push('title');
+      if((after.meta.scratch||'')!==(before.meta.scratch||'')) changed.push('margins');
+      if(after.highlights.some(h=>/^other-/.test(h.id))) changed.push('marks');
+      await __put(before);
+      return changed; }""", MERGE_PATHS[:-1]), [],
+           "a hand-off or a restore carrying the same id for another book wrote that book's title, margins or marks over this one")
+    expect("the newest version of each mark wins, and a mark deleted here stays deleted, by every path", each_path(r"""async([id, path])=>{
+      const now=Date.now(), tag=path.replace(/\W+/g,'-'), h=await DB.get('highlights', id);
+      const gone={ id:'gone-'+tag, text:'deleted here', color:'yellow', note:'', created:now-9000, updated:now-9000 };
+      const kept={ id:'edit-'+tag, text:'edited here', color:'yellow', note:'older', created:now-9000, updated:now-9000 };
+      const older=await __rec(id); older.highlights=older.highlights.concat([gone, kept]);   // the copy another device still holds
+      h.items.push(Object.assign({}, gone, { deleted:true, updated:now-5000 }), Object.assign({}, kept, { note:'newer here', updated:now-5000 }));
+      await DB.put('highlights', h);
+      await __deliver(path, older);
+      let a=(await DB.get('highlights', id)).items; const g=a.find(x=>x.id===gone.id), k=a.find(x=>x.id===kept.id);
+      const newer=await __rec(id); newer.highlights=newer.highlights.map(x=>x.id===kept.id ? Object.assign({}, x, { note:'newer elsewhere', updated:now+1000 }) : x);
+      await __deliver(path, newer);
+      const k2=(await DB.get('highlights', id)).items.find(x=>x.id===kept.id);
+      return (g && g.deleted && k && k.note==='newer here' && k2 && k2.note==='newer elsewhere') ? true : { deletedStays:!!(g && g.deleted), editHere:k && k.note, editElsewhere:k2 && k2.note }; }"""), [],
+           "an older copy brought a deleted mark back, or undid an edit, or a newer edit from another device was lost")
+    expect("a record of a book held here under another id joins that book, by every path", each_path(r"""async([id, path])=>{
+      const now=Date.now(), tag=path.replace(/\W+/g,'-'), rec=await __rec(id);
+      rec.meta=Object.assign({}, rec.meta, { id:'zy'+tag+'-'+id }); rec.highlights=[{ id:'twin-'+tag, text:'marked under another id', color:'yellow', created:now, updated:now }]; rec.updatedAt=now;
+      await __deliver(path, rec);
+      const key=bookKeyOf(rec.meta), all=(await DB.all('meta')).filter(m=>bookKeyOf(m)===key);
+      const marks=all.length===1 && (((await DB.get('highlights', all[0].id))||{}).items||[]).some(h=>h.id==='twin-'+tag);
+      return (all.length===1 && marks) ? true : { copies:all.length, marks:marks }; }"""), [],
+           "the same book arriving under another browser's id became a second book")
+    expect("every file that carries notes between devices carries the same record of a book", ev(mp_, r"""async(id)=>{
+      const m=await DB.get('meta', id); m.updated=Date.now(); await DB.put('meta', m);           // touched since the last hand-off
+      const h=await DB.get('highlights', id); delete h.updatedAt; await DB.put('highlights', h);   // a marks record from before Backchat kept a time of change
+      const pick=b=>b.books.find(x=>x.meta.id===id), notes=pick(await buildNotesBundle()), hand=await buildHandoffBundle(0), sync=pick(await cloudBuildBundle());
+      const same=[cloudCanon(notes)===cloudCanon(sync), cloudCanon(pick(hand))===cloudCanon(sync), hand.format];
+      h.updatedAt=Date.now(); await DB.put('highlights', h); _vaultLastWrite={}; await vaultPushBook(id, false); await B.quiet(200);
+      return same; }""", mid), [True, True, "wr-notes"],
+           "each kind of file built its own copy of the record: the hand-off stamped a record that had no time of change with the moment it was made, and kept fields the others drop")
+    expect("a hand-off file made today merges, and is cleared from the folder", ev(mp_, r"""async(id)=>{
+      const b=await buildHandoffBundle(0), rec=b.books.find(x=>x.meta.id===id), now=Date.now();
+      rec.highlights=rec.highlights.concat([{ id:'handed-new', text:'handed off', color:'yellow', created:now, updated:now }]);
+      await B.put('handoff-made-today.json', JSON.stringify(b)); await vaultPull(); await B.quiet(300);
+      return [(((await DB.get('highlights', id))||{}).items||[]).some(x=>x.id==='handed-new'), !('handoff-made-today.json' in (await B.ls()))]; }""", mid), [True, True],
+           "the hand-off becomes a notes file; the computer still takes it from the top of the folder")
+    expect("Check folder lists every book the sync message says has notes but no EPUB", ev(mp_, r"""async()=>{
+      const now=Date.now(), ghost={ id:'ghost-nofile-1', title:'A Book Read Elsewhere', author:'Far Away', bookKey:'id:urn:elsewhere:1', addedAt:now, updated:now, tags:[] };
+      const was=vault.connected; vault.connected=false;   // it arrived while the folder could not be written
+      await cloudApplyBundle({ app:'backchat-sync', v:1, device:'phone', name:'Phone', at:now, tombstones:{ids:{},keys:{},undo:{ids:{},keys:{}}}, books:[{ meta:ghost, highlights:[{ id:'g1', text:'read elsewhere', color:'yellow', created:now, updated:now }], updatedAt:now }] });
+      vault.connected=was;
+      const counted=(await bcBooksWithoutFile(await vaultDirs())).map(m=>m.title);
+      await folderCheck(); const report=document.querySelector('#folder-check-info').textContent, m=/notes but no EPUB[^:]*: ([^\n]*)/.exec(report);
+      return [counted.indexOf(ghost.title)>=0, !!m && m[1].indexOf(ghost.title)>=0]; }"""), [True, True],
+           "the message said Check folder lists them, and Check folder listed this one as a book the next sync would write, which no sync could give a file")
+    ev(mp_, "async()=>{ for(const m of await DB.all('meta')) if(m.id==='ghost-nofile-1') await removeBookEverywhere(m); return true; }")
+    expect("a book's backup brings the book back and leaves your settings alone", ev(mp_, r"""async(id)=>{
+      const was=settings.fs||100; detailsBook=await DB.get('meta', id); detailsItems=hlLive(((await DB.get('highlights', id))||{}).items);
+      detailsBackup(); await B.quiet(600);
+      const name=Object.keys(await B.ls('backups')).filter(n=>/Alpha-Testing-Book-backup/.test(n)).sort().pop(), j=JSON.parse(await B.text(name));
+      settings.fs=was+7; saveSettings();   // changed since the backup was made
+      await restoreFromObject(j); const kept=settings.fs===was+7;
+      settings.fs=was; saveSettings(); detailsBook=null;
+      return [j.books.length===1 && !!j.books[0].data, kept]; }""", mid), [True, True],
+           "a book's backup carried the whole app's settings, so restoring one book put back your type size, theme and voice as they were that day")
+    expect("a mark the guide's new edition no longer has is deleted as every mark is, so another device's copy cannot bring it back", ev(mp_, r"""async()=>{
+      const src=await fetchGuide(), m=await DB.get('meta', GUIDE_ID), now=Date.now(), phrase=(/[A-Z][a-z]+(?: [a-z,']+){6,12}/.exec(src.body.slice(1500))||[''])[0];
+      const h=await DB.get('highlights', GUIDE_ID); h.items.push({ id:'guide-gone', text:phrase, color:'yellow', note:'', created:now, updated:now }); await DB.put('highlights', h);
+      const older=JSON.parse(JSON.stringify(h.items));   // the copy another device still holds
+      _guideSrc=Object.assign({}, src, { rev:(m.guideRev||0)+1, body:src.body.split(phrase).join('words this edition changed') });
+      try{ await refreshGuideIfNewer(); } finally { _guideSrc=src; }
+      const after=(await DB.get('highlights', GUIDE_ID)).items, g=after.find(x=>x.id==='guide-gone');
+      return [phrase.length>20, !!(g && g.deleted), hlLive(mergeHighlights(older, after)).some(x=>x.id==='guide-gone')]; }"""), [True, True, False],
+           "a new edition of the guide dropped the marks whose words it no longer has without a tombstone, so any device still holding one brought it back")
+    ev(mp_, SYNC); add_in_app(mp_, "beta", "beta.epub"); add_in_app(mp_, "gamma", "gamma.epub")   # two books added here: the folder holds their records as the import made them
+    ev(mp_, "async()=>{ await vaultWriteIndex(await vaultDirs()); await B.quiet(200); return true; }")   # and the library's index lists them
+    expect("connecting a folder that already holds this library's records rewrites none of them", ev(mp_, r"""async()=>{
+      await B.quiet(300); B.mark(); let n=0; const p=DB.put; DB.put=function(s){ if(s==='meta') n++; return p.apply(DB, arguments); };
+      try{ vault.handle=null; vault.connected=false; vault.handle=B.root; vault.connected=true; _vaultLastWrite={}; await vaultPull(); await vaultPushAll(); await B.quiet(600); } finally { DB.put=p; }
+      return [n, B.log('w')]; }"""), [0, []],
+           "a record merged with itself came out different (last opened: none became 0), so connecting rewrote every book never opened, here and in the folder")
+    ev(mp_, "(id)=>{ openBook(id); return true; }", mid)
+    wait(mp_, "rendition && rendition.getContents().length && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent)")
+    settle(0.8)
+    expect("margins that arrive while their book is open survive the reader's next save, by every path", each_path(r"""async([id, path])=>{
+      const text='Margins that arrived by '+path+'.', rec=await __rec(id);
+      rec.meta=Object.assign({}, rec.meta, { scratch:text, updated:Date.now()+1000 });
+      await __deliver(path, rec);
+      await saveProgress(currentBook);   // the reader's next save: a page turn writes its copy of the record
+      return ((await DB.get('meta', id)).scratch||'')===text; }"""), [],
+           "the open book kept its own copy of the record, so the reader's next page turn wrote the old margins back")
+    mctx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.

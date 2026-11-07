@@ -2,6 +2,29 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.74 (7 November 2026)
+
+One merge and one format. Every way a record comes into the library goes through one merge, and every file that carries notes between devices, or brings a book back, is built one way.
+
+**Changed**
+- **One merge for every way in.** The folder, a notes file, a hand-off, a cloud conflict copy, a restore, device sync and the start-up tidy-up each kept their own copy of the merge, and the copies had drifted apart. Now each finds where a record belongs by one rule, and merges it with one function. A deleted book stays deleted. A record whose id names a different book here is refused. The same book held here under another id takes it. Anything else is a book new here. Only what changes is written, and the book on screen takes what arrived.
+- **One notes format.** Export notes, a hand-off and device sync build their files the same way, with the same record of each book. A hand-off is now a notes file of the books you touched since the last one, so Load and the notes folder read it like any other. On screen nothing changes, a hand-off file made before 1.0.74 still merges, and an older Backchat still takes one made now.
+- **One backup.** Save, the weekly backup, the backup offered before a reset, a book's own backup and the backup made before a delete are built by one function.
+- **A restore adds and never replaces.** It brings back a book's file and cover when this browser has none, and leaves the ones you hold as they are.
+
+**Fixed**
+- **A hand-off or a restore could write one book over another.** When a record's id named a different book here, every other way in refused it. A hand-off wrote that book's title, margins and marks over yours, and a restore its title and margins. Both now refuse it.
+- **Margins that arrived while their book was open were lost at the next page turn**, when they came by a hand-off, a restore or the tidy-up. The reader kept its own copy of the record and wrote it back. They come through the one merge now, which tells the open book.
+- **A record merged with itself came out changed.** A book never opened gained a last-opened time of 0, a record never edited an edit time of 0, and an older record empty tags, a reading time and a finished flag. So the first time any copy of a record arrived, it was written again, in the browser and then in the folder: connecting a folder rewrote every such book. Hand-off, restore and the tidy-up wrote every record they touched, changed or not. Merging a record with itself now changes nothing, and only what changes is written.
+- **A book's backup carried the whole app's settings.** Restoring one book put back your type size, theme and voice as they were the day it was saved. A book's backup now carries the book alone.
+- **Check folder and the sync message disagreed about books with notes but no EPUB.** The message says Check folder lists them. For a book whose record had not reached the folder yet, Check folder said the next sync would write it, though no sync could give it a file. Both now use one rule.
+- **A new edition of the guide dropped the marks whose words it no longer has, without a tombstone**, so a device still holding one brought it back. They are now deleted the way every mark is. 1.0.73 said the widened highlight was the last mark removed without a tombstone; this was another.
+
+The guide, at revision 26, says that a restore adds and never replaces, and that a book's backup leaves your settings alone.
+
+**Checks**
+- New section 4f, twelve checks written as rules. Each one that concerns a record runs on every way a record comes in: the folder, a notes file, a hand-off, a conflict copy, a restore, device sync and the tidy-up. Nine fail on 1.0.73. Merging a record with itself changes nothing (1.0.73 changed all four record shapes). A record that brings nothing new writes nothing (1.0.73 wrote the record again on every path, and hand-off, restore and the tidy-up its marks too). A record whose id names a different book changes nothing (1.0.73: the hand-off and the restore wrote over the book). Notes, hand-off and device sync carry the same record. Check folder lists every book the sync message counts. A book's backup leaves your settings alone. A guide edition that drops a mark's words deletes the mark for good. Connecting a folder that holds this library's records rewrites none of them (1.0.73 rewrote two of two). Margins that arrive while their book is open survive the next page turn (1.0.73 lost them by hand-off, restore and tidy-up). Three pass on both builds and guard what already held: the newest version of each mark wins on every path and a deletion stays deleted, a record of a book held here under another id joins it, and a hand-off made today merges and is cleared. All 204 checks pass.
+
 ## 1.0.73 (7 November 2026)
 
 The phone, built around how it is used: a reader for the train that holds its own books and, with device sync on, uses the folder as a bookshelf.

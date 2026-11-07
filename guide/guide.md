@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 25
+revision: 26
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -261,7 +261,7 @@ Three buttons sit together on the home screen. {{icon:save}} Save writes your wh
 
 There are really only two things you ever do with your data, and each word means one thing.
 
-Save and Restore are a round trip. A Save always makes a file you can bring back, whether it holds your whole library, a single book, or a book you just deleted. And Restore reads any of them. Load {{icon:load}} on the home screen and Restore from a file, in Settings under Advanced, are the same action: hand either one any Backchat backup and it works out what is inside and merges it. Nothing already here is removed, and a book you deleted stays deleted unless you restore it on purpose.
+Save and Restore are a round trip. A Save always makes a file you can bring back, whether it holds your whole library, a single book, or a book you just deleted. And Restore reads any of them. Load {{icon:load}} on the home screen and Restore from a file, in Settings under Advanced, are the same action: hand either one any Backchat backup and it works out what is inside and merges it. Nothing already here is removed or replaced: a book file you hold stays the one you hold, and a book you deleted stays deleted unless you restore it on purpose. A single book's backup brings back that book alone, and leaves your settings as they are.
 
 Export {{icon:export}} is the other thing, and it never comes back. Export to Markdown, in Settings under Advanced, makes a readable copy of your reading for a notes app like Obsidian. It is for reading elsewhere, not for restoring, and it says so.
 
