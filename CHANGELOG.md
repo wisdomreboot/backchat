@@ -2,6 +2,29 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.77 (8 November 2026)
+
+One database layer, one margins editor, and a page that says what is true. The last build of the plan made on 7 November: each rule here now lives in one place, so a fix to it cannot miss a copy.
+
+**Changed**
+- **One database layer.** How Backchat stores things was defined three times: the database itself; a wrapper device sync put around it from inside its own code, to hear of every write; and a patch at the very end of the page that wrapped that again, to keep the library in memory and to say when the disk is full. Now there is one layer, with one list of what happens after each write. A record changed in one step reads and writes in a single transaction, so nothing another save puts in between is lost.
+- **The library held in memory shows only what was saved.** Search, connections, link titles and exports read the whole library again and again, so a copy is kept in memory. It held the very objects the app saved, so a change made in memory and not yet saved showed there as if it were saved. It now holds a copy of what was saved. Another tab's writes never reached it either, so search in a second tab missed new books until a reload; a write in one tab now clears the others' copy.
+- **One margins editor.** The margins on a book's page and in the reader's drawer were two editors, each with its own view, its own save and its own copy of the book's record. They are one editor now, mounted in both places, each keeping its own controls. A margins save writes the margins, and only the margins, into the book's record, so nothing else that reached the record meanwhile is written over. In the drawer, a location link now names the book it points to, and a web link opens in a new tab, as on the book's page.
+- **The video turns the chapter on the player's own clock.** A timer asked the player every 400 ms, from the moment the page loaded, whether to turn to the next chapter, video or not. The player's own tick, four times a second while a video plays, asks instead, and nothing runs while none plays. The player's floating layout, which Backchat never used, is gone.
+- **Small doubles made one.** There is now one way to copy to the clipboard (there were six), one way to say how long ago something synced (two), one time stamp for file names (two), one way the voice starts on a page (three), and one heart for a favourite (the one on the cover and the one on the book's page were two). A book fetched from the folder asks for permission the way every other folder write does, not with its own copy of the request. A book's favourite alone keeps it in the inside-text index. The pin it was written beside, left over from before the two became one control, is no longer written or read; in Jonathan's library no book had a pin without a heart.
+- **A page that says what is true.** The code opened with an 85-line maintenance log from July. Among other things, it said duplicate records are never folded (they are), that the notes in highlights/ are rewritten on every sync (they are written only when they change), and that a book's stored file is never rewritten (Refresh rewrites it). The log is gone, because its history lives in this file. The header now says what is true at this build and names the one place each rule lives.
+
+**Checks**
+- New section 4i, nine checks. Seven fail on 1.0.76:
+  - every write, a one-step update included, reaches device sync through one list;
+  - the library in memory shows what was saved, never a change still in memory;
+  - a book written in another tab reaches this tab's copy;
+  - the reader's drawer saves the margins and nothing else;
+  - the book's page saves the margins and nothing else;
+  - location links in the drawer name their book;
+  - nothing polls the video player while no video plays.
+- Two pass on both and guard what must hold: a write the disk refuses is said at once, and the sound carries the book on to the next chapter. All 230 checks pass.
+
 ## 1.0.76 (8 November 2026)
 
 One identity. Every way a book or its notes come in asks one rule whether it is a book already here, and the rule knows a book by every identifier its files have carried, in whatever form a shop or a converter wrote them.
