@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 27
+revision: 28
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -58,6 +58,8 @@ Backchat reads EPUB, the open format most ebooks come in. Tap + Add EPUB, or dro
 
 To turn a video into a book, use the [Video Epub Creator for Backchat](https://jonathandutoit.com/video-epub-book-for-backchat/), then add the finished file here. For any other format, convert it to EPUB first with any converter.
 
+The same book reaches you from many places, and each writes its identity its own way: an ISBN with hyphens or without, ten digits or thirteen, an Amazon ASIN, both, or nothing at all. Backchat knows a book by every identifier its files have carried, so another copy of a book you have is that book, wherever it came from. Add one and Backchat asks before the new file takes the old one's place; your highlights, notes and place stay with the book. A file that shares only a title and author with a book you have is never taken for it: Backchat asks whether it is that book or a book of its own.
+
 **Library** on the home screen shows every book. Type to filter it. Sort by last opened, date added, title, author or progress, and flip the order with {{icon:sort}}. The heart {{icon:heart}} shows only the books you love.
 
 ## A book's page
@@ -71,7 +73,7 @@ Tap a cover and you arrive at the book's own page, one step before the book itse
 - {{icon:backup}} **Save a backup of this book** makes one file that brings this book back whole: the book, every mark, your place.
 - {{icon:book-link}} **Copy book link** copies a link to this page, ready to paste into another book's margins.
 - {{icon:edit}} **Edit metadata** changes the cover, title, author, year, rating, summary, tags and related books.
-- {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark. Put a corrected copy of the book in the books folder under any name and Refresh switches the book to it. A file that cannot be read, damaged or still downloading, is refused, and the book stays as it was.
+- {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark. Put a corrected copy of the book in the books folder under any name and Refresh switches the book to it. A file that shares only the book's title is used only when you say so. A file that cannot be read, damaged or still downloading, is refused, and the book stays as it was.
 - {{icon:remove}} **Remove from this device** frees the space a book takes and keeps every mark. It appears on a phone, and on any device without a folder.
 - {{icon:delete}} **Delete book** removes it, after saving a complete backup first.
 
@@ -215,11 +217,11 @@ If the video is taken down, the player says so and folds away. The book, its tim
 
 On a computer, in Chrome, Edge or Brave, open Settings {{icon:settings}} and tap Connect a folder {{icon:folder}}. Choose a folder inside your Obsidian vault if you use one. From that moment the folder is the source of truth.
 
-Your books are written into a books folder inside it, and the door swings both ways: drop any EPUB into that books folder and it joins your library on the next sync. Your highlights and comments are written as plain Markdown into a highlights folder, one file per book, with your tags and titles as links, readable in Obsidian or any text editor. These Markdown files are an export, not the source: the app writes each one from your marks when they change and never reads it back, so any edits made there are overwritten. Edit in the app, where your marks and location links stay live.
+Your books are written into a books folder inside it, and the door swings both ways: drop any EPUB into that books folder and it joins your library on the next sync. A copy of a book you already have is kept beside it rather than added twice, and a file that shares only a book's title and author waits until you say what it is: Refresh EPUB from folder makes it that book's file, Add EPUB a book of its own. Your highlights and comments are written as plain Markdown into a highlights folder, one file per book, with your tags and titles as links, readable in Obsidian or any text editor. These Markdown files are an export, not the source: the app writes each one from your marks when they change and never reads it back, so any edits made there are overwritten. Edit in the app, where your marks and location links stay live.
 
 On a computer, the browser keeps only a working copy of your twenty most recently opened books. Everything else lives in the folder and is fetched the moment you open it. Clearing the browser loses nothing, because the folder holds the library. A phone keeps every book it holds, folder or not, because on the train the folder is out of reach.
 
-The Backchat name on the home screen is the sync light, and the dot at the bottom of the reader repeats it. In Settings, under Advanced, Check folder reads the folder back to you and says what the next sync will do with each part of it: books with notes but no file, new files, copies of books you have, books you deleted whose files are back, files it cannot read, and conflict copies left by a cloud client. One tap brings deleted books back from their files, and one cleans up files that nothing reads any more. And once a week, with the folder connected, a small backup writes itself into a backups folder, keeping the four newest.
+The Backchat name on the home screen is the sync light, and the dot at the bottom of the reader repeats it. In Settings, under Advanced, Check folder reads the folder back to you and says what the next sync will do with each part of it: books with notes but no file, new files, copies of books you have, files that only look like books you have, books you deleted whose files are back, files it cannot read, and conflict copies left by a cloud client. One tap brings deleted books back from their files, and one cleans up files that nothing reads any more. And once a week, with the folder connected, a small backup writes itself into a backups folder, keeping the four newest.
 
 ## Sync your devices
 
