@@ -1092,6 +1092,103 @@ with sync_playwright() as p:
            [1, 1, True, 3, 3, [0, 0, 0], "Harbour Lights"], "each kept its own record of the book under its own key, so the marks made on one never reached the other")
     actx.close(); bctx.close()
 
+    # 4i. One database, one margins editor, one clock for the video. Every write reaches the same
+    #     hooks; the library snapshot shows only what was saved, in every tab; the margins are
+    #     saved alone, from the reader's drawer and from the book's page; the chapter follows the
+    #     sound on the player's own tick, and nothing polls while no video plays.
+    dctx = browser.new_context(bypass_csp=True); dp = dctx.new_page(); watch(dp, "one-db")
+    dp.goto(URL); wait(dp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.2)
+    expect("every write reaches device sync through one list of hooks, a one-step update included", ev(dp, r"""async()=>{
+      let n=0; const f=window.cloudScheduleCheck; window.cloudScheduleCheck=function(){ n++; };
+      const out=[], step=async(fn)=>{ const a=n; await fn(); await new Promise(r=>setTimeout(r,30)); out.push(n-a); };
+      const tomb=(await DB.get('app', TOMB_KEY)) || { key:TOMB_KEY, val:{ ids:{}, keys:{} } };
+      try{
+        await step(()=>DB.put('meta', { id:'hook1', title:'Hook', bookKey:'id:hook1', tags:[] }));
+        await step(()=>DB.put('highlights', { id:'hook1', items:[], updatedAt:1 }));
+        await step(()=>DB.put('app', tomb));
+        await step(()=>DB.put('app', { key:'hook-other', val:1 }));
+        await step(()=>DB.update('meta', 'hook1', r=>{ r.title='Hooked'; return r; }));
+        await step(()=>DB.del('meta', 'hook1'));
+      } finally { window.cloudScheduleCheck=f; }
+      return out; }"""), [1, 1, 1, 0, 1, 1], "device sync wrapped the database from inside its own code, a second wrapper at the end of the page wrapped that, and a write made any other way reached neither")
+    expect("the library snapshot shows what was saved, never a change still in memory", ev(dp, r"""async()=>{
+      const m={ id:'snap1', title:'Saved title', bookKey:'id:snap1', tags:[] }; await DB.put('meta', m); await DB.snapshot('meta');
+      m.title='Changed in memory, not saved';
+      const a=(await DB.snapshot('meta')).find(x=>x.id==='snap1').title;
+      await DB.put('meta', m); const b=(await DB.snapshot('meta')).find(x=>x.id==='snap1').title;
+      await DB.del('meta', 'snap1'); const c=!(await DB.snapshot('meta')).find(x=>x.id==='snap1');
+      return [a, b, c]; }"""), ["Saved title", "Changed in memory, not saved", True],
+           "the cache held the very objects callers saved, so a change made after a save showed in search, links and exports as if it were saved")
+    dp2 = dctx.new_page(); watch(dp2, "one-db-tab-2"); dp2.goto(URL); wait(dp2, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.0)
+    ev(dp, "async()=>{ await DB.snapshot('meta'); return true; }")
+    ev(dp2, "async()=>{ await DB.put('meta', { id:'tab2', title:'Written in another tab', bookKey:'id:tab2', tags:[] }); return true; }"); settle(0.5)
+    expect("a book written in another tab reaches this tab's library snapshot", ev(dp, "async()=>!!(await DB.snapshot('meta')).find(x=>x.id==='tab2')"), True,
+           "the cache was filled once and never heard of another tab's writes, so search there missed new books until a reload")
+    dp2.close()
+    expect("a write the disk refuses is said at once", ev(dp, r"""async()=>{
+      const op=IDBObjectStore.prototype.put; IDBObjectStore.prototype.put=function(){ throw new DOMException('The disk is full', 'QuotaExceededError'); };
+      let failed=false; try{ await DB.put('meta', { id:'full1', title:'x' }); }catch(e){ failed=true; } finally { IDBObjectStore.prototype.put=op; }
+      const b=document.getElementById('bc-storage-warn'), t=b ? b.textContent : ''; if(b) b.remove();
+      return [failed, /Storage is full/.test(t)]; }"""), [True, True], "a full disk aborted the save without a word")
+    dctx.close()
+
+    mctx = browser.new_context(bypass_csp=True); mp = mctx.new_page(); watch(mp, "one-margins")
+    mp.goto(URL); wait(mp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.2)
+    mp.set_input_files("#file-input", [ALPHA])
+    wait(mp, "DB.all('meta').then(ms=>window.__a=ms.find(m=>m.title==='Alpha Testing Book')), !!window.__a")
+    mp.evaluate("()=>{ openBook(window.__a.id); }")
+    wait(mp, "rendition && rendition.getContents().length>0"); settle(1.0)
+    BEHIND = "async(v)=>{ const r=await DB.get('meta', currentBook.id); Object.assign(r, v); await DB.put('meta', r); return true; }"   # another device's sync, say, landing behind the reader's back
+    ev(mp, BEHIND, {"rating": 5, "summary": "Written elsewhere"})
+    expect("the reader's margins save the margins and nothing else into the book's record", ev(mp, r"""async()=>{
+      openScratch(); toggleScratchEdit(); const ta=document.querySelector('#scratch-edit-area'); ta.value='Typed in the drawer.'; ta.dispatchEvent(new Event('input'));
+      await new Promise(r=>setTimeout(r,1300)); toggleScratchEdit(); closePanels(); await new Promise(r=>setTimeout(r,300));
+      const m=await DB.get('meta', currentBook.id); return [m.scratch, m.rating, m.summary]; }"""), ["Typed in the drawer.", 5, "Written elsewhere"],
+           "a margins save wrote the reader's whole copy of the record, so what had reached the stored record since the book opened was written over")
+    ev(mp, BEHIND, {"rating": 4})
+    expect("the book's page saves the margins and nothing else into the book's record", ev(mp, r"""async()=>{
+      await openDetails(currentBook.id); await new Promise(r=>setTimeout(r,300));
+      detailsNotesEdit(); document.querySelector('#det-notes-area').value='Written on the book page.'; detailsNotesSave(); await new Promise(r=>setTimeout(r,500));
+      const m=await DB.get('meta', currentBook.id); return [m.scratch, m.rating]; }"""), ["Written on the book page.", 4],
+           "the book page's save wrote its whole copy of the record over what had reached it since")
+    expect("location links in the reader's margins carry their book's title, as on the book's page", ev(mp, r"""async()=>{
+      const other=(await DB.all('meta')).find(m=>m.id!==currentBook.id && m.title);
+      appendToMargins(bcMakeToken({ bookKey:bookKeyOf(other), kind:'book', highlightId:'', cfi:'', anchorId:'' })+'\n');
+      openScratch(); await new Promise(r=>setTimeout(r,500));
+      const t=document.querySelector('#scratch-view .bc-ref-title'); return t ? t.textContent===' ('+other.title+')' : 'no title'; }"""), True,
+           "the drawer drew the margins with its own renderer, which never named the book a link points to")
+    mctx.close()
+
+    # The video's clock. A two-chapter transcript book: the first chapter's part of the video ends at
+    # 30 s, where the second begins. YouTube is stubbed to report it is playing at 29.4 s.
+    def transcript_two(path, vid):
+        z = zipfile.ZipFile(path, "w")
+        z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", compress_type=zipfile.ZIP_STORED)
+        z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
+        for n, (t0, nxt) in enumerate(((0, "30"), (30, ""))):
+            rows = "".join('<div class="transcript-entry"><button class="ts timestamp" type="button" data-t="%d">0:%02d</button><p><span class="c" data-t="%d">Line at second %d.</span></p></div>' % (t, t, t, t) for t in range(t0, t0 + 30, 5))
+            z.writestr("OEBPS/ch%d.xhtml" % (n + 1), '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Part %d</title></head><body><div id="backchat-media" data-provider="youtube" data-id="%s" data-duration="60" data-next="%s" hidden="hidden"></div><h1 class="ch" data-t="%d">Part %d</h1>%s</body></html>' % (n + 1, vid, nxt, t0, n + 1, rows))
+        z.writestr("OEBPS/nav.xhtml", '<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Nav</title></head><body><nav epub:type="toc"><ol><li><a href="ch1.xhtml">Part 1</a></li><li><a href="ch2.xhtml">Part 2</a></li></ol></nav></body></html>')
+        z.writestr("OEBPS/content.opf", '<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:video-%s</dc:identifier><dc:title>Two Parts</dc:title><dc:creator>Speaker</dc:creator><dc:language>en</dc:language><meta property="backchat:media">youtube:%s</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="c1" href="ch1.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/><itemref idref="c2"/></spine></package>' % (vid, vid))
+        z.close()
+    TWOPART = os.path.join(TMP, "two-parts.epub"); transcript_two(TWOPART, "followvid01")
+    pctx = browser.new_context(bypass_csp=True)
+    pctx.add_init_script("(()=>{ const si=window.setInterval; window.__every=[]; window.setInterval=function(fn, ms){ window.__every.push(ms); return si.apply(this, arguments); }; })()")
+    pctx.route(re.compile(r"https://www\.youtube\.com/embed/.*"), lambda route: route.fulfill(status=200, content_type="text/html", body=(
+        "<!doctype html><title>player</title><script>var say=function(m){parent.postMessage(JSON.stringify(m),'*');};"
+        "say({event:'onReady'});setTimeout(function(){say({event:'infoDelivery',info:{playerState:1,currentTime:29.4,duration:60}});},400);</script>")))
+    pp = pctx.new_page(); watch(pp, "player-clock")
+    pp.goto(URL); wait(pp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.5)
+    expect("nothing polls the video player while no video plays", ev(pp, "()=>window.__every.filter(ms=>ms===400).length"), 0,
+           "a patch at the end of the page asked the player every 400 ms, from the moment the page loaded, video or not")
+    pp.set_input_files("#file-input", [TWOPART])
+    wait(pp, "DB.all('meta').then(ms=>window.__v=ms.find(m=>m.title==='Two Parts')), !!window.__v")
+    pp.evaluate("()=>{ openBook(window.__v.id); }")
+    wait(pp, "rendition && rendition.getContents().length>0"); settle(4.0)
+    expect("the sound carries the book on to the next chapter, on the player's own clock", ev(pp, "()=>{ const l=rendition.currentLocation(); return [BackchatPlayer.isPlaying, l && l.start && l.start.index]; }"), [True, 1],
+           "at the end of a chapter's part of the video, the book stayed where it was while the sound went on")
+    pctx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.
