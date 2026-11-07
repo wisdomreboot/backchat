@@ -558,7 +558,7 @@ with sync_playwright() as p:
     expect("Add back returns the deleted book", ev(gp, "async()=>{ document.getElementById('folder-readd-btn').click(); await B.quiet(1500); return !!(await DB.all('meta')).find(x=>x.title==='Gamma Third Book'); }"), True, "an explicit add-back clears the delete")
     drop(gp, "crowded.epub", "crowded"); ev(gp, SYNC)
     report = ev(gp, "async()=>{ await folderCheck(); return document.querySelector('#folder-check-info').textContent; }")
-    expect("Check folder does not promise to add a file sync could not add", [("crowded.epub (it could not be added" in report), ("new book file" in report)] if isinstance(report, str) else report, [True, False],
+    expect("Check folder does not promise to add a file sync could not add, and says why", [("crowded.epub (too many files inside" in report), ("new book file" in report)] if isinstance(report, str) else report, [True, False],
            "it listed the file as new, to be added on the next sync, though sync had stopped trying it")
     gctx.close()
 
@@ -899,6 +899,87 @@ with sync_playwright() as p:
       return ((await DB.get('meta', id)).scratch||'')===text; }"""), [],
            "the open book kept its own copy of the record, so the reader's next page turn wrote the old margins back")
     mctx.close()
+
+    # 4g. One EPUB reader. Every way a book file comes in (Add EPUB, books/ in the folder, Refresh,
+    #     the folder's verdict, the tidy-up's key backfill, the cover from the book) reads it with one
+    #     function, by one set of rules, as few times as it can.
+    import struct, zlib
+    def png_bytes(rgb):
+        raw = b"".join(b"\x00" + bytes(rgb) * 24 for _ in range(36))
+        def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+        return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 24, 36, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+    def raw_epub(name, meta, manifest="", files=None, nav=True):
+        path = os.path.join(TMP, name)
+        z = zipfile.ZipFile(path, "w")
+        z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", compress_type=zipfile.ZIP_STORED)
+        z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
+        z.writestr("OEBPS/content.opf", '<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">' + meta +
+                   '</metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>' + manifest + '</manifest><spine><itemref idref="ch1"/></spine></package>')
+        if nav: z.writestr("OEBPS/nav.xhtml", '<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Nav</title></head><body><nav epub:type="toc"><ol><li><a href="ch1.xhtml">One</a></li></ol></nav></body></html>')
+        z.writestr("OEBPS/ch1.xhtml", '<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><p>A chapter with a few words in it.</p></body></html>')
+        for pth, data in (files or {}).items(): z.writestr(pth, data)
+        z.close()
+        return base64.b64encode(open(path, "rb").read()).decode()
+    TRICKY = raw_epub("tricky.epub", '<dc:identifier id="uid">\n   urn:uuid:tricky-1  \n</dc:identifier><dc:title>  Tricky   Title </dc:title><dc:creator>Ann Author</dc:creator><dc:date>2021-03-04</dc:date><dc:publisher>Small Press</dc:publisher>')
+    NAMED = raw_epub("named-cover.epub", '<dc:identifier id="uid">urn:uuid:named-cover</dc:identifier><dc:title>Named Cover</dc:title><dc:creator>Cy Painter</dc:creator>',
+                     '<item id="front" href="images/front.png" media-type="image/png" properties="cover-image"/><item id="old" href="images/cover-old.png" media-type="image/png"/>',
+                     {"OEBPS/images/front.png": png_bytes((30, 60, 200)), "OEBPS/images/cover-old.png": png_bytes((200, 30, 30))})
+    PLAIN = raw_epub("plain.epub", '<dc:identifier id="uid">urn:uuid:plain-1</dc:identifier><dc:title>No Pictures</dc:title><dc:creator>Di Words</dc:creator>')
+    NEVER = raw_epub("never-opens.epub", '<dc:identifier id="uid">urn:uuid:never-opens</dc:identifier><dc:title>Never Opens</dc:title><dc:creator>Ed Missing</dc:creator>', nav=False)
+    COUNT = r"""async([b64, name, how, key])=>{
+      const u8=Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); let zips=0, opens=0; const lz=JSZip.loadAsync, ep=window.ePub, ix=indexBook;
+      JSZip.loadAsync=function(){ zips++; return lz.apply(JSZip, arguments); }; window.ePub=function(){ opens++; return ep.apply(this, arguments); };
+      indexBook=function(){ return Promise.resolve(); };   // reading the pages for search is the indexer's own read
+      try{ if(how==='app') await importFiles([new File([u8], name)]); else { await B.put('books/'+name, u8); await vaultPull(); await B.quiet(300); } }
+      finally { JSZip.loadAsync=lz; window.ePub=ep; indexBook=ix; }
+      return [zips, opens, !!(await DB.all('meta')).find(m=>bookKeyOf(m)===key)]; }"""
+    rctx, rp = folder_page("one-reader")
+    expect("adding a book in the app reads its file once", ev(rp, COUNT, [NAMED, "named-cover.epub", "app", "id:urn:uuid:named-cover"]), [1, 0, True],
+           "the file was unzipped once to check it, again by epub.js for its metadata and cover, and again for its video source")
+    rctx.close(); rctx, rp = folder_page("one-reader-folder")
+    expect("a book dropped into books/ is read twice on its way in: once to know what it is, once to add it", ev(rp, COUNT, [NAMED, "dropped.epub", "folder", "id:urn:uuid:named-cover"]), [2, 0, True],
+           "it was unzipped six times on its way in, two of them by epub.js")
+    expect("every way a book file comes in names it the same: the same key, title and author", ev(rp, r"""async(b64)=>{
+      const u8=Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); await B.put('books/tricky.epub', u8); await vaultPull(); await B.quiet(300);   // by the folder
+      const m=(await DB.all('meta')).find(x=>bookKeyOf(x)==='id:urn:uuid:tricky-1');
+      const v=await readEpubInfo(u8.slice().buffer), k=await computeBookKey({ title:'Stored', author:'Stored' }, u8.slice().buffer);
+      await DB.del('meta', m.id); await DB.del('blob', m.id); await importFiles([new File([u8], 'tricky.epub')]);
+      const a=(await DB.all('meta')).find(x=>bookKeyOf(x)==='id:urn:uuid:tricky-1');
+      return [m.bookKey, a.bookKey, v.key, k, m.title===a.title && a.title===v.title, m.author===a.author, m.year, m.publisher]; }""", TRICKY),
+           ["id:urn:uuid:tricky-1"] * 4 + [True, True, "2021", "Small Press"], "each way in kept its own reader, and their rules could drift apart")
+    rctx.close(); rctx, rp = folder_page("one-reader-refresh")
+    add_in_app(rp, "alpha", "alpha.epub")
+    expect("Refresh EPUB from folder refuses a damaged file and keeps the book's own copy", ev(rp, r"""async()=>{
+      const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book'), was=(await DB.get('blob', m.id)).data.byteLength;
+      await B.put('books/'+vaultPathName(m)+'.epub', new Uint8Array([80,75,3,4,1,2,3,4,5,6,7,8])); __toasts.length=0;
+      await refreshBookFromFolder(m); await new Promise(r=>setTimeout(r,800));
+      return [(await DB.get('blob', m.id)).data.byteLength===was, __toasts.some(t=>/Could not use/.test(t))]; }"""), [True, True],
+           "a half-downloaded or damaged file in the folder took the place of the book's good copy, and the book no longer opened")
+    rctx.close(); rctx, rp = folder_page("one-reader-covers")
+    expect("a file the reader could never open is refused at once, not after a minute", ev(rp, r"""async(b64)=>{
+      const u8=Uint8Array.from(atob(b64), c=>c.charCodeAt(0)), t0=Date.now(); __toasts.length=0;
+      await importFiles([new File([u8], 'never-opens.epub')]);
+      return [Date.now()-t0<5000, !(await DB.all('meta')).find(x=>x.title==='Never Opens'), __toasts.some(t=>/never-opens.epub/.test(t) && /could not be read/.test(t))]; }""", NEVER), [True, True, True],
+           "a book naming a table of contents it does not hold kept epub.js waiting a minute before it was refused, and a sync with it in books/ waited too")
+    expect("the cover from the book is the cover the book names, at import, on its page and on the shelf", ev(rp, r"""async(b64)=>{
+      const u8=Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); await importFiles([new File([u8], 'named-cover.epub')]);
+      const m=(await DB.all('meta')).find(x=>x.title==='Named Cover'), atImport=await getCoverSrc(m.id);
+      detailsBook=m; metaDraftCover=null; document.getElementById('meta-frombook').onclick(); for(let i=0;i<50 && !metaDraftCover;i++) await new Promise(r=>setTimeout(r,100));
+      const onPage=metaDraftCover; detailsBook=null;
+      await delCover(m.id); const ph=document.createElement('div'); ph.className='ph'; ph.setAttribute('data-cover', m.id); document.body.appendChild(ph);
+      hydrateCovers(document.body); for(let i=0;i<50 && !(await getCoverSrc(m.id));i++) await new Promise(r=>setTimeout(r,100));
+      const onShelf=await getCoverSrc(m.id); ph.remove();
+      return [!!atImport, onPage===atImport, onShelf===atImport]; }""", NAMED), [True, True, True],
+           "on its page and on the shelf the cover came from the first image with cover in its name, not from the cover the book names, so the two could differ")
+    expect("a book with no picture for a cover is not read again at every paint", ev(rp, r"""async(b64)=>{
+      const u8=Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); await importFiles([new File([u8], 'plain.epub')]);
+      const m=(await DB.all('meta')).find(x=>x.title==='No Pictures'), paint=async()=>{ const ph=document.createElement('div'); ph.className='ph'; ph.setAttribute('data-cover', m.id); document.body.appendChild(ph); hydrateCovers(document.body); await new Promise(r=>setTimeout(r,500)); ph.remove(); };
+      await paint();   // the first paint looks for a cover in the file
+      let zips=0; const lz=JSZip.loadAsync; JSZip.loadAsync=function(){ zips++; return lz.apply(JSZip, arguments); };
+      try{ await paint(); await paint(); await paint(); } finally { JSZip.loadAsync=lz; }
+      return [!(await getCoverSrc(m.id)), zips]; }""", PLAIN), [True, 0],
+           "each paint of Home or the Library unzipped every book without a cover again, looking for one that is not there")
+    rctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
