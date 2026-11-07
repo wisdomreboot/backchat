@@ -2,6 +2,19 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.72 (7 November 2026)
+
+The book you are reading keeps what reaches it while it is open. A review of 1.0.71 for rules written more than once found four faults, each in a copy that had missed a fix its siblings had. Three of them could lose marks or margins.
+
+**Fixed**
+- **A hand-off merged while its book was open was lost at the next save.** Its marks reached the library, then went at your next highlight or favourite, from this browser and from the folder; the hand-off file had already been removed. Marks arriving by a restore, or folded in by the tidy-up from a second record of the book, went the same way. The open book now saves its marks by merging them into what is stored, as every sync merges, instead of writing its own copy over them. A mark that arrives while the book is open is kept, whichever way it came, and the book on screen shows it.
+- **Changes made on the page of the book you were reading were undone when you went back to it.** Margins written there, a tag, a rating, the summary or the heart were written over by the reader's next page turn, or within ten seconds by the reading timer, because the page and the reader each held their own copy of the book's record. While a book is open, its page now edits the reader's own copy, and so does the heart on its cover.
+- **Refresh EPUB from folder opened a book you had closed.** A closed book still counted as the open one. Closing a book now lets it go.
+- **Starting Backchat on a phone took seconds longer than it needed to.** The tidy-up that runs at every start read the whole library again for every book with no file on the device, and a phone holds most of its books that way. It now reads the library once. In a test with 300 such books and the processor slowed to a phone's pace, reopening the last book after a reload went from 3.1 seconds to 0.5.
+
+**Checks**
+- Four new checks, all failing on 1.0.71. A mark that arrives while its book is open survives the reader's next save, by each of the seven ways a record arrives: the folder, a notes file, a hand-off, a cloud conflict copy, a restore, device sync and the tidy-up (1.0.71 lost it by the hand-off, the restore and the tidy-up). Margins, a tag and the heart set on the page of the book being read stay after going back to it and turning a page. Refreshing a closed book from the folder leaves you on its page. The start-up tidy-up reads the library three times, however many books have no file here (42 times for 40 such books on 1.0.71). All 185 checks pass.
+
 ## 1.0.71 (7 November 2026)
 
 Folder sync, tidied: one copy of each rule where there were several, in less code. Testing the tidy-up with two devices opening Backchat in turn found three ways the folder was still being rewritten for nothing, and one thing Check folder promised that sync would not do. All four are fixed.
