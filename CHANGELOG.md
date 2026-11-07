@@ -2,6 +2,29 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.76 (8 November 2026)
+
+One identity. Every way a book or its notes come in asks one rule whether it is a book already here, and the rule knows a book by every identifier its files have carried, in whatever form a shop or a converter wrote them.
+
+**Changed**
+- **A book is known by every identifier it carries.** Books arrive from many places, and each writes its identity its own way: an ISBN with hyphens or without, ten digits or thirteen, behind urn:isbn: or ISBN or nothing; an Amazon ASIN; a UUID; several of them, in any order; or none. Backchat knew a book by its file's first identifier alone, compared letter for letter, so the same book from another source was a stranger to it. Each identifier is now read in one form (an ISBN-10 becomes its ISBN-13, and a print book's ASIN, which is its ISBN-10, becomes that ISBN), and a book's record keeps every identifier its files have carried, on every device. A copy carrying any one of them is the same book, added in the app, dropped into books/, or arriving as another device's record. A book's key still comes from its first file and still names its files, so nothing is renamed.
+- **One rule.** Whether a file or a record was a book already here was decided in seven places by three rules: the key exactly, the key ignoring case, or the key or a similar title. Adding a book, the folder's verdict on a file, device sync, the tidy-up, Refresh EPUB from folder, links between books, and the check for a deleted book's file now all ask one rule.
+- **Title and author alone never make two files one book.** A file that has nothing in common with a book here but its title and author is a look-alike. Add it in the app and Backchat asks: use it for that book (your marks stay with the book), add it as a book of its own, or neither. In books/ it is held, not added, and named, in the sync's message and in Check folder; Refresh EPUB from folder reads from it only when you say so. Before, it became a second book, or, for a book added before 1.0.51, silently took the place of the book's own file.
+- **A different file under a shared identifier waits for your word.** Adding a copy that carries one of a book's identifiers, in another file than the book's own, now asks before the new file takes the old one's place. A copy under the book's own key is taken as before.
+- **The books you have learn their identifiers once.** Each book's own file is read once on each device, a few books a sync, and any identifier in it the book was not yet known by joins its record. Which books have been read is kept on the device, so a record changes, and syncs, only when it learns something.
+- **A deleted book stays deleted under any of its identifiers.** A copy of it under another first identifier came back as a new book.
+- **Two records of one book fold into one by the same rule**, and the second record's book file is left in books/ for the next sync to judge: removed if it is byte for byte the book's own file, kept as another copy of the book if it is not. It was removed with the record.
+
+**Fixed**
+- **"It" looked like "Items of Interest".** A short title counted as the start of any longer one, a word or not. Titles now match by whole words.
+
+**Proved on a real library.** Over Jonathan's 319 books, the new reader gives every book the key, title and author it had. Each of the 319 files was then judged as if it arrived again under another name. 1.0.75 knew 310 by their key, merged 7 into their books by title without asking, and would have added 2 as second books. This build, once each book's own file has been read, knows 318 as their own books, 8 of them by an identifier their key does not carry, and holds 1, a book written in Backchat, as a look-alike to ask about.
+
+The guide, at revision 28, says how Backchat knows a book, and what it does with a file that only looks like one.
+
+**Checks**
+- New section 4h, ten checks. Eight fail on 1.0.75: an ISBN however a file writes it; a book known by its ISBN and its ASIN; a look-alike added in the app, asked about and kept apart until you say; a copy in books/ under another first identifier; a deleted book's copy under another first identifier; a look-alike in books/, held and named, and Refresh asking first; a book added before this build learning its file's identifiers once; two browsers that each added a different copy of one book settling on one record. Two pass on both and guard what must hold: a book with the same title and author but another ISBN stays a book of its own when you say so, and an ISBN shared with a book whose title has nothing in common with it does not make them one. Section 4g's check that every way in names a book the same now reads the folder's verdict through the one reader. All 221 checks pass.
+
 ## 1.0.75 (7 November 2026)
 
 One EPUB reader. Every way a book file comes in reads it with one function, once, by the rules epub.js has always used, so every book keeps the identity it has.

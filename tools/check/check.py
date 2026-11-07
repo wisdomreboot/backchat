@@ -942,7 +942,7 @@ with sync_playwright() as p:
     expect("every way a book file comes in names it the same: the same key, title and author", ev(rp, r"""async(b64)=>{
       const u8=Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); await B.put('books/tricky.epub', u8); await vaultPull(); await B.quiet(300);   // by the folder
       const m=(await DB.all('meta')).find(x=>bookKeyOf(x)==='id:urn:uuid:tricky-1');
-      const v=await readEpubInfo(u8.slice().buffer), k=await computeBookKey({ title:'Stored', author:'Stored' }, u8.slice().buffer);
+      const v=await bcInspectEpub(u8.slice().buffer, { name:'tricky' }), k=await computeBookKey({ title:'Stored', author:'Stored' }, u8.slice().buffer);
       await DB.del('meta', m.id); await DB.del('blob', m.id); await importFiles([new File([u8], 'tricky.epub')]);
       const a=(await DB.all('meta')).find(x=>bookKeyOf(x)==='id:urn:uuid:tricky-1');
       return [m.bookKey, a.bookKey, v.key, k, m.title===a.title && a.title===v.title, m.author===a.author, m.year, m.publisher]; }""", TRICKY),
@@ -980,6 +980,117 @@ with sync_playwright() as p:
       return [!(await getCoverSrc(m.id)), zips]; }""", PLAIN), [True, 0],
            "each paint of Home or the Library unzipped every book without a cover again, looking for one that is not there")
     rctx.close()
+
+    # 4h. One identity. A book is known by its key and by every identifier its files have carried:
+    #     an ISBN however it is written, ten digits or thirteen; an ASIN; a UUID; several, in any
+    #     order. One rule decides, on every path, whether a file or a record is a book already here.
+    #     Title and author alone never make two files one book: you are asked, or the file is held.
+    def isbn13(p12): return p12 + str((10 - sum((1 if i % 2 == 0 else 3) * int(c) for i, c in enumerate(p12)) % 10) % 10)
+    def isbn10(p9):
+        d = (11 - sum((10 - i) * int(c) for i, c in enumerate(p9)) % 11) % 11
+        return p9 + ("X" if d == 10 else str(d))
+    P9 = "190276435"; I10, I13 = isbn10(P9), isbn13("978" + P9)
+    def hyph(i): return "%s-%s-%s-%s-%s" % (i[:3], i[3], i[4:9], i[9:12], i[12])
+    ASIN, CAL, REB = "B0HRBRLT42", "5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a77", "3c9e1f5a-2b7d-5e4f-8a1c-6d0b9e2f4a13"
+    OPFNS = ' xmlns:opf="http://www.idpf.org/2007/opf"'
+    def ident(text, scheme="", uid=False): return '<dc:identifier%s%s%s>%s</dc:identifier>' % (' id="uid"' if uid else "", OPFNS if scheme else "", (' opf:scheme="%s"' % scheme) if scheme else "", text)
+    def book(name, title, author, ids):
+        return raw_epub(name, "".join(ids) + "<dc:title>%s</dc:title>" % title + ("<dc:creator>%s</dc:creator>" % author if author else ""))
+    B64.update({
+      "h-store": book("h-store.epub", "Harbour Lights", "Ada Lantern", [ident("urn:isbn:" + hyph(I13), uid=True)]),
+      "h-isbn10": book("h-isbn10.epub", "Harbour Lights", "Ada Lantern", [ident("ISBN " + I10[:1] + "-" + I10[1:6] + "-" + I10[6:9] + "-" + I10[9:], uid=True)]),
+      "h-calibre": book("h-calibre.epub", "Harbour Lights: A Novel", "Ada Lantern", [ident(CAL, "uuid", uid=True), ident("17", "calibre"), ident(I13, "ISBN"), ident(ASIN, "AMAZON")]),
+      "h-kindle": book("h-kindle.epub", "Harbour Lights", "Ada Lantern", [ident(ASIN, "MOBI-ASIN", uid=True)]),
+      "h-rebuilt": book("h-rebuilt.epub", "Harbour Lights", "", [ident("urn:uuid:" + REB, uid=True)]),
+      "h-other": book("h-other.epub", "Harbour Lights", "Ada Lantern", [ident(isbn13("978190276451"), "ISBN", uid=True)]),
+      "box": book("box.epub", "Complete Collection", "Various", [ident("urn:uuid:aa11bb22-cc33-4d44-8e55-ff6677889900", uid=True), ident(I13, "ISBN")]),
+      "q-store": book("q-store.epub", "Quiet Rooms", "Bo Stillwell", [ident(isbn13("978190276443"), uid=True)]),
+      "q-calibre": book("q-calibre.epub", "Quiet Rooms", "Bo Stillwell", [ident("0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d", "uuid", uid=True), ident(isbn13("978190276443"), "ISBN")]),
+    })
+    SIZE = {k: len(base64.b64decode(B64[k])) for k in ("h-store", "h-kindle", "h-rebuilt")}
+    ANSWER = "(a)=>{ window.__answers=a.slice(); window.__asked=[]; window.confirm=function(q){ __asked.push(String(q)); return !!__answers.shift(); }; return true; }"
+    HL = "async()=>(await DB.all('meta')).filter(m=>m.title && /^Harbour Lights/.test(m.title))"
+    COUNT_H = "async()=>(await DB.all('meta')).filter(m=>m.title && /^Harbour Lights/.test(m.title)).length"
+    ictx, ip = folder_page("identity-add")
+    ev(ip, "()=>{ vault.handle=null; vault.connected=false; return true; }")   # added in the app, no folder
+    add_in_app(ip, "h-store", "harbour.epub")
+    ev(ip, ANSWER, [True]); ev(ip, "()=>{ __toasts.length=0; return true; }"); add_in_app(ip, "h-isbn10", "harbour-10.epub")
+    expect("a book is known by its ISBN however a file writes it, ten digits or thirteen", [ev(ip, COUNT_H), any("Updated the book file" in t for t in ev(ip, "()=>__toasts")), len(ev(ip, "()=>__asked"))], [1, True, 1],
+           "a copy whose ISBN was written as ten digits, or without the urn:isbn: prefix, came in as a second book, its marks apart from the first")
+    ev(ip, ANSWER, [True, True]); add_in_app(ip, "h-calibre", "harbour-calibre.epub"); add_in_app(ip, "h-kindle", "harbour-kindle.epub")
+    expect("a book with an ISBN and an ASIN is known by both, so a copy carrying either one is the same book", ev(ip, r"""async(sz)=>{ const ms=(await DB.all('meta')).filter(m=>/^Harbour Lights/.test(m.title||'')), m=ms[0];
+        return [ms.length, (m.ids||[]).filter(t=>/^(asin|uuid):/.test(t)).length, ((await DB.get('blob', m.id))||{data:{byteLength:0}}).data.byteLength===sz, __asked.length===2 && /same ASIN/.test(__asked[1])]; }""", SIZE["h-kindle"]),
+           [1, 2, True, True], "Backchat read only a file's first identifier, so a Kindle copy carrying just the ASIN was a stranger to the book a file with ISBN and ASIN had made")
+    ictx.close()
+
+    ictx, ip = folder_page("identity-lookalike")
+    ev(ip, "()=>{ vault.handle=null; vault.connected=false; return true; }")
+    add_in_app(ip, "h-store", "harbour.epub"); mark_book(ip, "Harbour Lights", 2, "keep")
+    ev(ip, ANSWER, [False, False]); ev(ip, "()=>{ __toasts.length=0; return true; }"); add_in_app(ip, "h-rebuilt", "Harbour-Lights.epub")
+    first = [ev(ip, COUNT_H), any("Did not add" in t for t in ev(ip, "()=>__toasts")), len(ev(ip, "()=>__asked"))]
+    ev(ip, ANSWER, [True]); add_in_app(ip, "h-rebuilt", "Harbour-Lights.epub")
+    expect("a file with only the title of a book here is never taken for it unasked; asked, it becomes the book's file and the marks stay", [first, ev(ip, r"""async(a)=>{ const [sz, reb]=a, ms=(await DB.all('meta')).filter(m=>/^Harbour Lights/.test(m.title||'')), m=ms[0];
+        return [ms.length, hlLive(((await DB.get('highlights', m.id))||{}).items||[]).length, (await DB.get('blob', m.id)).data.byteLength===sz, (m.ids||[]).indexOf('uuid:'+reb)>=0]; }""", [SIZE["h-rebuilt"], REB])],
+           [[1, True, 2], [1, 2, True, True]], "a rebuilt copy with no identifier in common became a second book with none of the marks, or, for a book added before 1.0.51, silently replaced the book's file")
+    ev(ip, ANSWER, [False, True]); add_in_app(ip, "h-other", "harbour-other.epub")
+    TWO = "async(k)=>{ const ms=await DB.all('meta'), a=ms.find(m=>m.bookKey===k[0]), b=ms.find(m=>m.bookKey===k[1]); return !!a && !!b && a.id!==b.id; }"
+    keys2 = ["id:urn:isbn:" + hyph(I13), "id:" + isbn13("978190276451")]
+    expect("a book with the same title and author but another ISBN can be added as a book of its own, and stays one", [ev(ip, TWO, keys2), ev(ip, "async()=>{ await reconcileLibrary(); return true; }") and ev(ip, TWO, keys2)], [True, True],
+           "two editions with different ISBNs are two books when you say so")
+    ev(ip, ANSWER, []); add_in_app(ip, "box", "box.epub")
+    expect("an ISBN shared with a book whose title has nothing in common with it does not make them one book", [ev(ip, "async()=>(await DB.all('meta')).filter(m=>m.title==='Complete Collection').length"), len(ev(ip, "()=>__asked"))], [1, 0],
+           "a boxed set carrying one volume's ISBN would have taken that volume's place")
+    ictx.close()
+
+    ictx, ip = folder_page("identity-folder")
+    drop(ip, "harbour.epub", "h-store"); ev(ip, SYNC); mark_book(ip, "Harbour Lights", 2, "f")
+    drop(ip, "Harbour (calibre).epub", "h-calibre"); ev(ip, "()=>{ __toasts.length=0; return true; }"); ev(ip, SYNC)
+    rep_ = ev(ip, "async()=>{ await folderCheck(); return document.querySelector('#folder-check-info').textContent; }")
+    expect("the folder knows a book by any identifier its file carries: a copy under another first identifier is kept as another copy, not added", [ev(ip, COUNT_H), "books/Harbour (calibre).epub" in ev(ip, "()=>B.ls('books')"), ("other cop" in rep_ and "Harbour (calibre).epub" in rep_) if isinstance(rep_, str) else rep_],
+           [1, True, True], "a Calibre copy, whose first identifier is Calibre's own, came in as a second book")
+    add_in_app(ip, "q-store", "quiet.epub"); ev(ip, SYNC); delete_book(ip, "Quiet Rooms")
+    drop(ip, "Quiet Rooms (calibre).epub", "q-calibre"); ev(ip, "()=>{ __toasts.length=0; return true; }"); ev(ip, SYNC)
+    expect("a deleted book stays deleted whichever identifier a copy of it carries first", [ev(ip, "async()=>!!(await DB.all('meta')).find(x=>x.title==='Quiet Rooms')"), any("you deleted" in t for t in ev(ip, "()=>__toasts"))], [False, True],
+           "a copy of a deleted book with another first identifier brought it back")
+    ictx.close()
+
+    ictx, ip = folder_page("identity-held")
+    drop(ip, "harbour.epub", "h-store"); ev(ip, SYNC); mark_book(ip, "Harbour Lights", 2, "f")
+    drop(ip, "Harbour-Lights.epub", "h-rebuilt"); ev(ip, "()=>{ __toasts.length=0; return true; }"); ev(ip, SYNC)
+    rep_ = ev(ip, "async()=>{ await folderCheck(); return document.querySelector('#folder-check-info').textContent; }")
+    held = [ev(ip, COUNT_H), any("has the same title" in t and "not added" in t for t in ev(ip, "()=>__toasts")), ("no identifier in common" in rep_ and "Harbour-Lights.epub" in rep_) if isinstance(rep_, str) else rep_]
+    ev(ip, ANSWER, [False]); kept = ev(ip, r"""async(sz)=>{ const m=(await DB.all('meta')).find(x=>x.title==='Harbour Lights'); await refreshBookFromFolder(m); await B.quiet(); return [(await DB.get('blob', m.id)).data.byteLength===sz, __asked.length]; }""", SIZE["h-store"])
+    ev(ip, ANSWER, [True])
+    expect("a look-alike in books/ is held and named, and Refresh reads from it only when you say so", [held, kept, ev(ip, r"""async(sz)=>{ const m=(await DB.all('meta')).find(x=>x.title==='Harbour Lights'); await refreshBookFromFolder(m); await B.quiet();
+        return [(await DB.get('blob', m.id)).data.byteLength===sz, !(await B.ls('books'))['books/Harbour-Lights.epub'], hlLive((await DB.get('highlights', m.id)).items).length]; }""", SIZE["h-rebuilt"])],
+           [[1, True, True], [True, 1], [True, True, 2]], "a rebuilt copy with the book's title but a new identifier came in as a second book, or a refresh took it unasked")
+    ictx.close()
+
+    ictx, ip = folder_page("identity-learn")
+    drop(ip, "harbour-calibre.epub", "h-calibre"); ev(ip, SYNC)
+    ev(ip, "async()=>{ const m=(await DB.all('meta')).find(x=>/^Harbour Lights/.test(x.title||'')); delete m.ids; await DB.put('meta', m); await DB.del('app','idsread'); return true; }")   # a book added before this build
+    ev(ip, SYNC)
+    learned = ev(ip, "async()=>((await DB.all('meta')).find(x=>/^Harbour Lights/.test(x.title||''))||{}).ids||[]")
+    reads = ev(ip, "async()=>{ let n=0; const f=bcInspectEpub; window.bcInspectEpub=function(){ n++; return f.apply(this, arguments); }; try{ await vaultPull(); await B.quiet(300); } finally { window.bcInspectEpub=f; } return n; }")
+    drop(ip, "harbour-kindle.epub", "h-kindle"); ev(ip, SYNC)
+    expect("a book added before this build learns its file's identifiers once, and a copy carrying any of them is the same book", [("asin:" + ASIN) in learned, reads, ev(ip, COUNT_H)], [True, 0, 1],
+           "only the key's identifier was known, so a copy carrying the book's ASIN was a stranger to it; or every sync read every book's file again")
+    ictx.close()
+
+    actx, ap_ = folder_page("identity-browser-a"); bctx, bp_ = folder_page("identity-browser-b")
+    drop(ap_, "harbour.epub", "h-store"); ev(ap_, SYNC); mark_book(ap_, "Harbour Lights", 2, "a")
+    ev(bp_, "()=>{ vault.handle=null; vault.connected=false; return true; }"); add_in_app(bp_, "h-calibre", "harbour-calibre.epub"); mark_book(bp_, "Harbour Lights: A Novel", 1, "b")
+    ev(bp_, "()=>{ vault.handle=B.root; vault.connected=true; return true; }")
+    hand(ap_, bp_); ev(bp_, SYNC)
+    quiet = []
+    for r in range(2):
+        hand(bp_, ap_); w = ev(ap_, SYNC); quiet.append(w[1] if isinstance(w, list) else w)
+        hand(ap_, bp_); w = ev(bp_, SYNC); quiet.append(w[1] if isinstance(w, list) else w)
+    SEEN = "async()=>{ const ms=(await DB.all('meta')).filter(m=>/^Harbour Lights/.test(m.title||'')); return [ms.length, ms[0] && ms[0].id, ms[0] ? hlLive(((await DB.get('highlights', ms[0].id))||{}).items||[]).length : 0]; }"
+    sa, sb = ev(ap_, SEEN), ev(bp_, SEEN)
+    expect("two browsers that each added a different copy of one book settle on one record with every mark", [sa[0], sb[0], sa[1] == sb[1], sa[2], sb[2], quiet[1:], ev(bp_, "async(c)=>(bcFindBook(await DB.all('meta'), 'id:'+c)||{}).title||''", CAL)],
+           [1, 1, True, 3, 3, [0, 0, 0], "Harbour Lights"], "each kept its own record of the book under its own key, so the marks made on one never reached the other")
+    actx.close(); bctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
