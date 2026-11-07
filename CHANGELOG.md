@@ -13,12 +13,13 @@ The phone, built around how it is used: a reader for the train that holds its ow
 
 **Fixed**
 - **Opening Settings read every book file in the browser** to add up their sizes: on a phone holding a whole library, hundreds of megabytes for one line. The line now comes from what the browser reports, and says how many books have their file here.
-- **Reading rewrote the book's record every ten seconds** to add ten seconds of reading time, and woke device sync each time: about 180 rewrites in a 30-minute listen. Reading time is still counted, and is saved with the next save of the book: a page turn, closing it, or the phone putting it away.
+- **Reading rewrote the book's record every ten seconds** to add ten seconds of reading time, and woke device sync each time: about 180 rewrites in 30 minutes of reading. Reading time is still counted, and is saved with the next save of the book: a page turn, closing it, or the phone putting it away.
+- **Highlighting over a highlight kept both.** A plain highlight inside a new one was dropped from the page without being marked deleted. Since 1.0.72 every save merges with the stored copy, so the save brought it straight back; before that, the next sync did. It is now deleted the way every mark is, and stays gone on every device. A highlight that carries a note or a star is no longer replaced at all: earlier builds dropped it, note and all.
 
 The guide, at revision 25, says the same.
 
 **Checks**
-- Six new checks, all failing on 1.0.72. A phone keeps all 22 books it holds when its folder is connected (1.0.72 kept 19). A phone with a folder offers Remove from this device. With device sync on, a phone writes nothing to the folder but the book files it adds, and still opens a dimmed book from it (1.0.72 also wrote records, Markdown notes, a backup, the library index and the list of deletes). No notes snapshot is written, and Export notes writes only its own file. Settings counts storage without reading a book file. Reading time is counted without rewriting the record, survives a sync that arrives meanwhile, and is saved by the next save. All 191 checks pass.
+- Seven new checks. Six fail on 1.0.72: A phone keeps all 22 books it holds when its folder is connected (1.0.72 kept 19). A phone with a folder offers Remove from this device. With device sync on, a phone writes nothing to the folder but the book files it adds, and still opens a dimmed book from it (1.0.72 also wrote records, Markdown notes, a backup, the library index and the list of deletes). No notes snapshot is written, and Export notes writes only its own file. Settings counts storage without reading a book file. Reading time is counted without rewriting the record, survives a sync that arrives meanwhile, and is saved by the next save. The seventh fails on 1.0.72 and 1.0.71: highlighting over a plain highlight replaces it for good, and one with a note or a star stays (1.0.72 kept all six marks; 1.0.71 dropped the noted and starred ones, and a merge with an older copy brought all three back). All 192 checks pass.
 
 ## 1.0.72 (7 November 2026)
 

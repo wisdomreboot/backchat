@@ -729,6 +729,35 @@ with sync_playwright() as p:
            "every ten seconds of reading rewrote the whole record, and woke device sync to check it")
     nctx.close()
 
+    # 4e. Highlighting over a highlight. A plain highlight inside the new one is replaced, and kept
+    #     as a deletion, as every deletion is, so no merge with a stored or synced copy brings it
+    #     back. One that carries a note or a star stays.
+    wctx = browser.new_context(bypass_csp=True); wp = wctx.new_page(); watch(wp, "widen")
+    wp.goto(URL); wait(wp, "typeof DB!=='undefined' && typeof renderHome==='function'")
+    wait(wp, "DB.count('meta').then(n=>window.__n=n), window.__n>=1"); settle(1.2)
+    wp.set_input_files("#file-input", [ALPHA])
+    wait(wp, "DB.all('meta').then(ms=>window.__a=ms.find(m=>m.title==='Alpha Testing Book')), !!window.__a")
+    ev(wp, "()=>{ openBook(window.__a.id); }")
+    wait(wp, "rendition && rendition.getContents().length && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent)")
+    settle(0.8)
+    widen_want = ["lazy dog", "near the riverbank", "quick brown fox jumps", "riverbank", "the lazy dog near"]
+    expect("highlighting over a highlight replaces a plain one for good, and keeps one that carries a note or a star",
+           ev(wp, r"""async()=>{
+      const c=rendition.getContents()[0], id=currentBook.id, t=a=>a.map(h=>h.text).sort();
+      const mark=(q, note)=>{ const r=findQuoteRange(c,secTextMap(c),q); lastSelection={cfiRange:c.cfiFromRange(r),text:q,contents:c}; return createHighlight('yellow', note); };
+      await mark('brown fox'); await mark('lazy dog', 'keep this'); await mark('riverbank');
+      toggleFav(highlights.find(h=>h.text==='riverbank').id);
+      for(let i=0;i<50;i++){ const r=await DB.get('highlights', id); if(r.items.some(h=>h.text==='riverbank' && h.fav)) break; await new Promise(z=>setTimeout(z,100)); }
+      const before=JSON.parse(JSON.stringify((await DB.get('highlights', id)).items));   // what another device still holds
+      await mark('quick brown fox jumps'); await mark('the lazy dog near'); await mark('near the riverbank');
+      const stored=(await DB.get('highlights', id)).items, g=c.window.CSS.highlights.get('hl-yellow');
+      return { onScreen:t(hlLive(highlights)), stored:t(hlLive(stored)), deleted:t(stored.filter(h=>h.deleted)),
+               merged:[t(hlLive(mergeHighlights(before, stored))), t(hlLive(mergeHighlights(stored, before)))], painted:g ? g.size : 0 };
+    }"""),
+           {"onScreen": widen_want, "stored": widen_want, "deleted": ["brown fox"], "merged": [widen_want, widen_want], "painted": 5},
+           "a plain highlight inside a new one was dropped without a tombstone, so the next save (since 1.0.72) or the next sync brought it back; one carrying a note was dropped with its note")
+    wctx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.
