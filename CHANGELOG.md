@@ -2,6 +2,24 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.73 (7 November 2026)
+
+The phone, built around how it is used: a reader for the train that holds its own books and, with device sync on, uses the folder as a bookshelf.
+
+**Changed**
+- **A phone keeps every book it holds.** Connecting the folder on a phone applied the computer's rule: keep the twenty books opened most recently and let the rest go, because the folder has them. On the train the folder is out of reach, so a phone holding thirty books found eleven it could not open until it connected again. A phone now never lets a book go for being in the folder. Remove from this device, which now appears on a phone with a folder too, is how you free its space.
+- **With device sync on, a phone uses the folder as a bookshelf.** It reads book files from the folder, so a dimmed book opens from it, and it saves a book you add on the phone into it. It writes nothing else there: no records, Markdown notes, backups or library index. Device sync already carries the phone's marks, margins and places, and the computer writes them into the folder, so each notes file has one writer and the cloud client has nothing to make conflict copies from. Tidying the folder, Check folder and switching a book to a corrected copy are left to the computer. Without device sync, the folder is a phone's only channel for notes, so there it keeps working both ways.
+- **No more notes snapshot.** `notes/latest.json`, a full copy of every note rewritten six seconds after any change, is no longer written: the per-book records already hold the notes, and device sync carries them between devices. Export notes still saves a file whenever you ask, and a notes file you put in `notes/` is still merged.
+
+**Fixed**
+- **Opening Settings read every book file in the browser** to add up their sizes: on a phone holding a whole library, hundreds of megabytes for one line. The line now comes from what the browser reports, and says how many books have their file here.
+- **Reading rewrote the book's record every ten seconds** to add ten seconds of reading time, and woke device sync each time: about 180 rewrites in a 30-minute listen. Reading time is still counted, and is saved with the next save of the book: a page turn, closing it, or the phone putting it away.
+
+The guide, at revision 25, says the same.
+
+**Checks**
+- Six new checks, all failing on 1.0.72. A phone keeps all 22 books it holds when its folder is connected (1.0.72 kept 19). A phone with a folder offers Remove from this device. With device sync on, a phone writes nothing to the folder but the book files it adds, and still opens a dimmed book from it (1.0.72 also wrote records, Markdown notes, a backup, the library index and the list of deletes). No notes snapshot is written, and Export notes writes only its own file. Settings counts storage without reading a book file. Reading time is counted without rewriting the record, survives a sync that arrives meanwhile, and is saved by the next save. All 191 checks pass.
+
 ## 1.0.72 (7 November 2026)
 
 The book you are reading keeps what reaches it while it is open. A review of 1.0.71 for rules written more than once found four faults, each in a copy that had missed a fix its siblings had. Three of them could lose marks or margins.

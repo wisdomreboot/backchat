@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 24
+revision: 25
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -72,7 +72,7 @@ Tap a cover and you arrive at the book's own page, one step before the book itse
 - {{icon:book-link}} **Copy book link** copies a link to this page, ready to paste into another book's margins.
 - {{icon:edit}} **Edit metadata** changes the cover, title, author, year, rating, summary, tags and related books.
 - {{icon:refresh}} **Refresh EPUB from folder** reloads the book from your folder after you have edited its file there, in Calibre for example, and keeps every mark. Put a corrected copy of the book in the books folder under any name and Refresh switches the book to it.
-- {{icon:remove}} **Remove from this device** frees the space a book takes and keeps every mark. It appears when no folder is connected, which usually means a phone.
+- {{icon:remove}} **Remove from this device** frees the space a book takes and keeps every mark. It appears on a phone, and on any device without a folder.
 - {{icon:delete}} **Delete book** removes it, after saving a complete backup first.
 
 Below the buttons, the book's margins appear in full, ready to read or edit.
@@ -217,7 +217,7 @@ On a computer, in Chrome, Edge or Brave, open Settings {{icon:settings}} and tap
 
 Your books are written into a books folder inside it, and the door swings both ways: drop any EPUB into that books folder and it joins your library on the next sync. Your highlights and comments are written as plain Markdown into a highlights folder, one file per book, with your tags and titles as links, readable in Obsidian or any text editor. These Markdown files are an export, not the source: the app writes each one from your marks when they change and never reads it back, so any edits made there are overwritten. Edit in the app, where your marks and location links stay live.
 
-The browser keeps only a working copy of your twenty most recently opened books. Everything else lives in the folder and is fetched the moment you open it. Clearing the browser loses nothing, because the folder holds the library.
+On a computer, the browser keeps only a working copy of your twenty most recently opened books. Everything else lives in the folder and is fetched the moment you open it. Clearing the browser loses nothing, because the folder holds the library. A phone keeps every book it holds, folder or not, because on the train the folder is out of reach.
 
 The Backchat name on the home screen is the sync light, and the dot at the bottom of the reader repeats it. In Settings, under Advanced, Check folder reads the folder back to you and says what the next sync will do with each part of it: books with notes but no file, new files, copies of books you have, books you deleted whose files are back, files it cannot read, and conflict copies left by a cloud client. One tap brings deleted books back from their files, and one cleans up files that nothing reads any more. And once a week, with the folder connected, a small backup writes itself into a backups folder, keeping the four newest.
 
@@ -234,6 +234,8 @@ Your library is the collection; a device can hold just the books you are reading
 ## Set up your phone
 
 With sync between devices, a phone needs two steps. Open the setup link on it and type your passphrase. Then tap + Add EPUB and add the books you want with you. Each one arrives with its marks already in it.
+
+If the phone's browser can connect a folder, as Chrome on Android can, connect your synced folder there as well, and it becomes the phone's bookshelf. Tap a dimmed book and its file comes from the folder, and a book you add on the phone is saved into it. The phone writes nothing else there: your marks travel by sync, and your computer writes them into the folder, so each notes file has one writer. Tidying the folder, and switching a book to a corrected copy, is left to the computer.
 
 On an iPhone, add Backchat to your home screen first: in Safari, tap Share, then Add to Home Screen. Safari can clear the stored data of a website you have not opened for a while; an app on the home screen keeps it.
 

@@ -653,6 +653,82 @@ with sync_playwright() as p:
            "it read the whole library again for every book without its file here: on a phone that holds most books that way, seconds at every start")
     octx.close()
 
+    # 4d. A phone keeps its books, and with device sync on it uses the folder as a bookshelf. A phone
+    #     reaches the folder only at home, so it never lets a book go for being in the folder. With
+    #     device sync carrying its marks, it reads book files from the folder and adds the ones you
+    #     add, and writes nothing else there, so each notes file has one writer: the computer.
+    PHONE_B64 = []
+    for i in range(22):
+        pth = os.path.join(TMP, "phone%02d.epub" % i)
+        make_epub(pth, "Phone Book %02d" % i, "Pat Reader", "urn:isbn:978111100%04d" % i, [("One", ["The words of phone book %d, kept for the train." % i])])
+        PHONE_B64.append(base64.b64encode(open(pth, "rb").read()).decode())
+    def phone_page(label, synced):
+        c = browser.new_context(viewport={"width": 360, "height": 740}, device_scale_factor=2, is_mobile=True, has_touch=True, bypass_csp=True)
+        pg = c.new_page(); watch(pg, label); pg.on("dialog", lambda d: d.accept())
+        pg.goto(URL); wait(pg, "typeof vaultPull==='function'"); settle(1.5)
+        if synced: pg.evaluate("()=>{ cloud.cfg={ url:'https://relay.invalid', token:'t', name:'Phone' }; return true; }")   # device sync set up; locked, so nothing goes out
+        pg.evaluate(MOCKFS); pg.evaluate("()=>B.init()")
+        return c, pg
+    ADD_PHONE = "async(bs)=>{ await importFiles(bs.map((b,i)=>new File([Uint8Array.from(atob(b),c=>c.charCodeAt(0))], 'phone'+i+'.epub'))); await B.quiet(600); return true; }"
+    pctx, pp = phone_page("phone-keeps", False)
+    ev(pp, ADD_PHONE, PHONE_B64)
+    expect("a phone keeps every book it holds when its folder is connected", ev(pp, r"""async()=>{
+      await vaultPull(); await vaultPushAll(); await enforceBlobCache(); await B.quiet(400);
+      const ms=(await DB.all('meta')).filter(m=>/^Phone Book/.test(m.title)), have=new Set(await DB.keys('blob'));
+      return ms.length+' books, '+ms.filter(m=>have.has(m.id)).length+' with their file'; }"""), "22 books, 22 with their file",
+           "the computer's rule ran on the phone: keep the twenty books opened last and let the rest go, because the folder has them")
+    expect("a phone with a folder offers Remove from this device", ev(pp, r"""async()=>{
+      const m=(await DB.all('meta')).find(x=>x.title==='Phone Book 03'); await openDetails(m.id); await new Promise(r=>setTimeout(r,500));
+      return !document.querySelector('#det-remove-local').classList.contains('hidden'); }"""), True,
+           "the button appeared only without a folder, the one place the phone could not free its space")
+    pctx.close()
+    sctx, sp = phone_page("phone-shelf", True)
+    expect("with device sync on, a phone writes nothing to the folder but the book files it adds", ev(sp, r"""async(bs)=>{
+      B.mark();
+      await vaultPull(); await vaultPushAll();                                  // what connecting and reconnecting run
+      await importFiles([new File([Uint8Array.from(atob(bs[0]),c=>c.charCodeAt(0))], 'one.epub')]); await B.quiet(600);
+      const m=(await DB.all('meta')).find(x=>x.title==='Phone Book 00');
+      await saveProgress(m, {immediate:true}); await maybeAutoBackup(); await vaultPushTombstones(); await B.quiet(600);
+      const w=B.log('w'), others=w.filter(p=>!/^books\/[^/]+\.epub$/.test(p));
+      await DB.del('blob', m.id);                                              // a dimmed book: its file comes from the folder
+      await openBookAt(m.id); await new Promise(r=>setTimeout(r,2500));
+      const opens=!!(rendition && rendition.getContents().length && /phone book 0/.test(rendition.getContents()[0].document.body.textContent));
+      return { others:others, bookFile:w.some(p=>/^books\/.+\.epub$/.test(p)), opens:opens }; }""", PHONE_B64), {"others": [], "bookFile": True, "opens": True},
+           "the phone wrote its own records, notes and backups into the folder the computer keeps, a second writer for every notes file")
+    sctx.close()
+    nctx, np_ = folder_page("no-snapshot")
+    add_in_app(np_, "alpha", "alpha.epub"); ev(np_, SYNC)
+    expect("no notes snapshot is written to the folder, and Export notes writes only its own file", ev(np_, r"""async()=>{
+      B.mark(); const m=(await DB.all('meta')).find(x=>x.title==='Alpha Testing Book');
+      m.scratch='A margin note.'; m.updated=Date.now(); await saveProgress(m, {immediate:true});
+      await new Promise(r=>setTimeout(r,6800)); await exportNotes(); await B.quiet(600);
+      const w=B.log('w').filter(p=>/^notes\//.test(p));
+      return { latest:w.filter(p=>/latest\.json$/.test(p)).length, exports:w.filter(p=>/^notes\/WR-notes-/.test(p)).length }; }"""), {"latest": 0, "exports": 1},
+           "every change rewrote notes/latest.json, a full copy of the notes the per-book records already hold")
+    expect("Settings counts storage without reading a single book file", ev(np_, r"""async()=>{
+      let reads=0; const get=DB.get; DB.get=function(s){ if(s==='blob') reads++; return get.apply(DB, arguments); };
+      try{ updateStorageInfo(); await new Promise(r=>setTimeout(r,800)); } finally { DB.get=get; }
+      return [reads, /^\d+ books?, \d+ with (its|their) file here/.test(document.querySelector('#storage-info').textContent)]; }"""), [0, True],
+           "it read every book file in the browser to add up their sizes")
+    ev(np_, "async()=>{ const id=((await DB.all('meta')).find(x=>x.title==='Alpha Testing Book')||{}).id; openBook(id); return true; }")
+    wait(np_, "rendition && rendition.getContents().length && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent)")
+    settle(0.8)
+    expect("reading counts its time without rewriting the book's record every ten seconds", ev(np_, r"""async()=>{
+      const si=window.setInterval; let tick=null;
+      window.setInterval=function(f, ms){ if(ms===10000){ tick=f; return 0; } return si.apply(window, arguments); };
+      try{ startReadTimer(); } finally { window.setInterval=si; }
+      let puts=0; const put=DB.put; DB.put=function(s){ if(s==='meta') puts++; return put.apply(DB, arguments); };
+      const before=currentBook.readMs||0;
+      try{ tick(); tick(); } finally { DB.put=put; }
+      const counted=(currentBook.readMs||0)-before;
+      cloudAdoptOpen(currentBook.id, Object.assign({}, await DB.get('meta', currentBook.id)), null);   // a sync arriving meanwhile
+      const kept=(currentBook.readMs||0)-before;
+      await saveProgress(currentBook); const stored=((await DB.get('meta', currentBook.id)).readMs||0)-before;
+      startReadTimer();
+      return { puts:puts, counted:counted, kept:kept, stored:stored }; }"""), {"puts": 0, "counted": 20000, "kept": 20000, "stored": 20000},
+           "every ten seconds of reading rewrote the whole record, and woke device sync to check it")
+    nctx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.

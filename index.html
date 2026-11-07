@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-eFq/5nMfI2wahG/0VMAB09y2WGTvi1yW/68Cm21FGL8=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-6pyBVcJBAZ1aturdbvYx17VaMtuOszrVK9e3FXsvbro=' 'sha256-C/EC7RpAK48U/sJL6WwQypc6l0nD8ZiWhTHYhk+mRUY=' 'sha256-VT/ThFhHTw2nu0czl4Ruc2IyIXjZpURN2dbui2WuV20=' 'sha256-fOcGAHOMtCNTzNU0azsW5RNxjqRB2XvdOc0fMHJ4Wvw='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -828,7 +828,7 @@
     <div id="settings-advanced" class="hidden">
       <div class="grp">Back up and restore</div>
     <div class="grp-note">Files you can bring back. Use Save on the home screen for a full backup; Restore below reads any backup file: a full library, one book, a deleted book, or notes only.</div>
-    <div class="field"><button class="btn-primary" id="notes-export-btn" style="width:100%">Save notes only (no book files)</button><div class="hint">Highlights, comments and progress only, no book files. With a folder connected it writes to a <strong>notes/</strong> folder and keeps <strong>latest.json</strong> current; otherwise it downloads.</div></div>
+    <div class="field"><button class="btn-primary" id="notes-export-btn" style="width:100%">Save notes only (no book files)</button><div class="hint">Highlights, comments and progress only, no book files. With a folder connected it saves the file into a <strong>notes/</strong> folder; otherwise it downloads.</div></div>
     <div class="field"><button class="btn-primary" id="notes-import-btn" style="width:100%;background:var(--panel);color:var(--accent);border:1px solid var(--line);box-shadow:none">Restore from a file&hellip;</button><input type="file" id="notes-import-input" accept="application/json,.json" hidden /><div class="hint">Pick any Backchat backup: a full library, one book, a deleted book, or a notes-only file. Merges by id, newest edit wins, nothing is ever deleted.</div></div>
       <div class="grp">Export a readable copy</div>
     <div class="grp-note">A readable snapshot of your reading as Markdown, one file per book, with your highlights, comments and the links between them. Made for your notes app, not for restoring.</div>
@@ -1246,9 +1246,18 @@ var tts = { state:"idle", chunks:[], cidx:0, curSentIdx:-1, contents:null, voice
 var lib = { q:"", sort:"opened", dir:"desc", page:0, fav:false, tag:"" };
 var searchQuery = "";
 var vault = { handle:null, connected:false, busy:false, needsReauth:false, dirty:{} };
+/* What the folder is for on this device. A computer keeps the folder: it reads and writes the whole
+   library there, and its browser holds only a working copy of the books opened most recently. A
+   phone holds its own books, because the folder is out of reach on the train, so it never lets one
+   go for being in the folder. A phone with device sync on uses the folder as a bookshelf: it reads
+   book files from it and adds the ones you add, and writes nothing else there, because device sync
+   carries its marks and the computer writes them into the folder. Every notes file then has one
+   writer. */
+function bcBooksCached(){ return !!vault.handle && !bcTouchUI(); }   // this browser's book files are a cache in front of the folder
+function bcShelfOnly(){ return bcTouchUI() && cloudOn(); }          // this device uses the folder for book files only
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.72";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.73";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 function fmtSyncAgo(){
@@ -1817,6 +1826,13 @@ async function bcScanFolder(handle){
 }
 /* Confirm a connect. Empty folder: a gentle "save my library here". Folder with a library: spell out
    that connecting is a TWO-WAY merge and show enough for the user to recognize a wrong folder. */
+function bcConfirmShelf(scan){
+  var L=["This phone will use the folder for book files. Tap a dimmed book and its file comes from here, and a book you add on the phone is saved here too.", "",
+    "Your marks, margins and places travel by device sync, and your computer writes them into the folder, so the phone writes nothing else here."];
+  if(!scan.empty){ L.push(""); L.push("This folder holds "+scan.books+" book file"+(scan.books===1?"":"s")+", "+scan.matched+" of them in your library."); }
+  L.push(""); L.push("Connect this folder?");
+  return confirm(L.join("\n"));
+}
 function bcConfirmConnect(scan){
   if(scan.empty){
     return confirm("No Backchat library was found in this folder.\n\nConnecting will save your current library into it and keep it in sync from now on.\n\nConnect this folder?");
@@ -1843,10 +1859,11 @@ async function connectVault(){
   }
   // Preview before any merge: connecting runs a two-way merge, so confirm this is the right folder.
   var _scan; try{ _scan = await bcScanFolder(handle); }catch(_e){ _scan={books:0,notes:0,matched:0,newBooks:0,samples:[],empty:true}; }
-  if(!bcConfirmConnect(_scan)){ toast("Folder not connected"); return; }
+  if(!(bcShelfOnly() ? bcConfirmShelf(_scan) : bcConfirmConnect(_scan))){ toast("Folder not connected"); return; }
   vault.handle = handle; vault.connected = true; vault.needsReauth = false; _syncPausedToasted = false; vault.lastError="";
   try{ await DB.put("app", { key:"vaultHandle", handle:handle }); }catch(e){}
   updateVaultUI();
+  if(bcShelfOnly()){ toast("Folder connected for book files"); return; }
   toast("Folder connected. Syncing…");
   // Read the folder first, then write, so this browser's older copy of a record never lands on a newer one.
   await vaultPull();
@@ -1887,6 +1904,7 @@ async function reauthVault(){
       }
       vault.connected=true; vault.needsReauth=false; _syncPausedToasted=false; updateVaultUI();
       vault.lastError="";
+      if(bcShelfOnly()){ toast("Folder reconnected"); return; }
       toast("Folder reconnected. Catching up…");
       await vaultPull(); await vaultPushAll();
       toast("Folder in sync");
@@ -2268,7 +2286,7 @@ async function refreshBookFromFolder(m){
     // A copy of this book that the folder scan kept because its contents differ (a corrected
     // edition dropped into books/ under another name) is what a refresh is for: the newest such
     // copy becomes the book's file, and the copy is removed once the book's file holds it.
-    var copy=null; try{ copy=await bcNewestOtherCopy(m); }catch(e){ console.warn("refresh copy", e); }
+    var copy=null; if(!bcShelfOnly()){ try{ copy=await bcNewestOtherCopy(m); }catch(e){ console.warn("refresh copy", e); } }   // renaming copies in books/ is the computer's job
     var buf = copy ? copy.buf : await fetchEpubFromFolder(m);
     if(!buf){ toast("No EPUB found in the folder for this book. Check the filename or reconnect the folder."); return; }
     if(copy){
@@ -2311,7 +2329,7 @@ async function refreshBookFromFolder(m){
    folder connected nothing is ever evicted, because then the cache IS the library. */
 var BLOB_CACHE_MAX = 20;
 async function enforceBlobCache(){
-  if(!vault.connected || !vault.handle) return;
+  if(!vault.connected || !bcBooksCached()) return;   // a phone keeps every book it holds
   try{
     var keys = await DB.keys("blob");
     if(!keys || keys.length<=BLOB_CACHE_MAX) return;
@@ -2376,7 +2394,7 @@ async function mergeConflictCopies(dirs, tomb){
   }catch(e){ console.warn("auto merge conflicts", e); return 0; }
 }
 async function vaultPushBook(id, allowPrompt){
-  if(!vault.handle) return;
+  if(!vault.handle || bcShelfOnly()) return;
   if(!(await ensureVaultWritable(!!allowPrompt))){ vault.dirty[id]=true; return; }
   try{
     var m = await DB.get("meta", id); if(!m) return;
@@ -2422,6 +2440,7 @@ async function vaultPushBook(id, allowPrompt){
 // added for a book already held), also replace a folder copy whose contents differ.
 async function vaultPushEpub(id, overwrite){
   if(!vault.handle) return;
+  if(bcShelfOnly()) overwrite=false;   // a bookshelf adds book files; it never replaces the computer's
   if(!(await ensureVaultWritable(false))) return;
   try{
     var m = await DB.get("meta", id); if(!m) return;
@@ -2455,6 +2474,7 @@ var _vaultIndexHash="";
 /* ---------------- FOLDER SYNC: PUSH ALL - probe folder once, then every book ---------------- */
 var _pushAllRun=null;
 function vaultPushAll(){
+  if(bcShelfOnly()) return Promise.resolve();
   if(_pushAllRun) return _pushAllRun;   // one full write at a time; a second request joins the one running
   _pushAllRun=_vaultPushAllOnce().then(function(r){ _pushAllRun=null; return r; }, function(e){ _pushAllRun=null; throw e; });
   return _pushAllRun;
@@ -2493,6 +2513,7 @@ async function _vaultPushAllOnce(){
    only what a tombstone says was deleted on purpose. */
 var _pullRun=null;
 function vaultPull(){
+  if(bcShelfOnly()) return Promise.resolve(0);   // a bookshelf: device sync carries the notes
   if(_pullRun) return _pullRun;   // one sync at a time: two at once could import a new book twice
   _pullRun=_vaultPullOnce().then(function(r){ _pullRun=null; return r; }, function(e){ _pullRun=null; throw e; });
   return _pullRun;
@@ -2607,7 +2628,7 @@ function mergeHighlights(localItems, folderItems){
    store being cleared before its changes were written. */
 async function maybeAutoBackup(){
   try{
-    if(!vault.connected || !vault.handle) return;
+    if(!vault.connected || !vault.handle || bcShelfOnly()) return;
     var last=0; try{ last=+(localStorage.getItem("bc-auto-backup")||0); }catch(e){}
     if(Date.now()-last < 7*24*3600*1000) return;
     await writeFullBackup("auto-backup-"+saveStamp()+".json");
@@ -2622,7 +2643,7 @@ async function maybeAutoBackup(){
   }catch(e){ console.warn("auto backup", e); }
 }
 async function vaultRemoveBook(m){
-  if(!vault.handle || !m) return;
+  if(!vault.handle || !m || bcShelfOnly()) return;   // on a bookshelf the computer removes the files, when the delete reaches it
   try{
     var dirs = await vaultDirs();
     var base = vaultPathName(m), tag = bookTag(m);
@@ -2643,7 +2664,7 @@ async function vaultRemoveBook(m){
   }catch(e){}
 }
 async function vaultPushTombstones(){
-  if(!vault.handle) return;
+  if(!vault.handle || bcShelfOnly()) return;
   if(!(await ensureVaultWritable(false))) return;
   try{ var t = await loadTombstones(); var dirs = await vaultDirs(); await writeFileInDir(dirs.data, "_tombstones.json", JSON.stringify(t)); }
   catch(e){ console.warn("vault push tombstones", e); }
@@ -2673,7 +2694,11 @@ function updateVaultUI(){
   var btn=$("#vault-btn"), info=$("#vault-info"), sync=$("#vault-sync");
   if(!btn) return;
   if(!fsaSupported()){ btn.textContent="Folder sync unavailable"; btn.disabled=true; info.textContent="Open this reader in Chrome, Edge or Brave on desktop to store your library as files you own."; if(sync) sync.style.display="none"; return; }
-  if(vault.connected){
+  if(vault.handle && bcShelfOnly()){
+    btn.textContent=vault.connected ? "Disconnect folder" : "Reconnect folder";
+    info.textContent="Your folder serves this phone's book files: tap a dimmed book and its file comes from the folder, and a book you add on this phone is saved there too. Device sync carries your marks, and your computer writes them into the folder, so this phone writes nothing else there."+(vault.connected?"":" The browser asks again for the folder the next time a book needs it, or tap Reconnect folder.");
+    if(sync) sync.style.display="none";
+  } else if(vault.connected){
     btn.textContent="Disconnect folder";
     var _left=(vault.notices||[]).length;
     info.textContent = vault.busy ? "Syncing your library to the folder…" : ("Connected."+(vault.lastSync?(" Last synced "+fmtSyncAgo()+"."):"")+(_left?(" That sync left "+_left+" file"+(_left===1?"":"s")+" alone; Check folder under Advanced says why."):"")+" Your books and highlights (as Markdown) are written to your folder. Put it in Dropbox, Drive or iCloud to sync across devices.");
@@ -2696,7 +2721,7 @@ function syncDirtyCount(){ try{ return Object.keys(vault.dirty||{}).length; }cat
    word always carries the meaning; the dot is secondary, so it works without colour. */
 function updateSyncChip(){
   var state, text;
-  if(!fsaSupported() || !vault.handle){ state="local"; text="Browser only"; }
+  if(!fsaSupported() || !vault.handle || bcShelfOnly()){ state="local"; text="Browser only"; }   // on a bookshelf, the light is device sync's
   else if(vault.needsReauth){ state="paused"; text="Sync paused"; }
   else if(vault.busy){ state="pending"; text="Saving\u2026"; }
   else { var d=syncDirtyCount(); if(d>0){ state="pending"; text=d+" to save"; } else { state="synced"; text="Synced"; } }
@@ -2731,7 +2756,7 @@ function updateSyncChip(){
 function syncChipTitle(state){
   if(state==="local") return fsaSupported() ? "Saved in this browser only. Tap to set up a folder you own." : "This browser can\u2019t auto-sync to a folder. Tap to save a backup file.";
   if(state==="paused" && _syncPausedBy==="cloud") return "Device sync paused."+(cloud.lastError?(" "+cloud.lastError):"")+" Tap to open sync settings.";
-  if(typeof cloudOn==="function" && cloudOn() && (!fsaSupported() || !vault.handle)){
+  if(typeof cloudOn==="function" && cloudOn() && (!fsaSupported() || !vault.handle || bcShelfOnly())){
     if(state==="pending") return "Sending your latest changes to your other devices\u2026";
     return "Your marks and notes sync with your other devices."+(cloud.lastOk?(" Last synced "+cloudAgo(cloud.lastOk)+"."):"");
   }
@@ -3982,7 +4007,9 @@ function buildAllIndex(){
    Open a book into the epub.js rendition and track reading time.
    ============================================================ */
 var readTimer=null;
-function startReadTimer(){ stopReadTimer(); readTimer=setInterval(function(){ if(currentBook && document.visibilityState==="visible" && !$("#reader").classList.contains("hidden")){ currentBook.readMs=(currentBook.readMs||0)+10000; saveProgress(currentBook); } },10000); }
+// Reading time is counted here and saved by the next save of the book (a page turn, closing it, the
+// phone putting it away), so a long read does not rewrite the book's record six times a minute.
+function startReadTimer(){ stopReadTimer(); readTimer=setInterval(function(){ if(currentBook && document.visibilityState==="visible" && !$("#reader").classList.contains("hidden")){ currentBook.readMs=(currentBook.readMs||0)+10000; } },10000); }
 function stopReadTimer(){ if(readTimer){ clearInterval(readTimer); readTimer=null; } }
 
 function openBook(id){ return openBookAt(id, null); }
@@ -4975,7 +5002,7 @@ function saveProgress(bk, opts){
       // Only meaningful edits push to the folder. Progress-only saves (page turns and the
       // 10s read timer) stay in local storage and sync to the folder when the book closes.
       // This stops a file that changed every few seconds, which is what cloud services conflict.
-      if(opts.immediate){ vaultPushBook(bk.id, !!opts.allowPrompt); scheduleNotesSnapshot(); }
+      if(opts.immediate){ vaultPushBook(bk.id, !!opts.allowPrompt); }
     }
     return r;
   }).catch(function(e){ console.error("save progress", e); toast("Could not save changes"); });
@@ -5607,7 +5634,7 @@ function persistHighlights(){
   }
   markCorpusDirty();
   var id=currentBook.id;
-  return bcSaveOpenMarks(true).then(function(r){ if(vault.handle) vaultPushBook(id, true); scheduleNotesSnapshot(); return r; }).catch(function(e){ console.error("save highlights", e); toast("Could not save your highlight"); });
+  return bcSaveOpenMarks(true).then(function(r){ if(vault.handle) vaultPushBook(id, true); return r; }).catch(function(e){ console.error("save highlights", e); toast("Could not save your highlight"); });
 }
 /* Save the open book's marks by merging them into what is stored, never by writing over it. A mark
    that another path stored while the book was open (a hand-off, a duplicate folded in, a sync) is
@@ -5892,25 +5919,12 @@ function exportNotes(){
     var json=JSON.stringify(b), name="WR-notes-"+notesStamp()+".json";
     if(vault.connected && vault.handle){
       return vaultWriteOutput("notes", name, json)
-        .then(function(){ return vaultWriteOutput("notes", "latest.json", json); })
         .then(function(){ toast("Notes saved to folder: notes/"+name); })
         .catch(function(e){ console.warn(e); downloadBlob(json,"application/json",name); toast("Notes downloaded"); });
     }
     downloadBlob(json, "application/json", name);
     toast("Notes downloaded. Move it into your vault to sync.");
   });
-}
-var _notesSnapTimer=null;
-function scheduleNotesSnapshot(){
-  if(!vault.handle || _notesSnapTimer) return;
-  _notesSnapTimer=setTimeout(function(){
-    _notesSnapTimer=null;
-    if(!vault.handle) return;
-    ensureVaultWritable(false).then(function(ok){
-      if(!ok) return;
-      buildNotesBundle().then(function(b){ if(b.books.length) vaultWriteOutput("notes","latest.json",JSON.stringify(b)).catch(function(e){ console.warn("notes snapshot", e); }); });
-    });
-  }, 6000);
 }
 function importNotesFile(file){
   var fr=new FileReader();
@@ -5923,7 +5937,7 @@ function importNotesFile(file){
       // next boot. Automatic folder sync calls importNotesBundle directly and is unaffected.
       clearTombstones((data.books||[]).map(function(e){ var m=(e&&e.meta)?e.meta:e; return (m&&m.id)? [m.id, bookKeyOf(m)] : null; })).then(function(){ return importNotesBundle(data); }).then(function(r){
         toast("Merged "+r.books+" book"+(r.books===1?"":"s")+", "+r.added+" new highlight"+(r.added===1?"":"s"));
-        renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); updateStorageInfo(); scheduleNotesSnapshot();
+        renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); updateStorageInfo();
       }).catch(function(e){ console.error(e); toast("Import failed"); });
     } else if(data && data.books){
       if(!confirm("Restore "+data.books.length+" book"+(data.books.length===1?"":"s")+" from this backup? Existing notes are merged, nothing is deleted.")) return;
@@ -5934,9 +5948,9 @@ function importNotesFile(file){
   };
   fr.readAsText(file);
 }
-/* notes/ holds latest.json (a snapshot of every note, written a few seconds after any change) and
-   any notes exports you keep there. This browser's own snapshot is skipped (it holds nothing this
-   library lacks), a file is merged again only when it has changed, and a cloud conflict copy is
+/* notes/ holds the notes exports you keep there, and any latest.json snapshot an older build wrote
+   (none is written now: the per-book records and device sync carry the notes). This browser's own
+   snapshot is skipped, a file is merged again only when it has changed, and a cloud conflict copy is
    merged once and then removed. Returns the copies removed. */
 async function vaultPullNotes(tomb){
   var cleared=0;
@@ -6030,7 +6044,14 @@ function restoreFromObject(data){
       return { restored:restored, ghosts:ghosts };
     });
 }
-function updateStorageInfo(){ Promise.all([DB.all("meta"), DB.keys("blob")]).then(function(r){ var metas=r[0]||[]; var bytes=0, chain=Promise.resolve(); metas.forEach(function(m){ chain=chain.then(function(){ return DB.get("blob", m.id).then(function(b){ if(b&&b.data) bytes+=b.data.byteLength; }); }); }); chain.then(function(){ var mb=(bytes/1048576).toFixed(1); var el=$("#storage-info"); if(el) el.textContent=metas.length+" book"+(metas.length===1?"":"s")+" · ~"+mb+" MB stored in this browser."; }); }); }
+// The browser reports what it holds, so no book file is read to count it.
+function updateStorageInfo(){
+  var est=(navigator.storage && navigator.storage.estimate) ? navigator.storage.estimate().catch(function(){ return null; }) : Promise.resolve(null);
+  Promise.all([DB.count("meta"), DB.keys("blob"), est]).then(function(r){
+    var n=r[0]||0, files=(r[1]||[]).length, used=r[2] && r[2].usage, el=$("#storage-info"); if(!el) return;
+    el.textContent=n+" book"+(n===1?"":"s")+", "+files+" with "+(files===1?"its":"their")+" file here"+(used?(" · ~"+(used/1048576).toFixed(1)+" MB stored in this browser."):".");
+  }).catch(function(){});
+}
 function safeName(s){ return ((s||"book").replace(/[^\w\- ]+/g,"").replace(/\s+/g,"-").slice(0,60))||"book"; }
 function downloadBlob(content, type, filename){ var blob=new Blob([content],{type:type}); var url=URL.createObjectURL(blob); var a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },1500); }
 
@@ -6049,7 +6070,6 @@ function downloadFullBackup(){
   });
 }
 function purgeEverything(){
-  if(_notesSnapTimer){ clearTimeout(_notesSnapTimer); _notesSnapTimer=null; }
   var stores=["meta","blob","highlights","fulltext","app","ftseg","ftblk"], chain=Promise.resolve();   // the disk search index too, or it would outlive the books it indexes
   stores.forEach(function(s){ chain=chain.then(function(){ return DB.clear(s).catch(function(){}); }); });
   return chain.then(function(){
@@ -6431,7 +6451,7 @@ function bcDetailsLocalState(b){
   return DB.get("blob", b.id).then(function(bl){
     if(detailsBook!==b) return;
     var has=!!(bl && bl.data), cta=$("#det-continue"), rl=$("#det-remove-local");
-    if(rl) rl.classList.toggle("hidden", !(has && !vault.handle && b.kind!=="page"));
+    if(rl) rl.classList.toggle("hidden", !(has && !bcBooksCached() && b.kind!=="page"));   // wherever books are not a cache, you free their space yourself
     if(!has && !vault.handle && b.kind!=="page" && cta){ cta.textContent="Add the EPUB to read"; cta.dataset.mode="add"; }
   }).catch(function(){});
 }
@@ -7819,8 +7839,9 @@ function cloudAdoptOpen(id, mm, items, from){
   try{
     if(currentBook && currentBook.id===id){
       var sp=$("#scratch-panel"), editing=!!(sp && sp.classList.contains("editing")), keep=currentBook.scratch;
-      var wasCfi=currentBook.lastCfi, wasAt=currentBook.posAt||0;
+      var wasCfi=currentBook.lastCfi, wasAt=currentBook.posAt||0, readMs=currentBook.readMs||0;
       Object.assign(currentBook, mm); if(editing) currentBook.scratch=keep;
+      if(readMs>(currentBook.readMs||0)) currentBook.readMs=readMs;   // reading time not yet saved stays counted
       if(items && _highlightsOwnerId===id){ highlights=items; try{ renderAllHighlights(); }catch(e){} try{ renderHighlightList(); }catch(e){} }
       if(!editing){ try{ renderScratchView(); }catch(e){} }
       try{ ttsBookmarkUI(); }catch(e){}
@@ -8190,6 +8211,7 @@ async function folderCheck(){
   var info=$("#folder-check-info"); if(!info) return;
   if(!fsaSupported()){ info.textContent="Folder sync is not available in this browser."; return; }
   if(!vault.handle){ info.textContent="No folder connected."; return; }
+  if(bcShelfOnly()){ info.textContent="This phone uses the folder for book files only, so check the folder from the computer that keeps it."; return; }
   if(!(await ensureVaultWritable(true))){ info.textContent="Folder permission needed. Use Reconnect folder above, then check again."; return; }
   info.textContent="Checking…";
   function s(n){ return n===1?"":"s"; }
