@@ -2,6 +2,36 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.79 (8 November 2026)
+
+The margins get Point First's page. They are read and written on one surface, in the editor Point First writes on.
+
+**Changed**
+- **One page to read and write the margins.** The margins were drawn twice: once as a rendered copy to read, and once as a box of raw Markdown to write in. A tap into the words jumped from one to the other, and Backchat had to guess where in the Markdown you had tapped. Now one page does both, in the drawer and on the book's page. It is Point First's editor: CodeMirror 6 with the Lezer Markdown parser. Read-only, it shows the thing itself and none of the Markdown. Tap into the words and the caret lands exactly where you tapped, and nothing moves. While you write, a mark shows only where the cursor is, and turns back into type as you move on.
+- **Images, videos, tables and location links stay in place.** An image link shows the image. A YouTube link, or the embed code YouTube gives you, shows the video card, which plays where it is, on the player Backchat builds; the pasted code still never runs. A table stays a table until the cursor comes in. A location link is a titled link. While you read, a tap follows it; while you write, a click puts the caret in it, and Ctrl or Cmd with the click follows it. While you write, a click ticks a task's box.
+- **Point First's keys.**
+  - Ctrl or Cmd with B, I and K makes bold, italic and a link.
+  - A mark typed over a selection wraps it, and an address pasted over words links them.
+  - Enter carries a list or a quote on, and an empty item ends it.
+  - Tab and Shift Tab indent, and move through a table's cells; Enter in a table adds a row.
+  - Alt Up and Down move a paragraph or a list item.
+- **The editor loads after the first screen.** It is a third of a megabyte: `lib/codemirror.js`, built by `tools/codemirror/build.sh` from the same pinned packages as Point First's. Loaded with the page, it cost the start 23 ms on a desktop and 55 ms on a phone-speed processor. It now loads two seconds after start instead. Should it fail to load, the margins show as plain text and are written in a plain text box.
+- **A line written straight under a table ends it,** as Backchat has always drawn a table. GFM, and so the parser, would make it a row.
+- **Gone:** `scratchHtml`, the margins' own renderer, and the textarea helpers both editors used. The textarea was kept in 1.0.40 for robustness on phones. Obsidian's editor runs on CodeMirror 6, phones included, which settles that.
+
+**Checks**
+- New section 4k, nine checks. All fail on 1.0.78:
+  - the editor loads after the first screen;
+  - read-only, the margins show the thing itself and none of the Markdown;
+  - a click into the words writes there, with the caret where you clicked;
+  - while you write, a mark shows only where the cursor is;
+  - Point First's keys: Enter, Tab, bold, wrapping, links, a pasted address, table cells and moving a paragraph;
+  - a location link lands while you read, and while you write takes a plain click as the caret and Ctrl as the link;
+  - a video card plays in place, and the pasted embed code never runs;
+  - without the editor, the margins still show and can still be written;
+  - on a phone, a tap into the words writes there.
+- Seven checks that drove the old renderer and text boxes now drive the editor. All 245 checks pass.
+
 ## 1.0.78 (8 November 2026)
 
 One delete, and old trails gone. A record of a trail, left from before 1.0.44, is deleted once nothing in it can be lost, and the checks that stepped around such records are gone with it.
