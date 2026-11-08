@@ -1423,6 +1423,15 @@ with sync_playwright() as p:
       return [CM.completionStatus(v.state), [...new Set(o.map(x=>x.section.name))], o.filter(x=>x.section.name==='Highlights').map(x=>x.detail), !!r && r.height>0 && r.top>=0 && r.bottom<=innerHeight]; }"""),
            ["active", ["Books", "Highlights"], ["Meditations (2002, Modern Library)"], True],
            "the page's top bar counted from the editor's own top hid the finder's list whenever the caret sat on the margins' first lines")
+    expect("the finder is drawn in the app's own colours and type in each theme, and its Books heading says where # and ^ go", ev(rp, r"""async()=>{
+      const was=settings.theme, out=[];
+      for(const th of ['dark','light','sepia']){ settings.theme=th; applyTheme(); await new Promise(r=>setTimeout(r,60));
+        const t=document.querySelector('#details .cm-tooltip-autocomplete'), li=t && t.querySelector('li'), p=document.createElement('div');
+        p.style.cssText='background:var(--panel);color:var(--ink)'; document.body.appendChild(p);
+        const want=getComputedStyle(p), lic=li ? getComputedStyle(li) : {}; out.push([!!t && getComputedStyle(t).backgroundColor===want.backgroundColor, lic.color===want.color, !/monospace/.test(lic.fontFamily||'monospace')]); p.remove(); }
+      settings.theme=was; applyTheme(); const h=document.querySelector('#details .cm-tooltip-autocomplete .bc-fhint');
+      return [out, h ? h.textContent : 'no hint']; }"""), [[[True, True, True]] * 3, "# chapters \u00b7 ^ passages"],
+           "the finder kept the editor's grey default panel and monospace type, so in the dark theme its pale text sat on a pale panel")
     kb.type("medit"); settle(0.6)
     expect("the finder tells two books of one title apart", ev(rp, "()=>CM.currentCompletions(_detEd.view.state).filter(x=>x.section.name==='Books').map(x=>x.label+' / '+x.detail)"),
            ["Meditations / Marcus Aurelius · 2002, Modern Library", "Meditations / Marcus Aurelius · 2006, Penguin"],

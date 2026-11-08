@@ -2,6 +2,19 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.82 (8 November 2026)
+
+The link finder in the app's own colours.
+
+**Fixed**
+- **The finder's list was the editor's grey default:** a pale panel in monospace type, which in the dark theme left the books and highlights as pale text on a pale panel, nearly unreadable. It is now a panel of the app's own, in each theme's colours and the app's type: the book or the highlight in the theme's ink, its author or its book after it in the muted colour, and the sections under small headings. The choice under the keys reads by a bar at its edge and a bolder label as well as a tint, so it does not hang on colour. Since 1.0.80.
+
+**Changed**
+- **The finder's Books heading says where it goes next:** # chapters, ^ passages, typed after a book's name.
+
+**Checks**
+- In 4l, the finder drawn in the app's colours and type in the dark, light and sepia themes, and its Books heading. It fails on 1.0.81.
+
 ## 1.0.81 (8 November 2026)
 
 Links that read as words. Copy link copies a link as Obsidian writes one, to the book's note in your folder, so it reads as words wherever it is pasted and works in Obsidian as it stands. In the margins, [[ goes deeper with Obsidian's marks: # for a book's chapters, ^ for its highlights and passages.
