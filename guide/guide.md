@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 30
+revision: 31
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -152,7 +152,7 @@ Margins {{icon:margins-panel}} opens blank pages that belong to you. Highlights 
 
 There is a method worth stealing here, and it comes from Tim Ferriss. He reads with a pencil, scribbling in the margins as he goes. When he finishes, he builds his own index on the blank front pages: a page number and a few words for every idea worth returning to. Weeks later he comes back and stars the ideas he actually used. Three hundred pages become a handful of actions. [Watch him explain it](https://www.youtube.com/watch?v=YQOrqAKKcUQ).
 
-The margins are those blank front pages, and the method carries over with one upgrade. Paper needs page numbers; you have locations. Mark and comment while you read. When you finish, open the margins and write your index: a line per idea, with the passage's location link pasted beside it. Or let the Margins button under any highlight write the entry for you: quote, link, and a blank line for your words. Where his index says page 212, yours is a live link that jumps straight to the passage. Then let the second pass happen in the marks themselves: star the highlights you find yourself using, and the stars become your distillation.
+The margins are those blank front pages, and the method carries over with one upgrade. Paper needs page numbers; you have locations. Mark and comment while you read. When you finish, open the margins and write your index: a line per idea, with the passage's location link pasted beside it. Or let the Margins button under any highlight write the entry for you: the quote, a link that names its chapter, and a blank line for your words. Where his index says page 212, yours names the chapter and jumps straight to the passage. Then let the second pass happen in the marks themselves: star the highlights you find yourself using, and the stars become your distillation.
 
 Tap Edit to write and Done to read. On a book's page, tap into the words and the caret lands where you tapped. You write in markdown, and it shows as you go: the marks appear where you are writing and turn into the thing itself as soon as you move on. A # becomes a heading, two stars around a word make it bold, and a few lines of pipes become a table. Headings, bold, italic, lists, tasks, block quotes, tables, highlighted and struck-through text all work, written as Obsidian writes them. A table is rows of cells between pipes, with a line of dashes under the first row. Quotes you copied paste cleanly. An image link shows the image, and a YouTube link, or the embed code YouTube gives you, becomes a small card that plays right there in the margins. Links are tappable; while you are writing, hold Ctrl (Cmd on a Mac) as you click one to follow it. The book's page shows its margins in full, with room to write.
 
@@ -166,23 +166,28 @@ On a keyboard, a few keys make writing quicker (Cmd instead of Ctrl on a Mac):
 
 ## Links between passages
 
-Any passage, highlight or book can be linked to any other. Four buttons copy a link:
+Any passage, highlight, chapter or book can be linked to any other. Four buttons copy a link:
 
-- The link icon {{icon:location}} in the selection menu copies a passage.
+- The link icon {{icon:location}} in the selection menu copies a passage, and the link says the words you selected.
 - **Location** in the highlights panel copies a highlight.
 - The link icon {{icon:location}} beside any search result copies that result.
 - **Copy book link** {{icon:book-link}} on a book's page copies the book.
 
-Paste the link into a comment or the margins and it becomes tappable. A passage link opens the book on that passage. A highlight link shows the highlight first, with Open in book to go there. A book link opens the book's page. Follow one from a book's page, and Back {{icon:back}} brings you back to those margins.
+A link is written the way Obsidian writes one, so it reads as words wherever you paste it. It names the book's note in your folder, then what in the book it points to, then the words it shows:
 
-In the margins you can make a link without leaving the page. Type [[ and a finder opens, as in Obsidian. It starts with your recent books and this book's latest highlights. Type a few words and it finds any book by its title or author, and any highlight by its words or its comment. Enter writes the link. Esc closes the finder and leaves the [[ as you typed it, for a link of your own.
+- `[[Letters-from-a-Stoic-g7q9q3|Letters from a Stoic]]` is the book.
+- `[[Letters-from-a-Stoic-g7q9q3#^mw7axoaxc93df4|“We suffer more often in imagination than in reality.”]]` is a highlight, or a passage.
+- `[[Letters-from-a-Stoic-g7q9q3#Letter Thirteen|Letter Thirteen]]` is a chapter.
 
-A link reads as words. A book link shows the book's title, and a link to a highlight or a passage shows its opening words, with its book after them. While you write, a link is one piece: the cursor steps over it, and Backspace takes it whole.
+Paste one into a comment or the margins and it shows as its words, ready to tap. A passage link opens the book on that passage, and a chapter link at the chapter. A highlight link shows the highlight first, with Open in book to go there. A book link opens the book's page. Follow one from a book's page, and Back {{icon:back}} brings you back to those margins. Paste one into a note of your own in Obsidian and it works there too: it opens the book's note on that highlight.
 
-Links hold. Each one carries the book's identity rather than its place on your shelf, and a passage link carries a few of the passage's words, so a link finds its way back even after the book is added again.
+In the margins you can make a link without leaving the page. Type [[ and a finder opens, as in Obsidian. It starts with your recent books and this book's latest highlights. Type a few words and it finds any book by its title or author, and any highlight by its words or its comment. Then go deeper with the marks Obsidian uses. A # after a book's name lists its chapters. A ^ lists its highlights, and once you type a few words, any passage in it. On their own, [[# and [[^ are this book's. Enter writes the link. Esc closes the finder and leaves the [[ as you typed it, for a link of your own.
 
-Two places show the web you are weaving. **Connections**, on the home screen, lists your books by the links between them. **Related**, on each book's page, lists the books that share a tag with it and the ones you tie to it by hand under Related books in Edit metadata. Two books of one title each keep their own place there, and say which is which. When you export your notes to Markdown, every link becomes a [[wikilink]] that Obsidian understands.
+While you write, a link is one piece: the cursor steps over it, and Backspace takes it whole. Open a comment to edit and an older link in it, from before links read as words, reads as words too.
 
+Links hold. The short code at the end of a book's note name, the g7q9q3 above, is the book's own and the same on every device. So a link finds its book after the book is renamed or added again, and two books of one title never share their links. A passage link knows the passage's words too, so it finds its way back even if the book's file changes. A [[link]] whose code is no book in your library is an ordinary Obsidian link, and Backchat leaves it as you wrote it.
+
+Two places show the web you are weaving. **Connections**, on the home screen, lists your books by the links between them. **Related**, on each book's page, lists the books that share a tag with it and the ones you tie to it by hand under Related books in Edit metadata. Two books of one title each keep their own place there, and say which is which. In the notes Backchat writes to your folder, each highlight carries its block id, so every link there lands where it points: on the highlight, in this book's note or another's.
 ## Find anything
 
 The search box on the home screen looks through your titles, authors, tags, highlights, comments, and the text inside your books. Results arrive in groups: Books, Highlights, Notes and Inside books.
