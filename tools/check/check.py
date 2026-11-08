@@ -1189,6 +1189,56 @@ with sync_playwright() as p:
            "at the end of a chapter's part of the video, the book stayed where it was while the sound went on")
     pctx.close()
 
+    # 4j. One delete, and old trails gone. Trails (kind "page") left Backchat in 1.0.44. A record of
+    #     one is deleted, as a book is, once nothing in it can be lost: an empty one at start, one
+    #     with writing in a folder sync that first keeps the writing in backups/. Nothing else in the
+    #     page steps around such records. A book deleted anywhere leaves the echoes of your marks.
+    expect("old trails are handled in one place", len(re.findall(r'kind\s*[!=]==\s*["\']page["\']', _html)), 1,
+           "thirteen checks in eleven functions stepped around trail records, long after Trails left in 1.0.44")
+    TRAIL = r"""async([id, scratch])=>{ const t=Date.now()-9e9, m={ id:id, title:'Untitled trail', author:'', kind:'page', bookKey:'page:'+id, tags:['page'], scratch:scratch, addedAt:t, lastOpened:t, updated:t };
+      await DB.put('meta', m); await DB.put('highlights', { id:id, items:[], updatedAt:0 }); return vaultPathName(m); }"""
+    tctx = browser.new_context(bypass_csp=True); tp = tctx.new_page(); watch(tp, "old-trails")
+    tp.goto(URL); wait(tp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(1.2)
+    ev(tp, TRAIL, ["trailempty1", ""]); ev(tp, TRAIL, ["trailwrit01", "# A trail\nwritten long ago"])
+    tp.reload(); wait(tp, "typeof DB!=='undefined' && typeof renderHome==='function'")
+    expect("at start, an old trail that holds nothing is deleted; one with writing stays, a book, where no folder can keep it", ev(tp, r"""async()=>{
+      for(let i=0;i<80 && await DB.get('meta','trailempty1');i++) await new Promise(r=>setTimeout(r,100));
+      const t=await loadTombstones(), w=await DB.get('meta','trailwrit01');
+      return [!(await DB.get('meta','trailempty1')), !!(t.ids.trailempty1 && t.keys['page:trailempty1']), !!w, libFiltered(await DB.all('meta')).some(m=>m.id==='trailwrit01')]; }"""),
+      [True, True, True, True],
+      "trail records stayed forever, hidden from every screen; one that holds nothing is deleted everywhere, one with writing shows until a folder keeps it")
+    expect("a book deleted on another device leaves the echoes of your marks", ev(tp, r"""async()=>{
+      const now=Date.now(), mk=id=>({ id:id, title:'Echo '+id, author:'', bookKey:'id:'+id, tags:[], addedAt:now, updated:now });
+      await DB.put('meta', mk('echoA')); await DB.put('meta', mk('echoB'));
+      await DB.put('highlights', { id:'echoA', items:[{ id:'ea1', text:'the lighthouse keeper counted the waves', color:'yellow', created:now, updated:now }], updatedAt:now });
+      await DB.put('highlights', { id:'echoB', items:[{ id:'eb1', text:'a lighthouse keeper who counted waves', color:'yellow', created:now, updated:now }], updatedAt:now });
+      markCorpusDirty();
+      const q={ bookId:'echoA', text:'the lighthouse keeper counted the waves' }, seen=async()=>(await echoesFor(q)).some(e=>e.bookId==='echoB');
+      const before=await seen();
+      await mutateTombstones(t=>{ t.ids.echoB=Date.now(); t.keys['id:echoB']=Date.now(); return true; });
+      await reconcileLibrary();
+      return [before, !(await DB.get('meta','echoB')), await seen()]; }"""), [True, True, False],
+      "a book removed by a sync stayed among the echoes of your marks, a link to a book no longer there")
+    tctx.close()
+    kctx, kp = folder_page("old-trails-folder")
+    tn = ev(kp, TRAIL, ["trailwrit02", "# This is a trail"])
+    ev(kp, r"""async(n)=>{ const m=await DB.get('meta','trailwrit02'), e=Object.assign({}, m, { id:'trailempty2', bookKey:'page:trailempty2', scratch:'' });
+      await B.put('.reader/trailwrit02.json', JSON.stringify({ meta:m, highlights:[], updatedAt:0 })); await B.put('highlights/'+n+'.md', '# Untitled trail\n\n## Margins\n\n# This is a trail\n');
+      await B.put('.reader/trailempty2.json', JSON.stringify({ meta:e, highlights:[], updatedAt:0 })); __toasts.length=0; return true; }""", tn)
+    expect("a bookshelf leaves an old trail's writing to the computer", ev(kp, r"""async()=>{ const f=window.bcShelfOnly; window.bcShelfOnly=()=>true;
+      try{ await vaultPull(); await B.quiet(); } finally { window.bcShelfOnly=f; }
+      return [!!(await DB.get('meta','trailwrit02')), Object.keys(await B.ls('backups')).length]; }"""), [True, 0],
+      "a device with no folder to keep the writing in would delete it everywhere")
+    ev(kp, "async()=>{ __toasts.length=0; await vaultPull(); await B.quiet(); return true; }")
+    expect("an old trail taken in from the folder and deleted by the same sync is not counted as a book pulled", ev(kp, "async()=>[!(await DB.get('meta','trailempty2')), __toasts.filter(t=>/^Pulled/.test(t)).length]"), [True, 0],
+           "a sync said it had pulled a book that it then deleted")
+    expect("a folder sync keeps an old trail's writing in backups/, then deletes the trail and its files", ev(kp, r"""async(n)=>{
+      const ls=await B.ls(''), t=await loadTombstones(); let b=''; try{ b=await B.text('backups/'+n+'-notes.md'); }catch(e){}
+      return [!(await DB.get('meta','trailwrit02')), !!t.ids.trailwrit02, b.indexOf('# This is a trail')>=0, !('.reader/trailwrit02.json' in ls), !(('highlights/'+n+'.md') in ls), !('.reader/trailempty2.json' in ls)]; }""", tn),
+      [True, True, True, True, True, True],
+      "the trail's record and notes stayed in the folder for good, hidden from every screen")
+    kctx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.
