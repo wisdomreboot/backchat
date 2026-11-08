@@ -2,6 +2,26 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.84 (9 November 2026)
+
+An audit: what Backchat is and does, checked for what could break or cause trouble. The code was linted for undefined names, clashes and dead functions (none), its HTML for unescaped text (none: every book and note field is escaped, and the page's policy blocks scripts), its syntax against older Safari (nothing newer than it reads), and it was run through hostile books, damaged notes files, a 600-book library with 30,000 highlights, and a browser that stores nothing. What turned up is fixed here.
+
+**Fixed**
+- **Writing on a book's page survives a sync of that book.** A device sync that arrived for the book whose page you were writing on redrew the page, which put away the words not saved yet. The check for writing looked for the Save row that 1.0.83 moved to the top bar, so since 1.0.83 it always found you not writing. It now asks the editor itself (`bcDetailsWriting`), and an import finishing waits the same way.
+- **A damaged notes file cannot break the home screen.** A notes file with a number for a book's id, or text where a list belongs (tags, related books), was stored as it came, and the home screen then stopped drawing. Every record that arrives, from a notes file, the folder, another device or a backup, is now made the shape Backchat counts on before it is taken in (`bcCleanRecord`), in the one place they all pass. A record with no usable id is not taken. The HTML escaper takes any value, so nothing stored can stop a screen.
+- **In code, [[ is code.** The link finder opened in a code block and in inline code, where Enter then wrote a link into the code.
+- **Settings that cannot be stored no longer stop the page.** With storage full or turned off, every change of a setting threw; it now holds for the visit.
+- **A browser that stores nothing says so.** With storage turned off (some private windows), Backchat showed an empty library and said nothing; it now says that books and notes cannot be kept there.
+- **Sync data a browser cannot unpack says why.** A browser without DecompressionStream (Safari before 16.4) failed on another device's compressed sync data with a bare error, as if the data were broken; it now asks for an update.
+
+**Changed**
+- Two comments described link labels as they were before 1.0.81, and now describe them as they are. Two helpers of the link index gained a comment.
+- Removed: the style of the Save row's Cancel button, unused since 1.0.83.
+
+**Checks**
+- New section 4o, six checks, one for each fix: writing through a sync and an import, [[ in code, a damaged notes file, settings that cannot be stored, a browser that stores nothing, and sync data that cannot be unpacked.
+- All six fail on 1.0.83. Full suite: 287 of 287.
+
 ## 1.0.83 (8 November 2026)
 
 Easier writing in the margins. Save stays in the top bar, the words sit on a sheet whose edge shows where a click outside saves, the sheet is wide on a desktop, and ^ in the finder lists passages at once.

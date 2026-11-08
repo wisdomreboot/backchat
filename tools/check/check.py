@@ -1647,6 +1647,61 @@ with sync_playwright() as p:
            [True, True], "the sheet or the top bar's buttons ran off a phone's screen")
     wpctx.close()
 
+    # 4o. Robust against what arrives and what fails. Writing on a book's page survives a sync and
+    #     an import finishing; [[ in code is code; a damaged notes file is taken in clean and every
+    #     screen still draws; settings that cannot be stored do not stop the page; a browser that
+    #     stores nothing says so; and sync data this browser cannot open says why.
+    octx = browser.new_context(viewport={"width": 1280, "height": 800}, bypass_csp=True, accept_downloads=True); op = octx.new_page(); watch(op, "robust")
+    op.goto(URL); wait(op, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+    ev(op, r"""async()=>{ const now=Date.now(); await DB.put('meta',{ id:'rb', title:'Deep Work', author:'Cal Newport', bookKey:'id:urn:rb', addedAt:now, updated:now, tags:[], scratch:'Saved words.' });
+      await DB.put('highlights',{ id:'rb', items:[], updatedAt:0 }); await bcEditorLoad(); await openDetails('rb'); await new Promise(r=>setTimeout(r,400));
+      detailsNotesEdit(_detEd.value.length); await new Promise(r=>setTimeout(r,300)); return true; }""")
+    op.keyboard.type(" Not saved yet."); settle(0.2)
+    expect("writing on a book's page survives a sync of that book and an import finishing", ev(op, r"""async()=>{
+      const m=await DB.get('meta','rb'); cloudAdoptOpen('rb', Object.assign({}, m, { scratch:'From another device.', updated:Date.now() }), [], 'phone'); await new Promise(r=>setTimeout(r,300));
+      const afterSync=[_detEd.writing, _detEd.value];
+      await importFiles([]); await new Promise(r=>setTimeout(r,300));
+      return [afterSync, [_detEd.writing, _detEd.value]]; }"""),
+           [[True, "Saved words. Not saved yet."], [True, "Saved words. Not saved yet."]],
+           "a sync for the book redrew its page while you wrote on it, and the words not saved yet were lost")
+    ev(op, "async()=>{ if(!_detEd.writing){ detailsNotesEdit(0); await new Promise(r=>setTimeout(r,300)); } return true; }")   # writing, whatever came before
+    ev(op, "()=>{ const v=_detEd.view; v.dispatch({ changes:{ from:0, to:v.state.doc.length, insert:'```\\nx = \\n```\\nAnd `y = ` here.' }, selection:{ anchor:8 }, userEvent:'input' }); v.focus(); return true; }")
+    op.keyboard.type("[["); settle(0.6)
+    in_block = ev(op, "()=>CM.completionStatus(_detEd.view.state)")
+    ev(op, "()=>{ const v=_detEd.view, t=v.state.doc.toString(); v.dispatch({ selection:{ anchor:t.indexOf('y = ')+4 } }); return true; }")
+    op.keyboard.type("[["); settle(0.6)
+    expect("in code, [[ is code: no link finder in a code block or inline code", [in_block, ev(op, "()=>CM.completionStatus(_detEd.view.state)"), ev(op, "()=>_detEd.writing && (_detEd.value.match(/\\[\\[/g)||[]).length")], [None, None, 2],
+           "[[ in code opened the finder, and Enter there wrote a link into the code")
+    ev(op, "()=>{ detailsNotesCancel(); return true; }")
+    expect("a damaged notes file is taken in clean, and every screen still draws", ev(op, r"""async()=>{ const now=Date.now(), out=[];
+      const r=await importNotesBundle({ format:'wr-notes', books:[null, { meta:{ title:'No id' } }, { meta:{ id:4242, title:'Numeric id', bookKey:'id:urn:n4242' }, highlights:[{ id:7, text:'q', created:now }] },
+        { meta:{ id:'ob', title:'Items as object', bookKey:'id:urn:ob' }, highlights:{ a:1 } }, { meta:{ id:'tg', title:'Tags as text', bookKey:'id:urn:tg', tags:'one', related:'two', updated:'soon' }, highlights:[null, 5, { id:'' }, { id:'ok', text:'fine' }] }] });
+      const n=await DB.get('meta','4242'), t=await DB.get('meta','tg'), th=await DB.get('highlights','tg');
+      out.push(r.books, typeof n.id, (await DB.get('highlights','4242')).items[0].id, t.tags, t.related, typeof t.updated!=='string', th.items.map(h=>h.id));
+      for(const id of ['4242','ob','tg']){ await openDetails(id); await new Promise(r=>setTimeout(r,150)); }
+      await goHome(); await new Promise(r=>setTimeout(r,200)); out.push(document.querySelectorAll('#home [data-id="4242"], #home [data-id="tg"]').length>0 || !!document.querySelector('#home'));
+      return out; }"""), [3, "string", "7", ["one"], ["two"], True, ["ok"], True],
+           "a notes file with a number for an id, or text for a list, was stored as it came, and the home screen stopped drawing")
+    expect("settings that cannot be stored do not stop the page", ev(op, r"""()=>{ const set=Storage.prototype.setItem; Storage.prototype.setItem=function(){ throw new DOMException('full','QuotaExceededError'); };
+      let ok=true; try{ saveSettings(); }catch(e){ ok=false; } Storage.prototype.setItem=set; return ok; }"""), True,
+           "a full or blocked storage made every change of a setting throw")
+    expect("sync data from a device that compresses, on a browser that cannot unpack it, says why", ev(op, r"""async()=>{
+      if(typeof CompressionStream==='undefined') return 'format';
+      const key=await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+      const z=new Uint8Array(await new Response(new Blob([new TextEncoder().encode('{"a":1}')]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+      const iv=crypto.getRandomValues(new Uint8Array(12)), ct=new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, z));
+      const bytes=new Uint8Array(17+ct.length); bytes.set([66,67,83,49],0); bytes[4]=1; bytes.set(iv,5); bytes.set(ct,17);
+      const keep=window.DecompressionStream; delete window.DecompressionStream;
+      try{ await cloudOpen(bytes, key); return 'opened'; }catch(e){ return e && e.code; } finally{ window.DecompressionStream=keep; } }"""), "format",
+           "a browser without DecompressionStream failed with a bare error, as if the data were broken")
+    octx.close()
+    nctx2 = browser.new_context(bypass_csp=True); np2 = nctx2.new_page()
+    np2.add_init_script("""Object.defineProperty(window, 'indexedDB', { configurable:true, get(){ return { open(){ const r={}; setTimeout(()=>{ r.error=new DOMException('no storage','InvalidStateError'); if(r.onerror) r.onerror(); }, 0); return r; } }; } });""")
+    np2.goto(URL); settle(2.0)
+    expect("a browser that will not store anything says so, rather than show an empty library", np2.evaluate("()=>{ const b=document.querySelector('#bc-storage-warn, .bc-sw-txt'); return !!b && /will not let Backchat store/.test(b.textContent); }"), True,
+           "with no storage the app showed an empty library and said nothing")
+    nctx2.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.
