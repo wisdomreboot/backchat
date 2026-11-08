@@ -1550,10 +1550,13 @@ with sync_playwright() as p:
     expect("[[book# lists the book's chapters, and [[# this book's", [found("[[letters#thir"), found("[[#")],
            [["Chapters: Letter Thirteen / Letters from a Stoic"], ["Chapters: Letter One / Letters from a Stoic", "Chapters: Letter Thirteen / Letters from a Stoic", "Chapters: Letter Twenty / Letters from a Stoic"]],
            "the finder knew books and highlights only, so a chapter could not be linked")
-    expect("[[book^ lists the book's highlights, and with a few words its passages; [[^words finds highlights in every book and this book's passages",
+    expect("[[book^ lists the book's highlights, then its passages from the chapter you are reading; words search the whole book; [[^words finds highlights in every book and this book's passages",
            [found("[[letters^"), found("[[letters^philos"), found("[[^imagin")],
-           [["Highlights: “%s” / Letters from a Stoic" % WE], ["Passages: “Philosophy teaches us to act, not to speak.” / Letters from a Stoic · Letter Twenty"],
-            ["Highlights: “%s” / Letters from a Stoic" % WE, "Passages: “%s” / Letters from a Stoic · Letter Thirteen" % WE]],
+           [["Highlights: \u201c%s\u201d / Letters from a Stoic" % WE] + ["Passages: \u201c%s\u201d / Letters from a Stoic \u00b7 %s" % (t, c) for t, c in (
+               ("Letter Thirteen", "Letter Thirteen"), (WE, "Letter Thirteen"), ("What fortune has made yours is not your own.", "Letter Thirteen"),
+               ("Letter Twenty", "Letter Twenty"), ("Philosophy teaches us to act, not to speak.", "Letter Twenty"))],
+            ["Passages: \u201cPhilosophy teaches us to act, not to speak.\u201d / Letters from a Stoic \u00b7 Letter Twenty"],
+            ["Highlights: \u201c%s\u201d / Letters from a Stoic" % WE, "Passages: \u201c%s\u201d / Letters from a Stoic \u00b7 Letter Thirteen" % WE]],
            "a passage could be linked only by Copy location, from the page it is on")
     kb.type("[[letters#thir"); settle(1.2); kb.press("Enter"); settle(0.3); kb.type(" and "); kb.type("[[letters^philos"); settle(1.2); kb.press("Enter"); settle(0.4)
     written = ev(kp, "()=>_scratchEd.view.state.doc.toString()")
@@ -1597,6 +1600,52 @@ with sync_playwright() as p:
       return [la!==lb, bcParseAny(la).bookKey, bcParseAny(lb).bookKey]; }"""), [True, "id:urn:mdA", "id:urn:mdB"],
            "a link named a book by its title, which two books shared")
     kctx.close()
+
+    # 4n. Writing on a book's page. Save and Cancel wait in the top bar while you write, in reach
+    #     however far the words run; the words sit on a sheet whose edge shows where a click outside
+    #     saves, wide on a desktop so it serves as a real scratchpad; Ctrl+S saves and keeps you
+    #     writing; and read, the margins fill the page's column.
+    wctx = browser.new_context(viewport={"width": 1280, "height": 800}, bypass_csp=True); wpg = wctx.new_page(); watch(wpg, "write-page")
+    wpg.goto(URL); wait(wpg, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+    W_TEXT = "\n\n".join(["Line %d of the margins, long enough to show the page, and the sheet it sits on." % i for i in range(1, 40)])
+    W_SEED = r"""async(t)=>{ const now=Date.now(); await DB.put('meta',{ id:'wr', title:'Deep Work', author:'Cal Newport', bookKey:'id:urn:wr', addedAt:now, updated:now, tags:[], scratch:t });
+      await DB.put('highlights',{ id:'wr', items:[], updatedAt:0 }); await bcEditorLoad(); await openDetails('wr'); await new Promise(r=>setTimeout(r,500)); return true; }"""
+    ev(wpg, W_SEED, W_TEXT)
+    w_read_fit = ev(wpg, "()=>{ const w=document.querySelector('#details .det-wrap'), cs=getComputedStyle(w), inner=w.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight); return Math.abs(document.querySelector('#details-scratch').getBoundingClientRect().width-inner)<2; }")
+    ev(wpg, "async()=>{ detailsNotesEdit(_detEd.value.length); await new Promise(r=>setTimeout(r,400)); return true; }")
+    wpg.keyboard.type(" More."); settle(0.2)
+    W_BAR = r"""()=>{ const bar=document.querySelector('#details .topbar').getBoundingClientRect(), out=[];
+      for(const id of ['det-notes-cancel','det-notes-save']){ const b=document.getElementById(id), r=b.getBoundingClientRect(); out.push(getComputedStyle(b).display!=='none' && r.width>0 && r.top>=bar.top && r.bottom<=bar.bottom); }
+      return out; }"""
+    w_at_top = ev(wpg, W_BAR)
+    ev(wpg, "()=>{ const d=document.querySelector('#details'); d.scrollTop=d.scrollHeight; return true; }"); settle(0.3)
+    expect("while you write on a book's page, Save and Cancel wait in the top bar, in reach however far the words run", [w_at_top, ev(wpg, W_BAR)], [[True, True], [True, True]],
+           "Save sat under the words, at the foot of the page, so writing ended with a long scroll or a click into the blank beside the words")
+    w_sheet = ev(wpg, "()=>{ const e=document.querySelector('#details-scratch'), cs=getComputedStyle(e), r=e.getBoundingClientRect(); return [parseFloat(cs.borderTopWidth)>=1, cs.backgroundColor!==getComputedStyle(document.querySelector('#details')).backgroundColor, Math.round(r.width), r.left>40 && innerWidth-r.right>40]; }")
+    expect("the words sit on a sheet whose edge shows where a click outside saves, wide on a desktop", [w_sheet[:2], w_sheet[2] > 850, w_sheet[3]] if isinstance(w_sheet, list) else w_sheet, [[True, True], True, True],
+           "the column had no edge, so nothing showed where the writing ended and a click that saved began")
+    expect("read, the margins fill the page's column", w_read_fit, True, "the margins kept a narrow column inside a wider page")
+    wpg.click("#det-notes-save"); settle(0.8)
+    expect("Save keeps the words and ends the writing", ev(wpg, "async()=>[ (await DB.get('meta','wr')).scratch.endsWith(' More.'), _detEd.writing, document.getElementById('details').classList.contains('bc-focus-write') ]"),
+           [True, False, False], "Save in the top bar did not save")
+    ev(wpg, "async()=>{ detailsNotesEdit(_detEd.value.length); await new Promise(r=>setTimeout(r,400)); return true; }")
+    wpg.keyboard.type(" Gone."); settle(0.2); wpg.click("#det-notes-cancel"); settle(0.8)
+    expect("Cancel leaves the margins as they were", ev(wpg, "async()=>[ (await DB.get('meta','wr')).scratch.endsWith(' More.'), _detEd.writing ]"), [True, False],
+           "Cancel kept the words it was meant to drop")
+    ev(wpg, "async()=>{ window.__ks=null; document.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key==='s') window.__ks=e.defaultPrevented; }); detailsNotesEdit(_detEd.value.length); await new Promise(r=>setTimeout(r,400)); return true; }")
+    wpg.keyboard.type(" Kept."); wpg.keyboard.press("Control+s"); settle(0.8)
+    expect("Ctrl+S saves and keeps you writing, and the browser never sees it", ev(wpg, "async()=>[ (await DB.get('meta','wr')).scratch.endsWith(' Kept.'), _detEd.writing, window.__ks ]"), [True, True, True],
+           "Ctrl+S reached the browser, which offered to save the web page")
+    wpg.mouse.click(20, 400); settle(0.8)
+    expect("a click outside the sheet saves and ends the writing", ev(wpg, "async()=>[ (await DB.get('meta','wr')).scratch.endsWith(' Kept.'), _detEd.writing ]"), [True, False],
+           "a click beside the sheet left the words unsaved")
+    wctx.close()
+    wpctx = browser.new_context(viewport={"width": 390, "height": 760}, bypass_csp=True, has_touch=True, is_mobile=True); wpp = wpctx.new_page(); watch(wpp, "write-phone")
+    wpp.goto(URL); wait(wpp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+    ev(wpp, W_SEED, W_TEXT); ev(wpp, "async()=>{ detailsNotesEdit(0); await new Promise(r=>setTimeout(r,400)); return true; }")
+    expect("on a phone the sheet fits the screen, and Save and Cancel the top bar", ev(wpp, "()=>{ const r=document.querySelector('#details-scratch').getBoundingClientRect(), bar=document.querySelector('#details .topbar').getBoundingClientRect(), s=document.getElementById('det-notes-save').getBoundingClientRect(); return [r.left>=0 && r.right<=innerWidth, s.right<=innerWidth && s.top>=bar.top && s.bottom<=bar.bottom]; }"),
+           [True, True], "the sheet or the top bar's buttons ran off a phone's screen")
+    wpctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
