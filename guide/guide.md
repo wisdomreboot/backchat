@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 29
+revision: 30
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -175,9 +175,13 @@ Any passage, highlight or book can be linked to any other. Four buttons copy a l
 
 Paste the link into a comment or the margins and it becomes tappable. A passage link opens the book on that passage. A highlight link shows the highlight first, with Open in book to go there. A book link opens the book's page. Follow one from a book's page, and Back {{icon:back}} brings you back to those margins.
 
+In the margins you can make a link without leaving the page. Type [[ and a finder opens, as in Obsidian. It starts with your recent books and this book's latest highlights. Type a few words and it finds any book by its title or author, and any highlight by its words or its comment. Enter writes the link. Esc closes the finder and leaves the [[ as you typed it, for a link of your own.
+
+A link reads as words. A book link shows the book's title, and a link to a highlight or a passage shows its opening words, with its book after them. While you write, a link is one piece: the cursor steps over it, and Backspace takes it whole.
+
 Links hold. Each one carries the book's identity rather than its place on your shelf, and a passage link carries a few of the passage's words, so a link finds its way back even after the book is added again.
 
-Two places show the web you are weaving. **Connections**, on the home screen, lists your books by the links between them. **Related books**, in Edit metadata, ties books together by hand, and they appear under Related on each book's page. When you export your notes to Markdown, every link becomes a [[wikilink]] that Obsidian understands.
+Two places show the web you are weaving. **Connections**, on the home screen, lists your books by the links between them. **Related**, on each book's page, lists the books that share a tag with it and the ones you tie to it by hand under Related books in Edit metadata. Two books of one title each keep their own place there, and say which is which. When you export your notes to Markdown, every link becomes a [[wikilink]] that Obsidian understands.
 
 ## Find anything
 

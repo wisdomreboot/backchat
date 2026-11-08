@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2NelQGVAYiRU3L6xPVQF/s6SWFBV2y578Z5d9xbcvL8=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xtJUNT7vWVkKwmgLjX6i0SDTM/RlF+EeVByFsFRYgGk=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -530,6 +530,7 @@
   .stars span{cursor:pointer;color:var(--line)} .stars span.on{color:#f0a500}
   .rel-wrap{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.45rem;align-items:center}
   .rel-chip{display:inline-flex;align-items:center;gap:.4rem;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:600;padding:.25rem .55rem;border-radius:99px;transition:box-shadow .15s,transform .15s}
+  .rel-which{font-weight:500;opacity:.7;margin-left:.35em}
   .rel-chip b{cursor:pointer;font-weight:700;opacity:.55;line-height:1;font-size:.95em;transition:opacity .12s}.rel-chip b:hover{opacity:1}
   .det-tags{align-items:center}
   .det-tags .det-tag-input{border:1px dashed var(--line);background:transparent;color:var(--ink);font-size:.78rem;padding:.28rem .6rem;border-radius:99px;width:6.6rem;outline:none;transition:width .18s ease,border-color .15s,background .15s}
@@ -1210,7 +1211,7 @@ function bcBooksCached(){ return !!vault.handle && !bcTouchUI(); }   // this bro
 function bcShelfOnly(){ return bcTouchUI() && cloudOn(); }          // this device uses the folder for book files only
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.79";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.80";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 // How long ago a time was, as a sync line says it: "just now", "5 min ago", "3 h ago", "on 7/11/2026".
@@ -2623,13 +2624,13 @@ async function vaultPushBook(id, allowPrompt){
     var dirs = await vaultDirs();
     var base = vaultPathName(m);
     var _rm = await DB.snapshot("meta").catch(function(){ return []; });   // the library snapshot: a full push no longer re-reads the whole library once per book
-    var _byKey={}, _byTitle={};
-    (_rm||[]).forEach(function(x){ var k=(bookKeyOf(x)||"").toLowerCase(); if(k) _byKey[k]=x; var tl=(x.title||"").toLowerCase(); if(tl && !_byTitle[tl]) _byTitle[tl]=x; });
+    var _byKey={};
+    (_rm||[]).forEach(function(x){ var k=(bookKeyOf(x)||"").toLowerCase(); if(k) _byKey[k]=x; });
     var _linkCtx={ currentKey: bookKeyOf(m),
       title:function(k){ var t=_byKey[(k||"").toLowerCase()]; return t?(t.title||""):""; },
       file:function(k){ var t=_byKey[(k||"").toLowerCase()]; return t?vaultPathName(t):""; },
-      fileByTitle:function(tl){ var t=_byTitle[(tl||"").toLowerCase()]; return t?vaultPathName(t):""; } };
-    var mdStr = buildHighlightMarkdown(m, items, _linkCtx, tagRelatedTitles(m, _rm), true);
+      fileOf:vaultPathName };   // a related book's note is the folder's note of that very book
+    var mdStr = buildHighlightMarkdown(m, items, _linkCtx, bcRelatedBooks(m, _rm), true);
     var rec = { meta:m, highlights:items, updatedAt:(hr && hr.updatedAt) || 0 };   // never the clock, or a record without a stamp would differ at every push
     var _lw = _vaultLastWrite[id] || {}, mh=_hashStr(mdStr), jh=bcRecordHash(rec);
     // A book's first push in a session compares with the folder's copy, the record by content,
@@ -4683,6 +4684,7 @@ function fmtLeft(b){ var s=fmtMins(minutesLeft(b)); return s?s+" left":""; }
    ============================================================ */
 function globalKeys(e){
   var t=e.target, tag=(t&&t.tagName||"").toLowerCase(), typing = tag==="input"||tag==="textarea"||tag==="select"||(t&&t.isContentEditable);
+  if(e.key==="Escape" && e.defaultPrevented) return;   // already answered where it was pressed: the margins' link finder closing, a selection let go
   if(e.key==="Escape"){ if(typing && t.blur) t.blur(); hideReaderSearch(); hideSelPop(); hideNotePop(); closeFind(); closePanels(); ["meta-modal","note-edit","help-modal"].forEach(function(id){ var m=$("#"+id); if(m) m.style.display="none"; }); return; }
   if(typing) return;
   var readerOpen = rendition && !$("#reader").classList.contains("hidden");
@@ -5625,18 +5627,31 @@ function bcRefClick(ev){
   followBcRef(bcRefFromEl(ev.currentTarget));
 }
 
+/* A location link says where it goes, in words: a book link reads as the book's title, and a
+   link to a highlight or a passage as its opening words, with the book's title after. Until the
+   library is read, or for a book not in it, the link reads "go to highlight" and the like. One
+   rule for every place a link is drawn: the margins, the comments in the highlights panel, and the
+   comment on a highlight's peek. */
 function bcRefTitleFill(root){
   try{
     if(!root || !root.querySelectorAll) return;
-    var links=root.querySelectorAll(".bc-ref[data-bc]");
+    var links=[].filter.call(root.querySelectorAll(".bc-ref[data-bc]"), function(a){ return !a.dataset.titled; });
     if(!links.length) return;
-    DB.snapshot("meta").then(function(metas){
-      var byKey={}; (metas||[]).forEach(function(m){ var k=(bookKeyOf(m)||"").toLowerCase(); if(k) byKey[k]=m; });
-      [].forEach.call(links, function(a){
+    var wantMarks=links.some(function(a){ return a.getAttribute("data-kind")==="highlight"; });
+    Promise.all([DB.snapshot("meta"), wantMarks ? DB.snapshot("highlights") : Promise.resolve([])]).then(function(r){
+      var byKey={}, marksOf={};
+      (r[0]||[]).forEach(function(m){ var k=(bookKeyOf(m)||"").toLowerCase(); if(k) byKey[k]=m; });
+      (r[1]||[]).forEach(function(h){ if(h && h.id) marksOf[h.id]=h.items||[]; });
+      links.forEach(function(a){
         if(a.dataset.titled) return;
         var m=byKey[(a.getAttribute("data-bc")||"").toLowerCase()];
         if(!m || !m.title) return;
         a.dataset.titled="1";
+        var what=a.querySelector(".bc-ref-what"), kind=a.getAttribute("data-kind"), words="";
+        if(kind==="book"){ if(what) what.textContent=m.title; a.title="Go to "+m.title; return; }
+        if(kind==="highlight"){ var hid=a.getAttribute("data-h"), h=hlLive(marksOf[m.id]).filter(function(x){ return x.id===hid; })[0]; if(h) words=h.text; }
+        else if(kind==="anchor") words=a.getAttribute("data-q")||"";
+        if(what && String(words).trim()) what.textContent="\u201c"+bcExcerpt(words, 60)+"\u201d";
         var sp=document.createElement("span"); sp.className="bc-ref-title"; sp.textContent=" ("+m.title+")";
         a.appendChild(sp);
       });
@@ -5645,7 +5660,7 @@ function bcRefTitleFill(root){
 }
 function bcRefLinkHtml(ref){
   var label=bcRefLabel(ref);
-  return '<a class="bc-ref" href="#" data-bc="'+escapeHtml(ref.bookKey)+'" data-kind="'+escapeHtml(ref.kind)+'" data-h="'+escapeHtml(ref.highlightId||"")+'" data-c="'+escapeHtml(ref.cfi||"")+'" data-a="'+escapeHtml(ref.anchorId||"")+'" title="Go to this '+label+'">\u21AA go to '+label+'</a>';
+  return '<a class="bc-ref" href="#" data-bc="'+escapeHtml(ref.bookKey)+'" data-kind="'+escapeHtml(ref.kind)+'" data-h="'+escapeHtml(ref.highlightId||"")+'" data-c="'+escapeHtml(ref.cfi||"")+'" data-a="'+escapeHtml(ref.anchorId||"")+'" data-q="'+escapeHtml(ref.quote||"")+'" title="Go to this '+label+'">\u21AA <span class="bc-ref-what">go to '+label+'</span></a>';
 }
 
 /* ============================================================
@@ -5900,16 +5915,54 @@ function bcTokenToMarkdown(tok, ctx){
    references and a raw token never reaches the file. linkCtx resolves cross-book links;
    linkCtx.selfFile names this note's own file when it is not the folder's (manual exports). */
 /* ---------------- OBSIDIAN EXPORT: readable md per book, export-only by design ---------------- */
-function tagRelatedTitles(bk, metas){
-  if(!bk || !bk.tags || !bk.tags.length || !metas) return [];
-  var my=bk.tags.map(function(t){ return String(t).toLowerCase(); });
-  return metas.map(function(m){
+/* Books of one title look alike in a list. bcWhich says which this one is, among the books in
+   list: its author, when one of the same title has another author, and its year and publisher
+   when one has the same author too, or when it came in when those match as well. "" when no
+   other book there has its title. withAuthor false leaves the author out, for a list that already
+   shows it. */
+function bcWhich(m, list, withAuthor){
+  var lc=function(v){ return String(v||"").trim().toLowerCase(); };
+  var same=(list||[]).filter(function(x){ return x && x.id!==m.id && lc(x.title)===lc(m.title); });
+  if(!same.length) return "";
+  var twins=same.filter(function(x){ return lc(x.author)===lc(m.author); }), out=[];
+  if(withAuthor!==false && m.author && twins.length<same.length) out.push(m.author);
+  if(twins.length){
+    var ed=function(x){ return [x.year, x.publisher].filter(Boolean).join(", "); }, mine=ed(m);
+    if(!mine || twins.some(function(x){ return ed(x)===mine; })){
+      var when=function(x, t){ return x.addedAt ? new Date(x.addedAt)[t ? "toLocaleString" : "toLocaleDateString"]() : ""; }, w=when(m);
+      if(w && twins.some(function(x){ return when(x)===w; })) w=when(m, true);   // the same day: the time too
+      if(w) mine=(mine ? mine+", " : "")+"added "+w;
+    }
+    if(mine) out.push(mine);
+  }
+  return out.join(", ");
+}
+
+/* A book's related books, the one rule for its page and for every notes file. First every other
+   book that shares a tag with it, most shared tags first; then the titles added by hand in Edit
+   metadata, each standing for every book of that title but this one. Each related book is the
+   book itself (m), never only its title, so two books of one title, two editions held apart, are
+   two entries that each link to their own note, and a book never links to itself. A title with no
+   book in the library stays a title (m null). */
+function bcRelatedBooks(bk, metas){
+  if(!bk) return [];
+  metas=metas||[];
+  var out=[], seen={}, my=(bk.tags||[]).map(function(t){ return String(t).toLowerCase(); });
+  if(my.length) metas.map(function(m){
     if(!m || m.id===bk.id || !m.tags || !m.tags.length) return null;
     var sh=m.tags.filter(function(t){ return my.indexOf(String(t).toLowerCase())>=0; }).length;
-    return sh? { title:m.title||"Untitled", shared:sh } : null;
-  }).filter(Boolean).sort(function(x,y){ return y.shared-x.shared || String(x.title).localeCompare(String(y.title)); }).map(function(r){ return r.title; });
+    return sh ? { m:m, title:m.title||"Untitled", shared:sh } : null;
+  }).filter(Boolean).sort(function(x,y){ return y.shared-x.shared || String(x.title).localeCompare(String(y.title)); })
+    .forEach(function(r){ if(!seen[r.m.id]){ seen[r.m.id]=1; out.push(r); } });
+  (bk.related||[]).forEach(function(t){
+    var tl=String(t||"").trim().toLowerCase(); if(!tl) return;
+    var hits=metas.filter(function(m){ return m && m.id!==bk.id && String(m.title||"").trim().toLowerCase()===tl; });
+    if(!hits.length){ if(!seen["t:"+tl]){ seen["t:"+tl]=1; out.push({ m:null, title:String(t).trim(), shared:0 }); } return; }
+    hits.forEach(function(m){ if(!seen[m.id]){ seen[m.id]=1; out.push({ m:m, title:m.title||String(t).trim(), shared:0 }); } });
+  });
+  return out;
 }
-function buildHighlightMarkdown(bk, hls, linkCtx, relatedExtra, inFolder){
+function buildHighlightMarkdown(bk, hls, linkCtx, related, inFolder){
   var newest=(hls||[]).reduce(function(t,h){ return Math.max(t, (h && (h.updated||h.created))||0); }, 0), nd=newest>0 ? new Date(newest) : null;
   hls=hlLive(hls);   // never export deleted marks to the reading .md
   var lines=[]; var title=(bk&&bk.title)||"Untitled";
@@ -5933,8 +5986,9 @@ function buildHighlightMarkdown(bk, hls, linkCtx, relatedExtra, inFolder){
     if(bk.rating){ lines.push("", "Rating: "+bcStars(bk.rating)); }
     if(bk.summary){ lines.push("", "## Summary", "", notesToMarkdown(bk.summary, linkCtx).trim()); }
     if(bk.scratch && bk.scratch.trim()){ lines.push("", "## Margins", "", notesToMarkdown(bk.scratch, linkCtx).trim()); }
-    var rel=[]; (relatedExtra||[]).concat(bk.related||[]).forEach(function(t){ if(t && rel.indexOf(t)<0) rel.push(t); });
-    if(rel.length){ lines.push("", "## Related books", "", rel.map(function(t){ var _d=mdNoteName(t), _f=(linkCtx && linkCtx.fileByTitle ? (linkCtx.fileByTitle(t)||"") : "")||_d; return "- "+(_f===_d?("[["+_d+"]]"):("[["+_f+"|"+_d+"]]")); }).join("\n")); }
+    if(related && related.length){ lines.push("", "## Related books", "", related.map(function(r){   // bcRelatedBooks: each one the book, linked to its own note
+      var _d=mdNoteName(r.title), _f=(r.m && linkCtx && linkCtx.fileOf) ? (linkCtx.fileOf(r.m)||"") : "";
+      return "- "+(!_f || _f===_d ? ("[["+_d+"]]") : ("[["+_f+"|"+_d+"]]")); }).join("\n")); }
   }
   // The folder's copy is dated by its newest change, not by the day it was written: that date
   // moved on its own, so the first sync of each day rewrote every notes file in the folder.
@@ -6282,33 +6336,18 @@ function renderRichDetails(b){
   renderRelatedSection(b);
   renderMarginsSection(b);
 }
-// Related books are derived from shared tags: any other book that shares a tag with this one,
-// ranked by how many tags overlap. Any manually-added related titles are merged in and kept.
-// Nothing to maintain: give two books a common tag and they relate automatically.
+// Related books (bcRelatedBooks): any other book that shares a tag with this one, ranked by how
+// many tags overlap, then the books added by hand. Nothing to maintain: give two books a common
+// tag and they relate automatically. Each chip opens the book it names.
 function renderRelatedSection(b){
   var host=$("#det-related"); if(!host) return;
   DB.all("meta").then(function(metas){
     if(detailsBook!==b) return;
-    metas=metas||[];
-    var myTags=(b.tags||[]).map(function(t){ return String(t).toLowerCase(); });
-    var byTitle={}; metas.forEach(function(m){ byTitle[(m.title||"").toLowerCase()]=m.id; });
-    var out=[], seen={};
-    if(myTags.length){
-      metas.map(function(m){
-        if(!m || m.id===b.id) return null;
-        var sh=(m.tags||[]).filter(function(t){ return myTags.indexOf(String(t).toLowerCase())>=0; }).length;
-        return sh? { id:m.id, title:m.title||"Untitled", shared:sh } : null;
-      }).filter(Boolean).sort(function(x,y){ return y.shared-x.shared || String(x.title).localeCompare(String(y.title)); }).forEach(function(r){ if(!seen[r.id]){ seen[r.id]=1; out.push(r); } });
-    }
-    (b.related||[]).forEach(function(t){
-      var id=byTitle[String(t).toLowerCase()];
-      if(id){ if(!seen[id]){ seen[id]=1; out.push({ id:id, title:t, shared:0 }); } }
-      else { var k="t:"+String(t).toLowerCase(); if(!seen[k]){ seen[k]=1; out.push({ id:null, title:t, shared:0 }); } }
-    });
+    var out=bcRelatedBooks(b, metas).map(function(r){ return { id:r.m ? r.m.id : null, title:r.title, shared:r.shared, which:r.m ? bcWhich(r.m, metas) : "" }; });
     if(!out.length){ host.innerHTML=""; return; }
     host.innerHTML='<section><h3>Related</h3><div class="rel-wrap">'+out.map(function(r){
       var tip=r.shared? ' title="Shares '+r.shared+' tag'+(r.shared===1?"":"s")+'"' : '';
-      return '<span class="rel-chip"'+tip+'><span class="rel-link" data-relid="'+(r.id?escapeHtml(r.id):"")+'">'+escapeHtml(r.title)+'</span></span>';
+      return '<span class="rel-chip"'+tip+'><span class="rel-link" data-relid="'+(r.id?escapeHtml(r.id):"")+'">'+escapeHtml(r.title)+(r.which ? '<span class="rel-which">'+escapeHtml(r.which)+'</span>' : '')+'</span></span>';
     }).join("")+'</div></section>';
     [].forEach.call(host.querySelectorAll(".rel-link"), function(el){ var id=el.getAttribute("data-relid"); if(id){ el.onclick=function(){ _bcPushReturn(); openDetails(id).then(function(){ $("#details").scrollTop=0; }); }; } else { el.style.cursor="default"; } });
   }).catch(function(){});
@@ -6451,6 +6490,22 @@ function bcEd(){
     toDOM(){ var s=document.createElement("span"); s.className="bc-ref-wrap"; s.innerHTML=bcRefLinkHtml(this.ref); try{ bcRefTitleFill(s); }catch(e){} return s; }
     ignoreEvent(){ return false; }
   }
+  /* A location link is one piece, written or read: always its chip, never its code. The cursor
+     steps over it, Backspace takes it whole, and a copy carries the link itself. Read for the
+     whole text at each change, since the margins are small; never inside code. */
+  function tokenDecos(state){
+    var text=state.doc.toString(), out=[], code=[], m, re=new RegExp(BC_LINK_RE.source, "g");
+    syntaxTree(state).iterate({ enter:function(n){ if(n.name==="InlineCode" || n.name==="FencedCode" || n.name==="CodeBlock"){ code.push([n.from, n.to]); return false; } } });
+    while((m=re.exec(text))){
+      var a=m.index, b=a+m[0].length, ref=bcParseAny(m[0]);
+      if(!ref || code.some(function(r){ return r[0]<b && r[1]>a; })) continue;
+      out.push(Decoration.replace({ widget:new RefW(m[0], ref) }).range(a, b));
+    }
+    return Decoration.set(out);
+  }
+  var tokens=C.StateField.define({ create:tokenDecos,
+    update:function(d, tr){ return (tr.docChanged || syntaxTree(tr.startState)!==syntaxTree(tr.state)) ? tokenDecos(tr.state) : d; },
+    provide:function(f){ return [EditorView.decorations.from(f), EditorView.atomicRanges.of(function(v){ return v.state.field(f); })]; } });
   class TaskW extends C.WidgetType{
     constructor(done){ super(); this.done=done; }
     eq(o){ return o.done===this.done; }
@@ -6483,15 +6538,8 @@ function bcEd(){
         else if(n.name==="Link" || n.name==="Image") linked.push([n.from, n.to]);
       }});
       var overlaps=function(list, a, b){ return list.some(function(r){ return r[0]<b && r[1]>a; }); };
-      var taken=[];   // drawn as one thing: a location link or a video
-      // Location links, which the parser reads as a link of its own.
-      var re=new RegExp(BC_LINK_RE.source, "g");
-      while((m=re.exec(text))){
-        var a=from+m.index, b=a+m[0].length, ref=bcParseAny(m[0]);
-        if(!ref || overlaps(code, a, b)) continue;
-        taken.push([a, b]);
-        out.push(touches(a, b) ? mark("cm-tok").range(a, b) : Decoration.replace({ widget:new RefW(m[0], ref) }).range(a, b));
-      }
+      var taken=[], re;   // drawn as one thing: a location link (the tokens field) or a video
+      st.field(tokens).between(from, to, function(a, b){ taken.push([a, b]); });
       // Videos: the embed code, or the address on its own (never inside a link or an image).
       var vid=function(a, b, id, url){
         if(overlaps(code, a, b) || overlaps(taken, a, b)) return;
@@ -6528,6 +6576,7 @@ function bcEd(){
           case "Link": {
             if(!free(n.from, n.to)) return false;
             var onl=touches(n.from, n.to), ms=n.node.getChildren("LinkMark"), u=n.node.getChild("URL");
+            if(!u) return false;   // [words] alone, or an Obsidian [[note]], is not a web link here
             if(ms.length>=2 && ms[0].from===n.from){
               if(ms[1].from>ms[0].to) out.push(linkMark(u ? doc.sliceString(u.from, u.to) : "").range(ms[0].to, ms[1].from));
               if(onl){ out.push(MK.range(ms[0].from, ms[0].to)); out.push(MK.range(ms[1].from, n.to)); if(u) out.push(mark("cm-url").range(u.from, u.to)); }
@@ -6628,13 +6677,14 @@ function bcEd(){
     },
     click:function(e, view){
       var w=writingOf(view.state), mod=e.ctrlKey || e.metaKey, t=e.target, el;
-      if(!t || !t.closest || (w && !mod)) return false;
+      if(!t || !t.closest) return false;
+      if(w && !mod){ if(t.closest("a[href]")) e.preventDefault(); return false; }   // while you write, a link's own click would go to "#" and take the caret off the page
       if((el=t.closest(".bc-ref"))){ e.preventDefault(); e.stopPropagation(); followBcRef(bcRefFromEl(el)); return true; }
       if((el=t.closest("[data-href], .cm-table-wrap a[href]"))){ e.preventDefault(); e.stopPropagation(); bcOpenWeb(el.getAttribute("data-href") || el.getAttribute("href")); return true; }
       return false;
     },
     paste:function(e, view){ return bcLinkOnPaste(e, view); },
-    keydown:function(e){ if(e.key==="Escape") _bcEscAt=Date.now(); return false; }
+    keydown:function(e, view){ if(e.key==="Escape" && !C.completionStatus(view.state)) _bcEscAt=Date.now(); return false; }   // an Esc that closes the link finder is not one on the way out
   });
   // A mark typed over a selection wraps it: * italic (twice, bold), _ italic, ` code, ~ (twice,
   // strikethrough), = (twice, highlight). [ makes the selection a link.
@@ -6655,7 +6705,7 @@ function bcEd(){
     { key:"ArrowDown", run:function(v){ return bcArrowIntoTable(v, true); } },
     { key:"ArrowUp", run:function(v){ return bcArrowIntoTable(v, false); } }
   ].concat(C.standardKeymap, C.historyKeymap));
-  BC_ED={ C:C, lang:lang, preview:preview, tables:tables, events:events, input:input, keys:keys };
+  BC_ED={ C:C, lang:lang, tokens:tokens, preview:preview, tables:tables, events:events, input:input, keys:keys };
   return BC_ED;
 }
 
@@ -6663,7 +6713,8 @@ function bcEd(){
    host: the element it fills. opts.empty: HTML shown read-only when there is nothing yet.
    opts.placeholder: the line shown while you write on an empty page. opts.onInput: after each of
    your edits (never after set). opts.onBlur: when the page loses the caret while you write.
-   opts.topInset: the height of a bar laid over the top of the page, which the caret keeps clear of. */
+   opts.topBar: the bar laid over the top of the page, if any, which the caret keeps clear of.
+   opts.book: the book these margins belong to, whose highlights the link finder offers first. */
 function bcMarginsEditor(host, opts){
   opts=opts||{};
   var ed={ writing:false }, text="", view=null, plain=null, comp=null;
@@ -6674,13 +6725,23 @@ function bcMarginsEditor(host, opts){
   function fire(fn){ try{ if(fn) fn(); }catch(e){ console.error("margins", e); } }
   function paint(){ host.classList.toggle("bc-writing", ed.writing); empty.style.display=(!ed.writing && opts.empty && !text.trim()) ? "" : "none"; }
   function modeExt(w){ var C=window.CM; return [C.EditorView.editable.of(w), C.EditorState.readOnly.of(!w), w ? C.drawSelection() : [], w && opts.placeholder ? C.placeholder(opts.placeholder) : []]; }
+  /* How far the caret keeps clear of the top: the bar's height and 12px more. CodeMirror also
+     measures this from the editor's own top to judge whether the caret is in sight, and shows the
+     link finder's list only when it is, so it is never more than the bar covers of the editor:
+     margins that start below the bar keep nothing clear, as nothing lies over them. */
+  function barClear(v){
+    var b=opts.topBar ? opts.topBar() : null; if(!b) return 0;
+    var r=b.getBoundingClientRect();
+    return Math.max(0, Math.min(r.height+12, r.bottom+12-v.scrollDOM.getBoundingClientRect().top));
+  }
   function stateFor(t, w){
     var E=bcEd(), C=E.C; comp=comp||new C.Compartment();
     return C.EditorState.create({ doc:t, selection:{ anchor:w ? t.length : 0 }, extensions:[
-      E.lang, E.preview, E.tables, C.history(), C.EditorView.lineWrapping, E.keys, E.input, E.events, comp.of(modeExt(w)),
+      E.lang, E.tokens, E.preview, E.tables, C.history(), C.EditorView.lineWrapping, E.keys, E.input, E.events, comp.of(modeExt(w)),
+      C.autocompletion({ override:[function(ctx){ return bcLinkFinder(ctx, opts.book ? opts.book() : null); }], icons:false, closeOnBlur:true, maxRenderedOptions:40 }),
+      C.EditorView.scrollMargins.of(function(v){ return { top:barClear(v), bottom:16 }; }),
       C.EditorView.contentAttributes.of({ spellcheck:"true", autocorrect:"on", autocapitalize:"sentences", "aria-label":"Margins" }),
       C.EditorState.allowMultipleSelections.of(false),
-      C.EditorView.scrollMargins.of(function(){ return { top:opts.topInset ? opts.topInset() : 0, bottom:16 }; }),
       C.EditorView.updateListener.of(function(u){ if(u.focusChanged && !u.view.hasFocus && ed.writing) fire(opts.onBlur); })
     ]});
   }
@@ -6761,6 +6822,53 @@ function bcMarginsEditor(host, opts){
   ed.destroy=function(){ ed.destroyed=true; try{ if(view) view.destroy(); }catch(e){} view=null; host.innerHTML=""; };
   paint();
   return ed;
+}
+
+/* --- the link finder ---
+   Type [[ in the margins and a finder opens, as in Obsidian. With nothing typed it offers your
+   recent books and the latest highlights of the book these margins belong to; type a few letters
+   and it finds books by title or author and highlights by their words or their comment, this
+   book's first. A choice writes the same location link Copy link makes (bcMakeToken), drawn at
+   once as its chip. Esc closes it, and [[ then stays as typed, for an Obsidian link. */
+function bcExcerpt(t, n){
+  t=String(t||"").replace(/\s+/g, " ").trim();
+  return t.length>n ? t.slice(0, n).replace(/\s+\S*$/, "")+"\u2026" : t;
+}
+function bcLinkFinder(ctx, here){
+  var m=ctx.matchBefore(/\[\[(?!bc\|)[^\[\]\n]*$/); if(!m) return null;
+  var q=m.text.slice(2).replace(/\s+/g, " ").trim().toLowerCase();
+  return Promise.all([DB.snapshot("meta"), DB.snapshot("highlights")]).then(function(r){
+    var metas=(r[0]||[]).filter(function(x){ return x && x.id && x.title; }), byId={};
+    metas.forEach(function(x){ byId[x.id]=x; });
+    var at=function(t){ t=String(t||"").toLowerCase(); if(!q) return 1; var i=t.indexOf(q); return i<0 ? 0 : i===0 ? 3 : /[\s(\-]/.test(t.charAt(i-1)) ? 2 : 1; };
+    var books=metas.map(function(x){ return { m:x, s:Math.max(at(x.title), at(x.author)*0.9) }; }).filter(function(b){ return b.s>0; })
+      .sort(function(a, b){ return b.s-a.s || (b.m.lastOpened||0)-(a.m.lastOpened||0); }).slice(0, q ? 8 : 6);
+    var marks=[];
+    (r[1]||[]).forEach(function(rec){
+      var bm=byId[rec.id], mine=!!(here && rec.id===here.id); if(!bm || (!q && !mine)) return;
+      hlLive(rec.items).forEach(function(h){
+        if(!h || !h.id || !String(h.text||"").trim()) return;
+        if(q && (String(h.text)+" "+String(h.note||"")).toLowerCase().indexOf(q)<0) return;
+        marks.push({ h:h, m:bm, mine:mine, t:h.updated||h.created||0 });
+      });
+    });
+    marks.sort(function(a, b){ return (b.mine-a.mine) || b.t-a.t; }); marks=marks.slice(0, q ? 12 : 8);
+    var opts=books.map(function(b){
+      return { label:b.m.title, detail:[b.m.author, bcWhich(b.m, metas, false)].filter(Boolean).join(" \u00b7 "), section:{ name:"Books", rank:0 }, type:"book",
+        apply:bcFinderApply(bcMakeToken({ bookKey:bookKeyOf(b.m), kind:"book", highlightId:"", cfi:"", anchorId:"" })) };
+    }).concat(marks.map(function(k){
+      return { label:"\u201c"+bcExcerpt(k.h.text, 70)+"\u201d", detail:k.m.title, section:{ name:"Highlights", rank:1 }, type:"highlight",
+        apply:bcFinderApply(bcMakeToken({ bookKey:bookKeyOf(k.m), kind:"highlight", highlightId:k.h.id, cfi:"", anchorId:"" })) };
+    }));
+    return opts.length ? { from:m.from, options:opts, filter:false } : null;
+  }).catch(function(){ return null; });
+}
+// A choice replaces the [[ and what was typed after it (and a ]] already closing it) with the link.
+function bcFinderApply(tok){
+  return function(view, completion, from, to){
+    var end=view.state.doc.sliceString(to, to+2)==="]]" ? to+2 : to;
+    view.dispatch({ changes:{ from:from, to:end, insert:tok }, selection:{ anchor:from+tok.length }, userEvent:"input.complete", scrollIntoView:true });
+  };
 }
 
 /* --- the keys: Point First's, on the margins ---
@@ -7098,7 +7206,8 @@ function renderMarginsSection(b){
     placeholder:"Write anything about this book. Markdown: # heading, **bold**, *italic*, ==highlight==, ~~strike~~, - list, 1. list, - [ ] task, > quote, | a | b | table, ![alt](image url), and paste a YouTube link.",
     // Leaving the words saves, unless Save or Cancel was the thing pressed.
     onBlur:function(){ setTimeout(function(){ if(_notesBtnAction){ _notesBtnAction=false; return; } if(_detEd && _detEd.writing) detailsNotesSave(); }, 120); },
-    topInset:function(){ var t=document.querySelector("#details .topbar"); return t ? t.getBoundingClientRect().height+12 : 0; }
+    topBar:function(){ return document.querySelector("#details .topbar"); },
+    book:function(){ return detailsBook; }
   });
   _detEd.set(b.scratch);
   // A click into the words starts writing, the caret where you clicked.
@@ -7149,14 +7258,17 @@ function exportLibraryMarkdown(){
       var ck = bookKeyOf(m);
       return { currentKey: ck, title: function(k){ return titleByKey[k]; }, quote: function(k, hid){ return quoteByKeyId[k + "|" + hid] || ""; } };
     }
-    var zip = new JSZip(), used = {};
+    var zip = new JSZip(), used = {}, nameById = {};
     metas.forEach(function(m){
       var base = mdNoteName(m.title) || ("book-" + String(m.id || "").slice(0, 6));
       var name = base + ".md", n = 2;
       while(used[name]){ name = base + "-" + (n++) + ".md"; }
-      used[name] = 1;
-      var ctx = ctxFor(m); ctx.selfFile = name.slice(0, -3);   // the Source link resolves to this note inside the zip
-      zip.file(name, buildHighlightMarkdown(m, hlById[m.id] || [], ctx, tagRelatedTitles(m, metas)));
+      used[name] = 1; nameById[m.id] = name.slice(0, -3);
+    });
+    metas.forEach(function(m){
+      var ctx = ctxFor(m); ctx.selfFile = nameById[m.id];   // the Source link resolves to this note inside the zip
+      ctx.fileOf = function(x){ return nameById[x.id] || ""; };   // and so does each related book, to its own note
+      zip.file(nameById[m.id] + ".md", buildHighlightMarkdown(m, hlById[m.id] || [], ctx, bcRelatedBooks(m, metas)));
     });
     return zip.generateAsync({ type: "blob" }).then(function(blob){
       downloadBlob(blob, "application/zip", "backchat-library-" + new Date().toISOString().slice(0, 10) + ".zip");
@@ -7171,7 +7283,7 @@ function detailsExport(){
   if(!detailsItems.length && !hasScratch && !detailsBook.summary){ toast("Nothing to export yet"); return; }
   DB.all("meta").catch(function(){ return []; }).then(function(_ms){
     var _base=safeName(detailsBook.title)+"-notes";
-    downloadBlob(buildHighlightMarkdown(detailsBook, detailsItems, {selfFile:_base}, tagRelatedTitles(detailsBook, _ms)), "text/markdown;charset=utf-8", _base+".md");
+    downloadBlob(buildHighlightMarkdown(detailsBook, detailsItems, {selfFile:_base}, bcRelatedBooks(detailsBook, _ms)), "text/markdown;charset=utf-8", _base+".md");
     var bits=[]; if(detailsItems.length) bits.push(detailsItems.length+" highlight"+(detailsItems.length===1?"":"s")); if(hasScratch) bits.push("notes");
     toast("Exported "+(bits.length?bits.join(" and "):"this book"));
   });
@@ -8094,7 +8206,8 @@ function bcScratchEd(){
     empty:"Nothing here yet. Tap Edit to start writing about this book.",
     placeholder:"Write anything about this book. Markdown works: # heading, **bold**, - list, > quote. Paste a location link from a highlight to jump back to a spot.",
     onInput:function(){ clearTimeout(_scratchTimer); _scratchTimer=setTimeout(saveScratch, 800); updateScratchWc(); },
-    onBlur:saveScratch
+    onBlur:saveScratch,
+    book:function(){ return currentBook; }
   });
   return _scratchEd;
 }
@@ -9080,7 +9193,7 @@ $("#hl-btn").onclick=function(){ renderHlControls(); renderHighlightList(); open
 $("#scratch-btn").onclick=openScratch;
 $("#scratch-toggle").onclick=toggleScratchEdit;
 $("#toc-btn").onclick=openToc;
-$("#export-md").onclick=function(e){ e.stopPropagation(); if(!currentBook){ toast("Open a book first"); return; } if(!hlLive(highlights).length){ toast("No highlights"); return; } var _bk=currentBook, _items=highlights; DB.all("meta").catch(function(){ return []; }).then(function(_ms){ var _base=safeName(_bk.title)+"-highlights"; downloadBlob(buildHighlightMarkdown(_bk, _items, {selfFile:_base}, tagRelatedTitles(_bk, _ms)), "text/markdown;charset=utf-8", _base+".md"); toast("Exported"); }); };
+$("#export-md").onclick=function(e){ e.stopPropagation(); if(!currentBook){ toast("Open a book first"); return; } if(!hlLive(highlights).length){ toast("No highlights"); return; } var _bk=currentBook, _items=highlights; DB.all("meta").catch(function(){ return []; }).then(function(_ms){ var _base=safeName(_bk.title)+"-highlights"; downloadBlob(buildHighlightMarkdown(_bk, _items, {selfFile:_base}, bcRelatedBooks(_bk, _ms)), "text/markdown;charset=utf-8", _base+".md"); toast("Exported"); }); };
 $("#overlay").onclick=closePanels;
 [].forEach.call(document.querySelectorAll("[data-close]"), function(b){ b.onclick=closePanels; });
 
