@@ -2,6 +2,25 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.83 (8 November 2026)
+
+Easier writing in the margins. Save stays in the top bar, the words sit on a sheet whose edge shows where a click outside saves, the sheet is wide on a desktop, and ^ in the finder lists passages at once.
+
+**Changed**
+- **Save and Cancel wait in the top bar while you write on a book's page,** in reach however far the words run. They were under the words, at the foot of the page, so writing ended with a long scroll or a click beside the words. Save is drawn by its weight and an inverted face, not by a colour. The buttons under the words are gone: one place for each.
+- **The words sit on a sheet.** While you write on a book's page, the margins are drawn on a sheet of the panel's colour with a hairline edge, so you can see where the writing ends and a click that saves begins.
+- **On a desktop the sheet is wide,** up to 62rem, so the margins serve as a real scratchpad for tables, images and long thought. On a phone it fills the screen. Read, the margins now fill the page's column, where they kept a narrow one inside it.
+- **Ctrl+S (Cmd+S) saves and keeps you writing,** on a book's page and in the reader's margins. It never reaches the browser, which offered to save the web page.
+- **^ in the finder lists passages at once.** `[[book^` lists the book's highlights, then its passages from the chapter you are reading, or last read, with "type to search the book" on their heading. Words search the whole book, as before. Passages used to wait for two typed letters, so ^ seemed to list highlights only.
+
+**Fixed**
+- **A click outside the words saves.** The browser put the caret back on the nearest line instead, as it does for a click beside editable text, so the writing never ended. A press outside the sheet now saves and ends the writing, while the top bar keeps its buttons and the scrollbar still scrolls. Since 1.0.79.
+
+**Checks**
+- New section 4n, eight checks: Save and Cancel in the top bar however far you scroll, the sheet and its width on a desktop, the margins filling the page's column, Save, Cancel, Ctrl+S, a click outside, and the sheet and the buttons on a phone.
+- In 4m, ^ listing the book's passages from the chapter you are reading.
+- Six of the eight fail on 1.0.82, with the changed ^ check. Save and Cancel pass there: they did their work before, only at the foot of the page.
+
 ## 1.0.82 (8 November 2026)
 
 The link finder in the app's own colours.
