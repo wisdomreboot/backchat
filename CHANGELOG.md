@@ -2,6 +2,23 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.78 (8 November 2026)
+
+One delete, and old trails gone. A record of a trail, left from before 1.0.44, is deleted once nothing in it can be lost, and the checks that stepped around such records are gone with it.
+
+**Changed**
+- **Old trails go.** Trails left Backchat in 1.0.44, but a record of one could stay behind, hidden, and thirteen checks in eleven functions stepped around it. Each such record is now deleted, as a book is, once nothing in it can be lost. One that holds nothing goes at the next start, or at the next folder sync where there is a folder. One with writing in it goes at a folder sync that first keeps the writing in backups/; a bookshelf phone leaves that to the computer. Until then it shows as a book with margins and no file, and its page shows the writing. A sync that takes a trail in from the folder and deletes it no longer counts it among the books it pulled. Jonathan's library holds two trails: one empty, and one whose margins read "This is a trail", which goes to backups/Untitled-trail-f18pp1-notes.md.
+- **One delete.** A book deleted on its page went through its own copy of the steps that take a book out of every store and out of the folder. It now goes through the same delete as a book deleted on another device. That delete now also takes the book's marks out of the echoes, the passages from other books shown beside a mark: a book deleted on another device stayed among them, a link to a book no longer there, until Backchat was reopened or a mark was saved.
+
+**Checks**
+- New section 4j, six checks. Five fail on 1.0.77:
+  - trail records are handled in one place;
+  - at start, a trail that holds nothing is deleted, and one with writing stays, shown as a book, where no folder can keep it;
+  - a folder sync keeps a trail's writing in backups/, then deletes the trail and its files;
+  - a trail taken in from the folder and deleted by the same sync is not counted as a book pulled;
+  - a book deleted on another device leaves the echoes of your marks.
+- One passes on both and guards what must hold: a bookshelf leaves a trail's writing to the computer. All 236 checks pass.
+
 ## 1.0.77 (8 November 2026)
 
 One database layer, one margins editor, and a page that says what is true. The last build of the plan made on 7 November: each rule here now lives in one place, so a fix to it cannot miss a copy.
