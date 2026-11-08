@@ -321,7 +321,7 @@ with sync_playwright() as p:
 
     page.evaluate("""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Call me Ishmael'); lastSelection={cfiRange:c.cfiFromRange(r),text:'Call me Ishmael',contents:c}; pushSelectionToMargins(); }""")
     wait(page, "/> Call me Ishmael/.test(currentBook.scratch||'')")
-    expect("send to margins writes quote and link", ev(page, "/\\[\\[bc\\|/.test(currentBook.scratch||'')"), True, "the margins entry carries a location link")
+    expect("send to margins writes quote and link", ev(page, "((currentBook.scratch||'').match(new RegExp(BC_LINK_RE.source,'g'))||[]).some(t=>{ const r=bcParseAny(t); return !!r && r.bookKey===bookKeyOf(currentBook); })"), True, "the margins entry carries a location link")
     expect("margins show pipe tables", ev(page, r"""async()=>{
       const md=['Before the table.','','| Western Efficacy | Chinese Efficacy |','|:---|---:|','| Means / Ends | Conditions / Consequences |',
         '| Actions / Heroic (loud, direct) | **Transformation** (quiet) |','| a \\| pipe | '+bcMakeToken({bookKey:'id:x',kind:'book'})+' |','After the table.','','a | line with a pipe but no table'].join('\n');
@@ -337,9 +337,9 @@ with sync_playwright() as p:
                 "after": ["Before the table.", "After the table.", "a | line with a pipe but no table"]},
            "rows, alignment, formatting and links inside cells; a stray pipe is not a table")
     expect("a link inside an exported table keeps the table whole", ev(page, r"""(()=>{
-      const tok=bcMakeToken({bookKey:'id:o',kind:'book'}), ctx={title:()=>'Other Book', file:()=>'other-book-1', quote:()=>'', currentKey:'id:me'};
+      const tok=bcMakeToken({bookKey:'id:o',kind:'book'}), other={ id:'o', title:'Other Book', bookKey:'id:o' }, ctx={ book:()=>other, fileOf:()=>'other-book-1', marks:()=>[], currentKey:'id:me' };
       return notesToMarkdown(['| A | B |','|---|---|','| x | '+tok+' |','','Outside '+tok].join('\n'), ctx).split('\n'); })()"""),
-           ["| A | B |", "|---|---|", "| x | see [[other-book-1\\|Other Book]] |", "", "Outside see [[other-book-1|Other Book]]"],
+           ["| A | B |", "|---|---|", "| x | [[other-book-1\\|Other Book]] |", "", "Outside [[other-book-1|Other Book]]"],
            "Obsidian splits a table cell at an unescaped pipe, so a wikilink's pipe is written as \\| inside a table")
     expect("margins keep numbers and links",ev(page, """async()=>{ await bcEditorLoad(); const d=document.createElement('div'); document.body.appendChild(d); const ed=bcMarginsEditor(d, {});
       ed.set('Numbers 42 and 1984 stay. '+bcMakeToken({bookKey:'id:x',kind:'book'})); const t=d.textContent, ok=/42/.test(t) && /1984/.test(t) && !!d.querySelector('.bc-ref'); ed.destroy(); d.remove(); return ok; }"""), True, "a location link is drawn in place, and the words around it stay as written")
@@ -1421,7 +1421,7 @@ with sync_playwright() as p:
     kb.type(" See [["); settle(0.6)
     expect("in the margins, [[ opens a finder of your books and this book's highlights, its list in sight", ev(rp, r"""()=>{ const v=_detEd.view, t=document.querySelector('#details .cm-tooltip-autocomplete'), r=t && t.getBoundingClientRect(), o=CM.currentCompletions(v.state);
       return [CM.completionStatus(v.state), [...new Set(o.map(x=>x.section.name))], o.filter(x=>x.section.name==='Highlights').map(x=>x.detail), !!r && r.height>0 && r.top>=0 && r.bottom<=innerHeight]; }"""),
-           ["active", ["Books", "Highlights"], ["Meditations"], True],
+           ["active", ["Books", "Highlights"], ["Meditations (2002, Modern Library)"], True],
            "the page's top bar counted from the editor's own top hid the finder's list whenever the caret sat on the margins' first lines")
     kb.type("medit"); settle(0.6)
     expect("the finder tells two books of one title apart", ev(rp, "()=>CM.currentCompletions(_detEd.view.state).filter(x=>x.section.name==='Books').map(x=>x.label+' / '+x.detail)"),
@@ -1438,11 +1438,11 @@ with sync_playwright() as p:
            [["Highlights: “We suffer more often in imagination than in reality.” / Letters from a Stoic"], True],
            "a link was made only by Copy link in the reader and pasted by hand")
     expect("the link reads as the highlight's words and its book's title, never its code", ev(rp, r"""()=>{ const a=document.querySelector('#details-scratch .bc-ref');
-      return [a ? a.textContent.replace(/\s+/g,' ').trim() : 'no link', document.querySelector('#details-scratch .cm-content').textContent.includes('[[bc|')]; }"""),
+      return [a ? a.textContent.replace(/\s+/g,' ').trim() : 'no link', document.querySelector('#details-scratch .cm-content').textContent.includes('[[')]; }"""),
            ["↪ “We suffer more often in imagination than in reality.” (Letters from a Stoic)", False],
            "a link read as \"go to highlight\", and its code opened among the words whenever the caret came near it")
     kb.press("ArrowLeft"); settle(0.1)
-    stepped = ev(rp, "()=>_detEd.view.state.selection.main.head===_detEd.value.indexOf('[[bc|')")
+    stepped = ev(rp, "()=>_detEd.view.state.selection.main.head===_detEd.value.search(new RegExp(BC_LINK_RE.source))")
     kb.press("ArrowRight"); kb.press("Backspace"); settle(0.3)
     expect("a link is one piece: the cursor steps over it, and Backspace takes it whole", [stepped, ev(rp, "()=>_detEd.value")], [True, "First line. See "],
            "the cursor walked through a link's code a character at a time, and Backspace left half of it")
@@ -1465,6 +1465,129 @@ with sync_playwright() as p:
       return v.state.doc.lineAt(v.state.selection.main.head).number<150 && c.top>=bar.bottom; }"""), True,
            "moving up the margins, the caret went under the top bar, out of sight")
     rctx.close()
+
+    # 4m. Links that read as words. Copy link copies a link as Obsidian writes one, to the book's
+    #     note in the folder: [[name-tag|title]], [[name-tag#^id|"words"]], [[name-tag#Chapter|Chapter]].
+    #     Backchat knows the book by the tag, draws the link as its words, follows it, and writes it
+    #     into the folder's notes so that in Obsidian it lands on the highlight. In the margins, [[
+    #     finds a book's chapters (#) and its passages (^). An older link reads as words when its
+    #     comment is opened to edit.
+    LETTERS = os.path.join(TMP, "letters.epub")
+    make_epub(LETTERS, "Letters from a Stoic", "Seneca", "urn:isbn:9780140442106", [
+        ("Letter One", ["Hold every hour in your grasp.", "Nothing is ours, except time."]),
+        ("Letter Thirteen", ["We suffer more often in imagination than in reality.", "What fortune has made yours is not your own."]),
+        ("Letter Twenty", ["Philosophy teaches us to act, not to speak."])])
+    kctx, kp = folder_page("pretty-links")
+    ev(kp, "async(b)=>{ const u=Uint8Array.from(atob(b),c=>c.charCodeAt(0)); await importFiles([new File([u], 'letters.epub')]); await B.quiet(); return true; }", base64.b64encode(open(LETTERS, "rb").read()).decode())
+    add_in_app(kp, "beta", "beta.epub")
+    wait(kp, "DB.all('meta').then(ms=>{ window.__k=ms.find(m=>m.title==='Letters from a Stoic'); window.__b=ms.find(m=>m.title==='Beta Second Book'); }), !!window.__k && !!window.__b")
+    kp.evaluate("()=>{ openBook(__k.id); }"); wait(kp, "rendition && rendition.getContents().length>0"); settle(1.0)
+    kp.evaluate("(h)=>bcGoTo(currentBook.id,{href:h,flash:false})", "c1.xhtml"); settle(1.2)
+    SELECT = r"""(q)=>{ const c=rendition.getContents()[0], tm=secTextMap(c), m=quoteRegex(q).exec(tm.full);
+      const s=mapLocate(tm.map,m.index), e=mapLocate(tm.map,m.index+q.length-1), r=c.document.createRange(); r.setStart(s.node,s.offset); r.setEnd(e.node,e.offset+1);
+      lastSelection={cfiRange:c.cfiFromRange(r), text:q, contents:c}; return true; }"""
+    WE = "We suffer more often in imagination than in reality."
+    ev(kp, SELECT, WE)
+    hid = ev(kp, "()=>createHighlight('yellow').then(()=>highlights.filter(h=>!h.deleted).slice(-1)[0].id)")
+    note, bnote = ev(kp, "()=>[vaultPathName(__k), vaultPathName(__b)]")
+    ev(kp, r"""()=>{ window.__clip=[]; Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{ writeText:async t=>{ __clip.push(t); } } }); return true; }""")
+    ev(kp, SELECT, "What fortune has made yours")
+    copied = ev(kp, r"""async(hid)=>{ bcCopyHighlight(bookKeyOf(currentBook), hid); bcCopyBook(bookKeyOf(currentBook)); await new Promise(r=>setTimeout(r,100));
+      bcCopyPassage(bookKeyOf(currentBook), lastSelection.cfiRange); for(let i=0;i<60 && __clip.length<3;i++) await new Promise(r=>setTimeout(r,100));
+      const ft=await DB.get('fulltext', currentBook.id), a=ft && ft.anchors.find(x=>/^What fortune/.test(x.text)); return [__clip.slice(), a ? a.id : 'no anchor']; }""", hid)
+    LINKS = copied[0] if isinstance(copied, list) else ["", "", ""]
+    expect("Copy link copies a link that reads as words: to the book's note, the highlight's block or the passage's, and what it says", LINKS,
+           ["[[%s#^%s|“%s”]]" % (note, hid, WE), "[[%s|Letters from a Stoic]]" % note,
+            "[[%s#^%s|“What fortune has made yours”]]" % (note, copied[1] if isinstance(copied, list) else "")],
+           "a copied link was a [[bc|...]] code of escaped keys and ids, unreadable wherever it was pasted")
+    expect("a copied link reads as its words in a comment, names its book, and follows to the highlight", ev(kp, r"""async(l)=>{
+      const d=document.createElement('div'); d.innerHTML=commentHtml('See '+l[0]+'.'); document.body.appendChild(d); bcRefTitleFill(d); await new Promise(r=>setTimeout(r,300));
+      const a=d.querySelector('.bc-ref'), t=a ? a.textContent : 'no link'; d.remove();
+      await followBcRef(bcParseAny(l[0])); await new Promise(r=>setTimeout(r,300)); const o=document.getElementById('bc-peek');
+      const peek=o && o.style.display!=='none' ? o.querySelector('.bc-peek-quote').textContent : 'no peek'; bcPeekClose(); return [t, peek]; }""", LINKS),
+           ["↪ “%s” (Letters from a Stoic)" % WE, WE],
+           "the link did not read as words, or did not lead to the highlight")
+    OTHER = "Plans in [[Meeting-2024q1#Agenda]] and [[Some note]]."
+    expect("a [[link]] whose name is no book here stays as written: in a comment, in the margins and in the notes", ev(kp, r"""async(t)=>{
+      const d=document.createElement('div'); d.innerHTML=commentHtml(t);
+      await bcEditorLoad(); const e=document.createElement('div'); document.body.appendChild(e); const ed=bcMarginsEditor(e, {}); ed.set(t); await new Promise(r=>setTimeout(r,100));
+      const out=[d.textContent, e.querySelectorAll('.bc-ref').length, e.querySelector('.cm-content').textContent, notesToMarkdown(t, {}), commentPlain(t)]; ed.destroy(); e.remove(); return out; }""", OTHER),
+           [OTHER, 0, OTHER, OTHER, OTHER],
+           "an Obsidian link of the reader's own was taken for one of Backchat's, or rewritten on export")
+    BW = "Another quick brown fox appears in a second book to test rhymes across books."
+    notes_md = ev(kp, r"""async(a)=>{ const [hid, bw]=a, bm=__b, now=Date.now();
+      await DB.put('highlights', { id:bm.id, items:[{ id:'bh1', text:bw, note:'', color:'yellow', created:now, updated:now }], updatedAt:now });
+      const h=highlights.find(x=>x.id===hid), same=bcWriteLink(currentBook, { kind:'highlight', highlightId:hid }, h.text);
+      h.note='Compare '+bcWriteLink(bm, { kind:'highlight', highlightId:'bh1' }, bw)+', '+same+' and '+bcMakeToken({ bookKey:bookKeyOf(bm), kind:'book', highlightId:'', cfi:'', anchorId:'' })+'.';
+      await persistHighlights(); await vaultPushBook(currentBook.id, false); await B.quiet(400);
+      return (await B.text('highlights/'+vaultPathName(currentBook)+'.md')).split('\n'); }""", [hid, BW])
+    expect("the folder's notes give each highlight its block id, and write each link so it lands in Obsidian: on the highlight, in this note or another",
+           [("^" + hid) in notes_md, next((l for l in notes_md if l.startswith("Compare ")), "no comment") if isinstance(notes_md, list) else notes_md],
+           [True, "Compare [[%s#^bh1|“%s”]], [[#^%s|“%s”]] and [[%s|Beta Second Book]]." % (bnote, BW, hid, WE, bnote)],
+           "a link in the notes went to the other book's note at best, never to the highlight, and an older link said \"see\" before it")
+    expect("Connections count the new links: the book's page shows where its comments point", ev(kp, r"""async()=>{
+      await openDetails(__k.id); await new Promise(r=>setTimeout(r,800));
+      const out=[...document.querySelectorAll('#det-connections .conn-out')].map(c=>c.textContent.replace(/\s+/g,' ').trim()).sort(); show('reader'); return out; }"""),
+           ["\u2192 Beta Second Book book", "\u2192 Beta Second Book highlight", "\u2192 Letters from a Stoic highlight"],
+           "Connections counted [[bc|...]] links only")
+    # The finder, in the reader's margins: chapters (#) and passages (^).
+    ev(kp, "async()=>{ await bcEditorLoad(); openScratch(); toggleScratchEdit(); await new Promise(r=>setTimeout(r,300)); const v=_scratchEd.view; v.dispatch({ changes:{ from:0, to:v.state.doc.length, insert:'' }, userEvent:'input' }); v.focus(); return true; }")
+    kb = kp.keyboard
+    FOUND = "()=>CM.currentCompletions(_scratchEd.view.state).map(o=>o.section.name+': '+o.label+' / '+o.detail)"
+    def found(q):
+        kb.type(q); settle(1.2); got = ev(kp, FOUND)
+        for _ in range(len(q)): kb.press("Backspace")
+        settle(0.2); return got
+    expect("[[book# lists the book's chapters, and [[# this book's", [found("[[letters#thir"), found("[[#")],
+           [["Chapters: Letter Thirteen / Letters from a Stoic"], ["Chapters: Letter One / Letters from a Stoic", "Chapters: Letter Thirteen / Letters from a Stoic", "Chapters: Letter Twenty / Letters from a Stoic"]],
+           "the finder knew books and highlights only, so a chapter could not be linked")
+    expect("[[book^ lists the book's highlights, and with a few words its passages; [[^words finds highlights in every book and this book's passages",
+           [found("[[letters^"), found("[[letters^philos"), found("[[^imagin")],
+           [["Highlights: “%s” / Letters from a Stoic" % WE], ["Passages: “Philosophy teaches us to act, not to speak.” / Letters from a Stoic · Letter Twenty"],
+            ["Highlights: “%s” / Letters from a Stoic" % WE, "Passages: “%s” / Letters from a Stoic · Letter Thirteen" % WE]],
+           "a passage could be linked only by Copy location, from the page it is on")
+    kb.type("[[letters#thir"); settle(1.2); kb.press("Enter"); settle(0.3); kb.type(" and "); kb.type("[[letters^philos"); settle(1.2); kb.press("Enter"); settle(0.4)
+    written = ev(kp, "()=>_scratchEd.view.state.doc.toString()")
+    philo = ev(kp, "async()=>{ const ft=await DB.get('fulltext', currentBook.id); return ft.anchors.find(x=>/^Philosophy/.test(x.text)).id; }")
+    expect("the finder writes a chapter link and a passage link, each read as its words", [written, ev(kp, "()=>[...document.querySelectorAll('#scratch-page .bc-ref')].map(a=>a.textContent)")],
+           ["[[%s#Letter Thirteen|Letter Thirteen]] and [[%s#^%s|“Philosophy teaches us to act, not to speak.”]]" % (note, note, philo),
+            ["↪ Letter Thirteen (Letters from a Stoic)", "↪ “Philosophy teaches us to act, not to speak.” (Letters from a Stoic)"]],
+           "the finder's choice was not the link Copy link would make")
+    WHERE = "()=>{ const l=rendition && rendition.currentLocation(); return l && l.start ? l.start.href : null; }"
+    landed_at = []
+    for link, start in (("[[%s#Letter Thirteen|Letter Thirteen]]" % note, "c2.xhtml"), ("[[%s#^%s|x]]" % (note, philo), "c0.xhtml")):
+        ev(kp, "(h)=>bcGoTo(currentBook.id,{href:h,flash:false})", start); settle(1.0)
+        ev(kp, "(t)=>followBcRef(bcParseAny(t))", link); settle(2.0); landed_at.append(ev(kp, WHERE))
+    expect("a chapter link opens the book at the chapter, and a passage link at the passage", landed_at, ["c1.xhtml", "c2.xhtml"],
+           "a link could name a highlight or a book, never a chapter")
+    ev(kp, "async(hid)=>{ closePanels(); sendToMargins(highlights.find(h=>h.id===hid)); await new Promise(r=>setTimeout(r,500)); return true; }", hid)
+    expect("Send to margins writes the quote, then a link that names its chapter, as a page number would",
+           ev(kp, "async(q)=>{ const l=(await DB.get('meta', currentBook.id)).scratch.split('\\n'), i=l.lastIndexOf(q); return l.slice(i, i+2); }", "> " + WE), ["> " + WE, "[[%s#^%s|Letter Thirteen]]" % (note, hid)],
+           "Send to margins wrote the link's code under the quote")
+    expect("an older link reads as words when its comment is opened to edit, and closing it untouched saves nothing", ev(kp, r"""async(hid)=>{
+      const h=highlights.find(x=>x.id===hid), old='Compare '+bcMakeToken({ bookKey:bookKeyOf(currentBook), kind:'highlight', highlightId:hid, cfi:'', anchorId:'' });
+      h.note=old; await persistHighlights(); editExistingNote(hid); const shown=document.querySelector('#note-text').value;
+      bcSystemBack(); await new Promise(r=>setTimeout(r,300)); return [shown, (await DB.get('highlights', currentBook.id)).items.find(x=>x.id===hid).note===old]; }""", hid),
+           ["Compare [[%s#^%s|“%s”]]" % (note, hid, WE), True],
+           "an older link showed its code in the comment box")
+    expect("a link to a book that comes in later is drawn as soon as the book is there", ev(kp, r"""async()=>{
+      const now=Date.now(), later={ id:'later', title:'Later Book', author:'L', bookKey:'id:urn:later', addedAt:now, updated:now, tags:[] };
+      await DB.put('meta',{ id:'host', title:'Host', author:'H', bookKey:'id:urn:host', addedAt:now, updated:now, tags:[], scratch:'See [['+vaultPathName(later)+'|Later Book]] here.' });
+      await DB.put('highlights',{ id:'host', items:[], updatedAt:0 }); closeBook(); await openDetails('host'); await new Promise(r=>setTimeout(r,500));
+      const before=document.querySelectorAll('#details-scratch .bc-ref').length; await DB.put('meta', later); await new Promise(r=>setTimeout(r,500));
+      return [before, (document.querySelector('#details-scratch .bc-ref')||{}).textContent||'none']; }"""), [0, "↪ Later Book"],
+           "the margins drew their links once, so a link to a book not yet there stayed text")
+    expect("a renamed book keeps its links, and the notes name its note as it is now", ev(kp, r"""async(link)=>{
+      const b=await DB.get('meta', __b.id); b.title='Beta Book Revised'; await DB.put('meta', b); await new Promise(r=>setTimeout(r,200));
+      const ref=bcParseAny(link); return [ref && ref.bookKey===bookKeyOf(b), notesToMarkdown(link, {})]; }""", "[[%s|Beta Second Book]]" % bnote),
+           [True, "[[%s|Beta Second Book]]" % ev(kp, "async()=>vaultPathName(await DB.get('meta', __b.id))")],
+           "a link held the book's title, so it broke when the title changed")
+    expect("two books of one title each keep their own links", ev(kp, r"""async()=>{ const now=Date.now(), mk=(id)=>({ id, title:'Meditations', author:'Marcus Aurelius', bookKey:'id:urn:'+id, addedAt:now, updated:now, tags:[] });
+      const a=mk('mdA'), b=mk('mdB'); await DB.put('meta', a); await DB.put('meta', b); await new Promise(r=>setTimeout(r,200));
+      const la=bcWriteLink(a, { kind:'book' }), lb=bcWriteLink(b, { kind:'book' });
+      return [la!==lb, bcParseAny(la).bookKey, bcParseAny(lb).bookKey]; }"""), [True, "id:urn:mdA", "id:urn:mdB"],
+           "a link named a book by its title, which two books shared")
+    kctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that

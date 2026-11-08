@@ -2,6 +2,25 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.81 (8 November 2026)
+
+Links that read as words. Copy link copies a link as Obsidian writes one, to the book's note in your folder, so it reads as words wherever it is pasted and works in Obsidian as it stands. In the margins, [[ goes deeper with Obsidian's marks: # for a book's chapters, ^ for its highlights and passages.
+
+**Changed**
+- **A link is written as Obsidian writes one.** `[[Letters-from-a-Stoic-g7q9q3|Letters from a Stoic]]` is the book, `[[Letters-from-a-Stoic-g7q9q3#^<id>|“words”]]` a highlight or a passage, `[[Letters-from-a-Stoic-g7q9q3#Letter Thirteen|Letter Thirteen]]` a chapter. The name is the book's note in the folder (`vaultPathName`). The code at its end is the book's tag, the hash of its key that names all its files there, and it alone says which book a link means: two books of one title keep their own links, a renamed book keeps its links, and the title and the words after the `|` are there to be read. A highlight's block id is its id, and a passage's its paragraph's anchor id. Copy link, Copy location, Copy book link, a search result's link, Send to margins, Copy as Markdown and the finder all write it (`bcWriteLink`). A passage known only by its position, from a book with no index, keeps the old form. The `[[bc|...]]` links of earlier versions still work everywhere, and a comment or a summary opened to edit shows them as the new links (`bcPrettyText`).
+- **Copy location says the words you selected.** Send to margins writes the quote, then a link that names the chapter, as a page number would in a paper index. Copy as Markdown names its source with a link to the highlight.
+- **The folder's notes land on the highlight.** Each highlight carries its block id, `^` and its id on a line of its own as Obsidian asks of a quote, and each link in a comment or the margins is written to it: to the highlight in another book's note, `[[#^id]]` within the same note, or to the book's note for a passage or a chapter, which the notes do not hold. Links went to the other book's note at best, after the word "see". Every notes file is written once more at the next sync.
+- **[[ in the margins goes deeper, as in Obsidian.** `[[book#` lists the book's chapters, from its contents. `[[book^` lists its highlights, and with a few words its passages, any paragraph in it. `[[#` and `[[^` are this book's, and `[[^words` finds highlights in every book. A book not read yet is read for its chapters and passages the first time they are asked for. A chapter link opens the book at the chapter.
+- **A [[link]] of your own stays as you wrote it.** A [[link]] is one of Backchat's only when the code at the end of its name is a book in this library (`bcParsePretty`, against an index of the library's tags kept current by every write to it, here or in another tab). Any other, in a comment, the margins, a plain view or an export, is left as written. A link to a book that comes in later is drawn as soon as the book is there.
+
+**Fixed**
+- **The library export linked a book in a comment by its title,** so with two books of one title both links went to one note. Each now goes to that book's own note, as related books do since 1.0.80.
+
+**Checks**
+- New section 4m, fourteen checks: what Copy link, Copy book link and Copy location copy; the link read as words and followed; a [[link]] of your own left as written; block ids and links in the folder's notes; Connections counting the new links; the finder's # and ^, what it writes, and where a chapter and a passage link land; Send to margins; an older link in a comment opened to edit; a link drawn once its book comes in; a renamed book; two books of one title.
+- Changed for the new form: in section 2, the export of a link in a table, and Send to margins from a selection, which now looks for a link in any form; in 4l, the finder's highlight naming its book's edition, and two checks that read the link it writes.
+- Twelve of the fourteen fail on 1.0.80, with the changed finder check and the table export. The other two pass there by design: a copied link read and followed, whatever its form, and a [[link]] of your own left alone.
+
 ## 1.0.80 (8 November 2026)
 
 Links between books, each to its own book. Related books are found by the book, never by its title alone, and in the margins [[ opens a finder for a book or a highlight, as in Obsidian.
