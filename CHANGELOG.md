@@ -2,6 +2,26 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.80 (8 November 2026)
+
+Links between books, each to its own book. Related books are found by the book, never by its title alone, and in the margins [[ opens a finder for a book or a highlight, as in Obsidian.
+
+**Fixed**
+- **Related books link the right note.** A book's related books were looked up by title. With two books of one title, two translations of Meditations say, one of them got both links in the folder's notes and the other a link to itself, and the library export made both point at one note. Now one rule, `bcRelatedBooks`, finds them by the book, for the book's page, the folder's notes, the library export and a book's own export. A title added by hand under Related books stands for every book of that title but this one, and a title with no book in the library is kept by its name. On the book's page, two books of one title are two chips, and each says which it is: its year and publisher, or when it came in.
+- **A click on a link while you write keeps you writing.** The click went on to the link's own address, "#", which took the caret off the page, and the book's page then saved and stopped the writing. Since 1.0.79.
+- **[words] in brackets, and an Obsidian [[note]], are not drawn as links.** The editor took [words] alone for a link to nowhere and hid its brackets, so an Obsidian [[note]] lost two of its four.
+
+**Changed**
+- **Type [[ in the margins to make a link.** A finder opens, as in Obsidian, with your recent books and this book's latest highlights. A few words find any book by its title or author, and any highlight by its words or its comment, this book's first. Two books of one title say which is which. Enter writes the same link Copy link makes. Esc closes the finder and leaves the [[ as you typed it, for a link of your own, and goes no further: it used to reach the page, which stopped the writing. The finder is `@codemirror/autocomplete` 6.20.4, now in the bundle, which grows `lib/codemirror.js` by 37 KB, to 340 KB.
+- **A link reads as words.** A book link shows the book's title, and a link to a highlight or a passage shows its opening words, with its book after them. It used to read "go to highlight (Title)". The same everywhere a link is drawn: the margins, comments, and a highlight's peek.
+- **A link is one piece while you write.** Its code never opens among your words: the cursor steps over it, Backspace takes it whole, and a plain click puts the caret beside it.
+- **The finder's list shows on the margins' first lines.** The 1.0.79 margin that keeps the caret clear of the page's top bar was also what the editor measured from its own top to judge whether the caret was in sight, so it hid the finder's list whenever the caret sat in the margins' first lines. The margin now reaches only as far as the bar covers the editor, and the caret still keeps clear of the bar.
+
+**Checks**
+- New section 4l, twelve checks: related books by the book in the folder's notes, by hand, in the library export and on the book's page; the finder opening with its list in sight, telling two books of one title apart, finding a highlight and writing Copy link's link; the link read as words, kept in one piece, Esc, [words] and [[note]] left as written; and the caret clear of the top bar.
+- In 4i, the finder in the reader's margins, and the reader's margins reading a book link as its title. In 4k, a plain click on a link while you write now also has to keep you writing.
+- Fourteen of these fail on 1.0.79. The fifteenth, the caret clear of the top bar, passes there: it guards what 1.0.79 did, now measured anew.
+
 ## 1.0.79 (8 November 2026)
 
 The margins get Point First's page. They are read and written on one surface, in the editor Point First writes on.

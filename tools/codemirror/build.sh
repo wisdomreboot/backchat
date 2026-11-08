@@ -3,7 +3,7 @@
 # Needs Node and npm. Run from anywhere:  sh tools/codemirror/build.sh
 # Steps: install the pinned packages (package-lock.json holds their integrity hashes), bundle
 # entry.js, and write the bundle to lib/codemirror.js under its licence notice.
-# The same packages, at the same versions, as Point First's editor.
+# Point First's editor packages, at the same versions, and @codemirror/autocomplete for the link finder.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)

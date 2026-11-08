@@ -1,7 +1,8 @@
 {
   "private": true,
-  "description": "The CodeMirror bundle built into Point First's index.html. Run build.sh to rebuild it.",
+  "description": "The CodeMirror bundle under Backchat's margins, lib/codemirror.js. Run build.sh to rebuild it.",
   "dependencies": {
+    "@codemirror/autocomplete": "6.20.4",
     "@codemirror/commands": "6.11.1",
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.7.6",

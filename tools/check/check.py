@@ -1154,12 +1154,18 @@ with sync_playwright() as p:
       await bcEditorLoad(); detailsNotesEdit(); _detEd.view.dispatch({changes:{from:0,to:_detEd.view.state.doc.length,insert:'Written on the book page.'},userEvent:'input'}); detailsNotesSave(); await new Promise(r=>setTimeout(r,500));
       const m=await DB.get('meta', currentBook.id); return [m.scratch, m.rating]; }"""), ["Written on the book page.", 4],
            "the book page's save wrote its whole copy of the record over what had reached it since")
-    expect("location links in the reader's margins carry their book's title, as on the book's page", ev(mp, r"""async()=>{
+    expect("location links in the reader's margins read as their book's title, as on the book's page", ev(mp, r"""async()=>{
       const other=(await DB.all('meta')).find(m=>m.id!==currentBook.id && m.title);
       appendToMargins(bcMakeToken({ bookKey:bookKeyOf(other), kind:'book', highlightId:'', cfi:'', anchorId:'' })+'\n');
       openScratch(); await new Promise(r=>setTimeout(r,500));
-      const t=document.querySelector('#scratch-page .bc-ref-title'); return t ? t.textContent===' ('+other.title+')' : 'no title'; }"""), True,
+      const a=document.querySelector('#scratch-page .bc-ref'); return a ? a.textContent.replace(/\s+/g,' ').trim()==='\u21aa '+other.title : 'no link'; }"""), True,
            "the drawer drew the margins with its own renderer, which never named the book a link points to")
+    ev(mp, "async()=>{ toggleScratchEdit(); await new Promise(r=>setTimeout(r,200)); const v=_scratchEd.view; v.dispatch({ selection:{ anchor:v.state.doc.length }, scrollIntoView:true }); v.focus(); return true; }")
+    mp.keyboard.type("[["); settle(0.6)
+    expect("in the reader's margins too, [[ opens the link finder, its list in sight", ev(mp, r"""()=>{ const v=_scratchEd.view, t=document.querySelector('#scratch-page .cm-tooltip-autocomplete'), r=t && t.getBoundingClientRect();
+      return [CM.completionStatus(v.state), !!r && r.height>0 && r.top>=0 && r.bottom<=innerHeight]; }"""), ["active", True],
+           "the finder's list is placed by the editor, which hides it when it judges the caret out of sight")
+    mp.keyboard.press("Escape"); settle(0.2)
     mctx.close()
 
     # The video's clock. A two-chapter transcript book: the first chapter's part of the video ends at
@@ -1326,9 +1332,12 @@ with sync_playwright() as p:
     n_ctrl = ev(wp, "()=>window.__n")
     p3 = ev(wp, REF_AT)
     if isinstance(p3, dict): wp.mouse.click(p3["x"], p3["y"]); settle(0.3)
-    expect("a location link lands while you read; while you write, a plain click puts the caret in it and Ctrl follows it",
-           [n_read, n_ctrl, ev(wp, "()=>window.__n"), ev(wp, "()=>!!document.querySelector('#details-scratch .cm-tok')")], [1, 2, 2, True],
-           "a location link in the margins was followed by any click, so it could not be edited")
+    settle(0.5)
+    expect("a location link lands while you read; while you write, a plain click puts the caret beside it and you keep writing, the link kept whole, and Ctrl follows it",
+           [n_read, n_ctrl, ev(wp, "()=>window.__n"), ev(wp, r"""()=>{ const v=_detEd.view, t=v.state.doc.toString(), m=t.match(new RegExp(BC_LINK_RE.source)), h=v.state.selection.main.head;
+             return [!!m && (h===m.index || h===m.index+m[0].length), _detEd.writing && v.hasFocus && !location.hash, !!document.querySelector('#details-scratch .bc-ref'), !document.querySelector('#details-scratch .cm-tok')]; }""")],
+           [1, 2, 2, [True, True, True, True]],
+           "a location link in the margins was followed by any click, so it could not be edited; or a plain click went to \"#\", which took the caret off the page and ended the writing")
     ev(wp, "()=>{ window.followBcRef=window.__fb; return true; }")
     ev(wp, SEED_PAGE, PAGE_MD)
     expect("a video card plays in place, a player Backchat builds; the pasted embed code never runs", ev(wp, r"""async()=>{
@@ -1366,6 +1375,96 @@ with sync_playwright() as p:
       const v=_detEd.view, t=v.state.doc.toString(), a=t.indexOf('**core claim**'), h=v.state.selection.main.head;
       return [_detEd.writing, h>=a && h<=a+14]; }"""), [True, True], "a tap on a phone did not put the caret where it landed")
     tctx2.close()
+
+    # 4l. Links between books, each to its own book. A related book is found by the book, never by
+    #     its title alone, so two books of one title each link their own note and neither links
+    #     itself; and in the margins, [[ opens a finder for a book or a highlight, as in Obsidian,
+    #     whose choice is the link Copy link makes, read as words and kept in one piece.
+    rctx, rp = folder_page("related-books")
+    ev(rp, r"""async()=>{ const now=Date.now(), mk=(id, title, author, extra)=>Object.assign({ id, title, author, bookKey:'id:urn:'+id, addedAt:now, updated:now, tags:[] }, extra);
+      for(const m of [mk('med1','Meditations','Marcus Aurelius',{ tags:['stoic'], year:'2002', publisher:'Modern Library', scratch:'First line.' }),
+          mk('med2','Meditations','Marcus Aurelius',{ tags:['stoic'], year:'2006', publisher:'Penguin' }), mk('lett','Letters from a Stoic','Seneca',{ tags:['stoic'] }),
+          mk('comm','A Commentary','Ann Reader',{ related:['Meditations','A Book Not Here'] })]){ await DB.put('meta', m); await DB.put('highlights', { id:m.id, items:[], updatedAt:0 }); }
+      await DB.put('highlights', { id:'lett', items:[{ id:'l1', text:'We suffer more often in imagination than in reality.', note:'', color:'yellow', created:now, updated:now }], updatedAt:now });
+      await DB.put('highlights', { id:'med1', items:[{ id:'m1', text:'The happiness of your life depends upon the quality of your thoughts.', note:'on attention', color:'yellow', created:now, updated:now }], updatedAt:now });
+      for(const id of ['med1','med2','lett','comm']) await vaultPushBook(id, false);
+      await B.quiet(400); return true; }""")
+    RELATED_IN = r"""async(id)=>{ const t=await B.text('highlights/'+vaultPathName(await DB.get('meta', id))+'.md'), i=t.indexOf('## Related books');
+      return i<0 ? [] : t.slice(i).split('\n').filter(l=>l.startsWith('- [[')).map(l=>l.slice(4).split(/\]\]|\|/)[0]).sort(); }"""
+    files = ev(rp, "async()=>{ const f={}; for(const id of ['med1','med2','lett','comm']) f[id]=vaultPathName(await DB.get('meta', id)); return f; }")
+    expect("two books of one title each link their own note under Related books, and never themselves",
+           [ev(rp, RELATED_IN, "med1"), ev(rp, RELATED_IN, "med2")],
+           [sorted([files["lett"], files["med2"]]), sorted([files["lett"], files["med1"]])],
+           "a related book was looked up by its title, so one of two books of that title got both links, and the other a link to itself")
+    expect("a title added by hand under Related links every book of that title, and a book not in the library by its name",
+           ev(rp, RELATED_IN, "comm"), sorted([files["med1"], files["med2"], "A Book Not Here"]),
+           "a title stood for one book of that title, whichever the library listed last")
+    with rp.expect_download() as dl:
+        rp.evaluate("()=>{ exportLibraryMarkdown(); }")
+    zf = zipfile.ZipFile(dl.value.path())
+    def zip_related(n):
+        t = zf.read(n).decode("utf-8"); i = t.find("## Related books")
+        return [] if i < 0 else [re.split(r"\]\]|\|", l[4:])[0] for l in t[i:].split("\n") if l.startswith("- [[")]
+    meds = sorted(n[:-3] for n in zf.namelist() if zf.read(n).decode("utf-8").startswith("# Meditations\n"))
+    expect("in the Markdown export, too, each of two books of one title links the other's note",
+           [len(meds)] + [sorted(t for t in zip_related(n + ".md") if t.startswith("Meditations")) for n in meds],
+           [2] + [[o for o in meds if o != n] for n in meds],
+           "the export found a related book's note by its title, so both books of a title linked one note")
+    expect("a book's page lists each book of one title as its own chip, and says which is which", ev(rp, r"""async()=>{
+      await openDetails('lett'); await new Promise(r=>setTimeout(r,500));
+      return [...document.querySelectorAll('#det-related .rel-link')].map(e=>[e.dataset.relid, (e.querySelector('.rel-which')||{}).textContent||'']).sort(); }"""),
+           [["med1", "2002, Modern Library"], ["med2", "2006, Penguin"]],
+           "two books of one title showed as two identical chips, or as one")
+    # The finder, on the page of a book of two editions, with a short margins: the caret on its first lines.
+    ev(rp, "async()=>{ await bcEditorLoad(); await openDetails('med1'); await new Promise(r=>setTimeout(r,500)); await _detEd.edit(_detEd.value.length); await new Promise(r=>setTimeout(r,200)); return true; }")
+    kb = rp.keyboard
+    kb.type(" See [["); settle(0.6)
+    expect("in the margins, [[ opens a finder of your books and this book's highlights, its list in sight", ev(rp, r"""()=>{ const v=_detEd.view, t=document.querySelector('#details .cm-tooltip-autocomplete'), r=t && t.getBoundingClientRect(), o=CM.currentCompletions(v.state);
+      return [CM.completionStatus(v.state), [...new Set(o.map(x=>x.section.name))], o.filter(x=>x.section.name==='Highlights').map(x=>x.detail), !!r && r.height>0 && r.top>=0 && r.bottom<=innerHeight]; }"""),
+           ["active", ["Books", "Highlights"], ["Meditations"], True],
+           "the page's top bar counted from the editor's own top hid the finder's list whenever the caret sat on the margins' first lines")
+    kb.type("medit"); settle(0.6)
+    expect("the finder tells two books of one title apart", ev(rp, "()=>CM.currentCompletions(_detEd.view.state).filter(x=>x.section.name==='Books').map(x=>x.label+' / '+x.detail)"),
+           ["Meditations / Marcus Aurelius · 2002, Modern Library", "Meditations / Marcus Aurelius · 2006, Penguin"],
+           "two editions offered the same line twice, so which one a link went to was a guess")
+    for _ in range(5): kb.press("Backspace")
+    kb.type("imagin"); settle(0.6)
+    found = ev(rp, "()=>CM.currentCompletions(_detEd.view.state).map(x=>x.section.name+': '+x.label+' / '+x.detail)")
+    kb.press("Enter"); settle(0.6)
+    expect("the finder finds a highlight by its words, and Enter writes the link Copy link makes", [found, ev(rp, r"""async()=>{ let clip=null;
+      Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{ writeText:async t=>{ clip=t; } } });
+      bcCopyHighlight(bookKeyOf(await DB.get('meta','lett')), 'l1'); await new Promise(r=>setTimeout(r,100));
+      return !!clip && _detEd.value==='First line. See '+clip; }""")],
+           [["Highlights: “We suffer more often in imagination than in reality.” / Letters from a Stoic"], True],
+           "a link was made only by Copy link in the reader and pasted by hand")
+    expect("the link reads as the highlight's words and its book's title, never its code", ev(rp, r"""()=>{ const a=document.querySelector('#details-scratch .bc-ref');
+      return [a ? a.textContent.replace(/\s+/g,' ').trim() : 'no link', document.querySelector('#details-scratch .cm-content').textContent.includes('[[bc|')]; }"""),
+           ["↪ “We suffer more often in imagination than in reality.” (Letters from a Stoic)", False],
+           "a link read as \"go to highlight\", and its code opened among the words whenever the caret came near it")
+    kb.press("ArrowLeft"); settle(0.1)
+    stepped = ev(rp, "()=>_detEd.view.state.selection.main.head===_detEd.value.indexOf('[[bc|')")
+    kb.press("ArrowRight"); kb.press("Backspace"); settle(0.3)
+    expect("a link is one piece: the cursor steps over it, and Backspace takes it whole", [stepped, ev(rp, "()=>_detEd.value")], [True, "First line. See "],
+           "the cursor walked through a link's code a character at a time, and Backspace left half of it")
+    kb.type("[[medit"); settle(0.6)
+    opened = ev(rp, "()=>CM.completionStatus(_detEd.view.state)")
+    kb.press("Escape"); settle(0.3)
+    expect("Esc closes the finder and you keep writing, the [[ kept as typed", [opened, ev(rp, "()=>[CM.completionStatus(_detEd.view.state), _detEd.writing, document.activeElement===_detEd.view.contentDOM, _detEd.value]")],
+           ["active", [None, True, True, "First line. See [[medit"]],
+           "Esc reached the page as well, which stopped the writing and closed the book's page")
+    ev(rp, "async()=>{ detailsNotesCancel(); const m=await DB.get('meta','med1'); m.scratch='See [[Some note]] and [a bracket] here.'; await DB.put('meta', m); await openDetails('med1'); await new Promise(r=>setTimeout(r,500)); return true; }")
+    expect("an Obsidian [[note]] and [words] in brackets are not drawn as web links", ev(rp, r"""()=>{ const pg=document.querySelector('#details-scratch');
+      return [pg.querySelectorAll('.cm-link').length, [...pg.querySelectorAll('.cm-line')].map(l=>l.innerText.trim()).filter(Boolean)]; }"""),
+           [0, ["See [[Some note]] and [a bracket] here."]],
+           "the editor drew [words] alone as a link to nowhere and hid its brackets, so an Obsidian [[note]] lost two of its four")
+    ev(rp, r"""async()=>{ const m=await DB.get('meta','med1'), l=[]; for(let i=1;i<=80;i++) l.push('Line '+i+' of the margins.'); m.scratch=l.join('\n\n'); await DB.put('meta', m);
+      await openDetails('med1'); await new Promise(r=>setTimeout(r,500)); await _detEd.edit(_detEd.value.length); await new Promise(r=>setTimeout(r,300)); return true; }""")
+    for _ in range(40): kb.press("ArrowUp")
+    settle(0.4)
+    expect("the caret keeps clear of the page's top bar", ev(rp, r"""()=>{ const v=_detEd.view, c=v.coordsAtPos(v.state.selection.main.head), bar=document.querySelector('#details .topbar').getBoundingClientRect();
+      return v.state.doc.lineAt(v.state.selection.main.head).number<150 && c.top>=bar.bottom; }"""), True,
+           "moving up the margins, the caret went under the top bar, out of sight")
+    rctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
