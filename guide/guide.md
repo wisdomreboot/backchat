@@ -6,7 +6,7 @@ Backchat's built-in guide, "How to talk back to your books".
 - Each "mark:" line is a sample highlight the guide arrives with. Its words must appear in the text exactly. Text after a | becomes that highlight's comment.
 - After changing anything below, raise the revision by one. Readers who already have the guide get the new text the next time they open it.
 -->
-revision: 28
+revision: 29
 mark: This stops being a library and becomes a conversation between you and every mind you have invited in.
 mark: No machine can give back your thoughts about a book, and that part only exists if you write it down. | This is a comment. Select any text and tap the speech bubble to write your own.
 mark: Rhymes only appear across books, so mark a second book and watch the connections begin.
@@ -154,7 +154,15 @@ There is a method worth stealing here, and it comes from Tim Ferriss. He reads w
 
 The margins are those blank front pages, and the method carries over with one upgrade. Paper needs page numbers; you have locations. Mark and comment while you read. When you finish, open the margins and write your index: a line per idea, with the passage's location link pasted beside it. Or let the Margins button under any highlight write the entry for you: quote, link, and a blank line for your words. Where his index says page 212, yours is a live link that jumps straight to the passage. Then let the second pass happen in the marks themselves: star the highlights you find yourself using, and the stars become your distillation.
 
-Tap Edit to write and Done to read. Quotes you copied paste cleanly, and markdown works: headings, bold, lists, block quotes, tables, highlighted and struck-through text. A table is rows of cells between pipes, with a line of dashes under the first row, as Obsidian writes it. Links become tappable, an image link shows the image, and a YouTube link becomes a small card that plays right there in the margins. Paste the plain video link; that is all it takes. The book's page shows its margins in full, with room to write.
+Tap Edit to write and Done to read. On a book's page, tap into the words and the caret lands where you tapped. You write in markdown, and it shows as you go: the marks appear where you are writing and turn into the thing itself as soon as you move on. A # becomes a heading, two stars around a word make it bold, and a few lines of pipes become a table. Headings, bold, italic, lists, tasks, block quotes, tables, highlighted and struck-through text all work, written as Obsidian writes them. A table is rows of cells between pipes, with a line of dashes under the first row. Quotes you copied paste cleanly. An image link shows the image, and a YouTube link, or the embed code YouTube gives you, becomes a small card that plays right there in the margins. Links are tappable; while you are writing, hold Ctrl (Cmd on a Mac) as you click one to follow it. The book's page shows its margins in full, with room to write.
+
+On a keyboard, a few keys make writing quicker (Cmd instead of Ctrl on a Mac):
+
+- Ctrl B, Ctrl I and Ctrl K make bold, italic and a link.
+- Type a star, an underscore, a backtick, a tilde or an equals sign over selected words to wrap them in it; a square bracket makes them a link. Paste a web address over selected words and they become a link.
+- Enter carries a list or a quote on to the next line. Enter on an empty item ends it.
+- Tab and Shift Tab indent and outdent. In a table they move between cells, and Enter adds a row.
+- Alt Up and Alt Down move a paragraph, or a list item, past the one beside it.
 
 ## Links between passages
 

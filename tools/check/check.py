@@ -322,16 +322,18 @@ with sync_playwright() as p:
     page.evaluate("""()=>{ const c=rendition.getContents()[0]; const r=findQuoteRange(c,secTextMap(c),'Call me Ishmael'); lastSelection={cfiRange:c.cfiFromRange(r),text:'Call me Ishmael',contents:c}; pushSelectionToMargins(); }""")
     wait(page, "/> Call me Ishmael/.test(currentBook.scratch||'')")
     expect("send to margins writes quote and link", ev(page, "/\\[\\[bc\\|/.test(currentBook.scratch||'')"), True, "the margins entry carries a location link")
-    expect("margins show pipe tables", ev(page, r"""(()=>{
+    expect("margins show pipe tables", ev(page, r"""async()=>{
       const md=['Before the table.','','| Western Efficacy | Chinese Efficacy |','|:---|---:|','| Means / Ends | Conditions / Consequences |',
         '| Actions / Heroic (loud, direct) | **Transformation** (quiet) |','| a \\| pipe | '+bcMakeToken({bookKey:'id:x',kind:'book'})+' |','After the table.','','a | line with a pipe but no table'].join('\n');
-      const d=document.createElement('div'); d.innerHTML=scratchHtml(md); const t=d.querySelector('table');
-      if(!t) return 'no table';
+      await bcEditorLoad(); const d=document.createElement('div'); document.body.appendChild(d); const ed=bcMarginsEditor(d, {}); ed.set(md);
+      const t=d.querySelector('.cm-table-wrap table');
+      if(!t){ ed.destroy(); d.remove(); return 'no table'; }
       const cell=(r,c)=>t.rows[r].cells[c];
-      return { rows:t.rows.length, cols:t.rows[0].cells.length, head:cell(0,0).tagName+':'+cell(0,0).textContent, right:cell(1,1).style.textAlign, left:cell(1,0).style.textAlign,
+      const out={ rows:t.rows.length, cols:t.rows[0].cells.length, head:cell(0,0).tagName+':'+cell(0,0).textContent, right:cell(1,1).style.textAlign, left:cell(1,0).style.textAlign,
         bold:!!cell(2,1).querySelector('strong'), pipe:cell(3,0).textContent, link:!!cell(3,1).querySelector('.bc-ref'),
-        after:[...d.querySelectorAll('p')].map(p=>p.textContent) };
-    })()"""), {"rows": 4, "cols": 2, "head": "TH:Western Efficacy", "right": "right", "left": "left", "bold": True, "pipe": "a | pipe", "link": True,
+        after:[...d.querySelectorAll('.cm-line')].map(l=>l.textContent).filter(Boolean) };
+      ed.destroy(); d.remove(); return out;
+    }"""), {"rows": 4, "cols": 2, "head": "TH:Western Efficacy", "right": "right", "left": "left", "bold": True, "pipe": "a | pipe", "link": True,
                 "after": ["Before the table.", "After the table.", "a | line with a pipe but no table"]},
            "rows, alignment, formatting and links inside cells; a stray pipe is not a table")
     expect("a link inside an exported table keeps the table whole", ev(page, r"""(()=>{
@@ -339,7 +341,8 @@ with sync_playwright() as p:
       return notesToMarkdown(['| A | B |','|---|---|','| x | '+tok+' |','','Outside '+tok].join('\n'), ctx).split('\n'); })()"""),
            ["| A | B |", "|---|---|", "| x | see [[other-book-1\\|Other Book]] |", "", "Outside see [[other-book-1|Other Book]]"],
            "Obsidian splits a table cell at an unescaped pipe, so a wikilink's pipe is written as \\| inside a table")
-    expect("margins keep numbers and links",ev(page, """(()=>{ const h=scratchHtml('Numbers 42 and 1984 stay. '+bcMakeToken({bookKey:'id:x',kind:'book'})); return /42/.test(h) && /1984/.test(h) && /bc-ref/.test(h); })()"""), True, "the token sentinels must not eat digits")
+    expect("margins keep numbers and links",ev(page, """async()=>{ await bcEditorLoad(); const d=document.createElement('div'); document.body.appendChild(d); const ed=bcMarginsEditor(d, {});
+      ed.set('Numbers 42 and 1984 stay. '+bcMakeToken({bookKey:'id:x',kind:'book'})); const t=d.textContent, ok=/42/.test(t) && /1984/.test(t) && !!d.querySelector('.bc-ref'); ed.destroy(); d.remove(); return ok; }"""), True, "a location link is drawn in place, and the words around it stay as written")
 
     page.evaluate("""DB.put('meta',{id:'ghost1',title:'Ghost Book',author:'Nobody',bookKey:'id:ghost',addedAt:Date.now(),progress:0,tags:[]})""")
     page.evaluate("()=>{ openBookAt('ghost1', null); }"); settle(1)
@@ -350,8 +353,8 @@ with sync_playwright() as p:
     page.evaluate("()=>{ indexBook=window.__origIB; }")
 
     expect("margins save only to their own book", ev(page, """(async()=>{
-      openScratch(); toggleScratchEdit();
-      const ta=document.querySelector('#scratch-edit-area'); ta.value='ALPHA MARGINS TEXT'; ta.dispatchEvent(new Event('input'));
+      await bcEditorLoad(); openScratch(); toggleScratchEdit();
+      const v=_scratchEd.view; v.dispatch({changes:{from:0,to:v.state.doc.length,insert:'ALPHA MARGINS TEXT'},userEvent:'input'});
       const bytes=(await DB.get('blob','%s')).data;
       await DB.put('meta',{id:'mg2',title:'Margins Two',author:'M',bookKey:'id:mg2',addedAt:1,progress:0,tags:[],scratch:'KEEP ME'});
       await DB.put('blob',{id:'mg2',data:bytes});
@@ -626,7 +629,7 @@ with sync_playwright() as p:
            "the open book saved its own copy of the marks over the ones that had just arrived")
     expect("what you change on the page of the book you are reading stays when you go back to it", ev(op_, r"""async(id)=>{
       await openDetails(id); await new Promise(r=>setTimeout(r,300));
-      detailsNotesEdit(); document.querySelector('#det-notes-area').value='Written on the book page.'; detailsNotesSave();
+      await bcEditorLoad(); detailsNotesEdit(); _detEd.view.dispatch({changes:{from:0,to:_detEd.view.state.doc.length,insert:'Written on the book page.'},userEvent:'input'}); detailsNotesSave();
       addDetTag('kept-tag'); const was=!!(await DB.get('meta', id)).fav; await bcToggleFav(id, null);
       await new Promise(r=>setTimeout(r,500));
       await openBookAt(id); await new Promise(r=>setTimeout(r,300));      // Continue: back to the reader, which never closed
@@ -1141,21 +1144,21 @@ with sync_playwright() as p:
     BEHIND = "async(v)=>{ const r=await DB.get('meta', currentBook.id); Object.assign(r, v); await DB.put('meta', r); return true; }"   # another device's sync, say, landing behind the reader's back
     ev(mp, BEHIND, {"rating": 5, "summary": "Written elsewhere"})
     expect("the reader's margins save the margins and nothing else into the book's record", ev(mp, r"""async()=>{
-      openScratch(); toggleScratchEdit(); const ta=document.querySelector('#scratch-edit-area'); ta.value='Typed in the drawer.'; ta.dispatchEvent(new Event('input'));
+      await bcEditorLoad(); openScratch(); toggleScratchEdit(); const v=_scratchEd.view; v.dispatch({changes:{from:0,to:v.state.doc.length,insert:'Typed in the drawer.'},userEvent:'input'});
       await new Promise(r=>setTimeout(r,1300)); toggleScratchEdit(); closePanels(); await new Promise(r=>setTimeout(r,300));
       const m=await DB.get('meta', currentBook.id); return [m.scratch, m.rating, m.summary]; }"""), ["Typed in the drawer.", 5, "Written elsewhere"],
            "a margins save wrote the reader's whole copy of the record, so what had reached the stored record since the book opened was written over")
     ev(mp, BEHIND, {"rating": 4})
     expect("the book's page saves the margins and nothing else into the book's record", ev(mp, r"""async()=>{
       await openDetails(currentBook.id); await new Promise(r=>setTimeout(r,300));
-      detailsNotesEdit(); document.querySelector('#det-notes-area').value='Written on the book page.'; detailsNotesSave(); await new Promise(r=>setTimeout(r,500));
+      await bcEditorLoad(); detailsNotesEdit(); _detEd.view.dispatch({changes:{from:0,to:_detEd.view.state.doc.length,insert:'Written on the book page.'},userEvent:'input'}); detailsNotesSave(); await new Promise(r=>setTimeout(r,500));
       const m=await DB.get('meta', currentBook.id); return [m.scratch, m.rating]; }"""), ["Written on the book page.", 4],
            "the book page's save wrote its whole copy of the record over what had reached it since")
     expect("location links in the reader's margins carry their book's title, as on the book's page", ev(mp, r"""async()=>{
       const other=(await DB.all('meta')).find(m=>m.id!==currentBook.id && m.title);
       appendToMargins(bcMakeToken({ bookKey:bookKeyOf(other), kind:'book', highlightId:'', cfi:'', anchorId:'' })+'\n');
       openScratch(); await new Promise(r=>setTimeout(r,500));
-      const t=document.querySelector('#scratch-view .bc-ref-title'); return t ? t.textContent===' ('+other.title+')' : 'no title'; }"""), True,
+      const t=document.querySelector('#scratch-page .bc-ref-title'); return t ? t.textContent===' ('+other.title+')' : 'no title'; }"""), True,
            "the drawer drew the margins with its own renderer, which never named the book a link points to")
     mctx.close()
 
@@ -1238,6 +1241,131 @@ with sync_playwright() as p:
       [True, True, True, True, True, True],
       "the trail's record and notes stayed in the folder for good, hidden from every screen")
     kctx.close()
+
+    # 4k. The margins page: Point First's editor (CodeMirror 6, lib/codemirror.js), read and written on
+    #     one surface. Read-only it shows the thing, never the Markdown; a click writes where it lands;
+    #     a mark shows only where the cursor is; images, video cards, tables and location links are
+    #     drawn in place; Point First's keys; it loads after the first screen; without it, the margins
+    #     still show and can be written; and a tap on a phone writes where it lands.
+    PAGE_MD = "\n".join([
+        "# What the book argues", "",
+        "The **core claim** is that *attention* is a ==scarce== resource, and ~~everything~~ most things compete for it.", "",
+        "> The quiet hours are where the real work gets done.", "%s",   # a location link, filled in below
+        "", "- one idea", "- a second, with a [link](https://example.com/page)", "- [ ] a task to do", "- [x] a task done", "",
+        "| Idea | Page |", "|---|---|", "| Deep work | 12 |", "",
+        "![a picture](https://img.example/pic.png)", "",
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "",
+        '<iframe width="560" height="315" src="https://www.youtube.com/embed/M7lc1UVf-VE" onload="window.__ran=1"></iframe>', "",
+        "* * *", "", "A last line."])
+    def media_stubs(ctx):
+        png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOYNm0aAAOIAcMdATx8AAAAAElFTkSuQmCC")
+        ctx.route(re.compile(r"^https://(img\.youtube\.com|img\.example)/.*"), lambda route: route.fulfill(status=200, content_type="image/png", body=png))
+        ctx.route(re.compile(r"^https://www\.youtube-nocookie\.com/.*"), lambda route: route.fulfill(status=200, content_type="text/html", body="<html><body>player</body></html>"))
+    SEED_PAGE = r"""async(md)=>{ const now=Date.now(), tok=bcMakeToken({ bookKey:'id:urn:mpage', kind:'book', highlightId:'', cfi:'', anchorId:'' });
+      await DB.put('meta',{ id:'mpage', title:'Deep Work', author:'Cal Newport', bookKey:'id:urn:mpage', addedAt:now, updated:now, tags:[], scratch:md.replace('%s', tok) });
+      await DB.put('highlights',{ id:'mpage', items:[], updatedAt:0 });
+      await bcEditorLoad(); await openDetails('mpage'); await new Promise(r=>setTimeout(r,600)); return true; }"""
+    wctx = browser.new_context(bypass_csp=True); media_stubs(wctx); wp = wctx.new_page(); watch(wp, "margins-page")
+    wp.goto(URL); wait(wp, "typeof DB!=='undefined' && typeof renderHome==='function'")
+    expect("the margins' editor loads after the first screen, not before it", ev(wp, r"""async()=>{
+      const before=typeof window.CM==='undefined' && ![...document.scripts].some(s=>/codemirror/.test(s.src));
+      for(let i=0;i<60 && typeof window.CM==='undefined';i++) await new Promise(r=>setTimeout(r,100));
+      return [before, typeof window.CM]; }"""), [True, "object"],
+           "the editor is a third of a megabyte: loaded with the page, it held up the first screen on a phone")
+    ev(wp, SEED_PAGE, PAGE_MD)
+    expect("read-only, the margins show the thing itself and none of the Markdown", ev(wp, r"""()=>{
+      const pg=document.querySelector('#details-scratch'), lines=[...pg.querySelectorAll('.cm-line')].map(l=>l.innerText.trim()).filter(Boolean);
+      return { editable:pg.querySelector('.cm-content').getAttribute('contenteditable'), marks:pg.querySelectorAll('.cm-mk').length,
+        heading:lines[0], words:lines[1], image:!!pg.querySelector('img.md-img'), videos:pg.querySelectorAll('.md-video[data-vid]').length,
+        players:pg.querySelectorAll('iframe').length, ran:!!window.__ran, table:pg.querySelectorAll('.cm-table-wrap td').length,
+        tasks:[...pg.querySelectorAll('.cm-taskbox')].map(x=>x.textContent).join(''), link:!!pg.querySelector('.bc-ref') }; }"""),
+           {"editable": "false", "marks": 0, "heading": "What the book argues",
+            "words": "The core claim is that attention is a scarce resource, and everything most things compete for it.",
+            "image": True, "videos": 2, "players": 0, "ran": False, "table": 2, "tasks": "☐☑", "link": True},
+           "the margins showed as a rendered copy beside a text box of raw Markdown; now one page draws both")
+    box = ev(wp, r"""async()=>{ const w=document.querySelector('#details-scratch .cm-hl'); w.scrollIntoView({ block:'center' }); await new Promise(r=>setTimeout(r,100)); const r=w.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }""")
+    if isinstance(box, dict): wp.mouse.click(box["x"], box["y"]); settle(0.4)
+    expect("a click into the words starts writing there, the caret where you clicked", ev(wp, r"""()=>{
+      const v=_detEd.view, t=v.state.doc.toString(), a=t.indexOf('==scarce==')+2, h=v.state.selection.main.head;
+      return [_detEd.writing, v.hasFocus, h>=a && h<=a+6]; }"""), [True, True, True],
+           "a click put the caret where a renderer's text best matched the Markdown, a guess")
+    expect("while you write, a mark shows only where the cursor is", ev(wp, r"""()=>[...document.querySelectorAll('#details-scratch .cm-mk')].map(x=>x.textContent)"""), ["==", "=="],
+           "every mark on the page showed while writing, or none did")
+    ev(wp, r"""()=>{ const v=_detEd.view; v.dispatch({ changes:{ from:0, to:v.state.doc.length, insert:'Notes' }, selection:{ anchor:5 }, userEvent:'input' }); return true; }""")
+    kb = wp.keyboard
+    kb.press("End"); kb.press("Enter"); kb.press("Enter"); kb.type("- first"); kb.press("Enter"); kb.type("second"); kb.press("Tab"); kb.press("Enter"); kb.press("Enter"); kb.press("Enter")
+    kb.type("Make this bold")
+    for _ in range(4): kb.press("Shift+ArrowLeft")
+    kb.press("Control+b"); kb.press("End"); kb.press("Enter"); kb.press("Enter")
+    kb.type("wrap me")
+    for _ in range(2): kb.press("Shift+ArrowLeft")
+    kb.type("="); kb.type("="); kb.press("End"); kb.press("Enter"); kb.press("Enter")
+    kb.type("link these words")
+    for _ in range(2): kb.press("Control+Shift+ArrowLeft")
+    kb.press("Control+k"); kb.type("https://example.com"); kb.press("End"); kb.press("Enter"); kb.press("Enter")
+    kb.type("paste over me")
+    for _ in range(2): kb.press("Control+Shift+ArrowLeft")
+    ev(wp, r"""()=>{ const dt=new DataTransfer(); dt.setData('text/plain','https://example.org/x'); _detEd.view.contentDOM.dispatchEvent(new ClipboardEvent('paste',{ clipboardData:dt, bubbles:true, cancelable:true })); return true; }""")
+    kb.press("End"); kb.press("Enter"); kb.press("Enter"); kb.type("| a | b |"); kb.press("Enter"); kb.type("|---|---|"); kb.press("Enter")
+    kb.type("one"); kb.press("Tab"); kb.type("two")
+    kb.press("Control+End"); kb.press("Enter"); kb.press("Enter"); kb.type("Alpha."); kb.press("Enter"); kb.press("Enter"); kb.type("Beta."); kb.press("Alt+ArrowUp")
+    settle(0.3)
+    expect("Point First's keys work in the margins: Enter, Tab, bold, wrapping, links, a pasted address, table cells and moving a paragraph", ev(wp, "()=>_detEd.value.split('\\n')"), [
+        "Notes", "", "- first", "  - second", "", "Make this **bold**", "", "wrap ==me==", "", "link [these words](https://example.com)", "",
+        "paste [over me](https://example.org/x)", "", "| a | b |", "|---|---|", "| one | two |", "", "Beta.", "", "Alpha."],
+           "the margins were a plain text box: Enter in a list, Tab and the format keys did nothing a writer expects")
+    ev(wp, SEED_PAGE, PAGE_MD)   # the page as seeded again, read-only
+    ev(wp, "()=>{ window.__fb=window.followBcRef; window.__n=0; window.followBcRef=function(){ window.__n++; }; return true; }")
+    REF_AT = r"""async()=>{ const a=document.querySelector('#details-scratch .bc-ref'); a.scrollIntoView({ block:'center' }); await new Promise(r=>setTimeout(r,100)); const r=a.getBoundingClientRect(); return {x:r.left+6, y:r.top+r.height/2}; }"""
+    p1 = ev(wp, REF_AT)
+    if isinstance(p1, dict): wp.mouse.click(p1["x"], p1["y"]); settle(0.2)
+    n_read = ev(wp, "()=>window.__n")
+    ev(wp, "async()=>{ await _detEd.edit(0); return true; }"); settle(0.2)
+    p2 = ev(wp, REF_AT)
+    if isinstance(p2, dict): wp.keyboard.down("Control"); wp.mouse.click(p2["x"], p2["y"]); wp.keyboard.up("Control"); settle(0.2)
+    n_ctrl = ev(wp, "()=>window.__n")
+    p3 = ev(wp, REF_AT)
+    if isinstance(p3, dict): wp.mouse.click(p3["x"], p3["y"]); settle(0.3)
+    expect("a location link lands while you read; while you write, a plain click puts the caret in it and Ctrl follows it",
+           [n_read, n_ctrl, ev(wp, "()=>window.__n"), ev(wp, "()=>!!document.querySelector('#details-scratch .cm-tok')")], [1, 2, 2, True],
+           "a location link in the margins was followed by any click, so it could not be edited")
+    ev(wp, "()=>{ window.followBcRef=window.__fb; return true; }")
+    ev(wp, SEED_PAGE, PAGE_MD)
+    expect("a video card plays in place, a player Backchat builds; the pasted embed code never runs", ev(wp, r"""async()=>{
+      const cards=[...document.querySelectorAll('#details-scratch .md-video[data-vid]')], card=cards.find(c=>c.dataset.vid==='M7lc1UVf-VE');
+      if(!card) return 'no card';
+      card.click(); await new Promise(r=>setTimeout(r,300));
+      const f=document.querySelector('#details-scratch iframe'); return [f ? f.getAttribute('src').split('?')[0] : null, !!window.__ran, _detEd.writing]; }"""),
+           ["https://www.youtube-nocookie.com/embed/M7lc1UVf-VE", False, False],
+           "a video in the margins did not play, or a tap on it opened the editor instead")
+    wctx.close()
+    # Without the editor: the margins still show, and still take your words.
+    nctx = browser.new_context(bypass_csp=True)
+    nctx.route(re.compile(r".*/lib/codemirror\.js$"), lambda route: route.fulfill(status=200, content_type="text/javascript", body="/* a file that holds no editor */"))
+    np_ = nctx.new_page(); watch(np_, "margins-no-editor")
+    np_.goto(URL); wait(np_, "typeof DB!=='undefined' && typeof renderHome==='function'")
+    expect("if the editor cannot load, the margins still show and can still be written", ev(np_, r"""async()=>{
+      const now=Date.now(); await DB.put('meta',{ id:'mplain', title:'Plain', author:'P', bookKey:'id:urn:mplain', addedAt:now, updated:now, tags:[], scratch:'# Kept\n\nAs written.' });
+      await DB.put('highlights',{ id:'mplain', items:[], updatedAt:0 });
+      await openDetails('mplain'); await new Promise(r=>setTimeout(r,1600));
+      const shown=(document.querySelector('#details-scratch .margins-plain')||{}).textContent;
+      await detailsNotesEdit(); await new Promise(r=>setTimeout(r,300));
+      const ta=document.querySelector('#details-scratch textarea'); if(!ta) return [shown, 'no text box'];
+      ta.value='# Kept\n\nAs written, and more.'; ta.dispatchEvent(new Event('input')); detailsNotesSave(); await new Promise(r=>setTimeout(r,500));
+      return [shown, (await DB.get('meta','mplain')).scratch]; }"""), ["# Kept\n\nAs written.", "# Kept\n\nAs written, and more."],
+           "with its editor missing, a book's margins would show nothing and take nothing")
+    nctx.close()
+    # On a phone, a tap into the words writes there.
+    tctx2 = browser.new_context(bypass_csp=True, viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2); media_stubs(tctx2)
+    tp2 = tctx2.new_page(); watch(tp2, "margins-phone")
+    tp2.goto(URL); wait(tp2, "typeof DB!=='undefined' && typeof renderHome==='function'")
+    ev(tp2, SEED_PAGE, PAGE_MD)
+    pt = ev(tp2, r"""async()=>{ const w=document.querySelector('#details-scratch .cm-strong'); w.scrollIntoView({ block:'center' }); await new Promise(r=>setTimeout(r,100)); const r=w.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }""")
+    if isinstance(pt, dict): tp2.touchscreen.tap(pt["x"], pt["y"]); settle(0.6)
+    expect("on a phone, a tap into the words starts writing there", ev(tp2, r"""()=>{
+      const v=_detEd.view, t=v.state.doc.toString(), a=t.indexOf('**core claim**'), h=v.state.selection.main.head;
+      return [_detEd.writing, h>=a && h<=a+14]; }"""), [True, True], "a tap on a phone did not put the caret where it landed")
+    tctx2.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that

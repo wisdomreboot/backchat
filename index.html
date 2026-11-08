@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-762LID2ZrFBcsBhA12nJMj72htRElhD9gbtSHnJMFmM=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2NelQGVAYiRU3L6xPVQF/s6SWFBV2y578Z5d9xbcvL8=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -385,59 +385,80 @@
   .bc-ref{color:var(--accent);font-weight:600;font-style:normal;text-decoration:none;border-bottom:1px solid var(--accent-soft);cursor:pointer}
   .bc-ref:hover{border-bottom-color:var(--accent)}
   #scratch-panel .panel-body{display:flex;flex-direction:column}
-  .scratch-view{font-family:var(--write-font);font-size:1.05rem;line-height:1.75;color:var(--ink);word-wrap:break-word}
-  .scratch-view:empty::before{content:"Nothing here yet. Tap Edit to start writing about this book.";color:var(--muted);font-style:italic}
-  .scratch-view h1,.scratch-view h2,.scratch-view h3{line-height:1.25;margin:1.1em 0 .4em}
-  .scratch-view h1{font-size:1.25rem}.scratch-view h2{font-size:1.12rem}.scratch-view h3{font-size:1rem}
-  .scratch-view p{margin:.55em 0}
-  .scratch-view ul{margin:.5em 0;padding-left:1.2em}
-  .scratch-view li{margin:.2em 0}
-  .scratch-view blockquote{margin:.6em 0;padding:.1em .9em;border-left:3px solid var(--line);color:var(--muted)}
-  .scratch-view code{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:.05em .35em;font-size:.88em}
-  .scratch-view mark,.note mark,#note-pop mark,#det-margins mark{background:rgba(255,208,0,.4);color:inherit;border-radius:3px;padding:0 .12em}
-  .scratch-view del,.note del,#note-pop del{color:var(--muted)}
-  .scratch-view ol{margin:.5em 0;padding-left:1.4em}
-  .scratch-view ol li{margin:.2em 0}
-  .scratch-view li.task{list-style:none;margin-left:-1.1em}
-  .scratch-view li.task input{margin-right:.45em;vertical-align:middle}
-  .scratch-view pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.7em .85em;overflow:auto;margin:.6em 0}
-  .scratch-view pre code{background:none;border:0;padding:0;font-size:.86em;white-space:pre}
-  .scratch-view hr{border:0;border-top:1px solid var(--line);margin:1.1em 0}
-  /* Tables scroll sideways in the narrow margins panel instead of squeezing their columns. */
-  .scratch-view .md-table{overflow-x:auto;margin:.8em 0;-webkit-overflow-scrolling:touch}
-  .scratch-view table{border-collapse:collapse;font-size:.92em;line-height:1.5}
-  .scratch-view th,.scratch-view td{border:1px solid var(--line);padding:.35em .65em;text-align:left;vertical-align:top;min-width:7em}
-  .scratch-view th{background:var(--panel);font-weight:600}
+  .note mark,#note-pop mark,#det-margins mark{background:rgba(255,208,0,.4);color:inherit;border-radius:3px;padding:0 .12em}
+  .note del,#note-pop del{color:var(--muted)}
   #det-margins{margin-top:1.6rem;border-top:1px solid var(--line);padding-top:1.3rem}
   .margins-head{display:flex;align-items:baseline;gap:.6rem;margin:0 0 .95rem}
   .margins-head h2{font-size:1.4rem;font-weight:700;letter-spacing:-.01em;margin:0;color:var(--ink)}
   .margins-head .det-notes-count{color:var(--muted);font-size:.8rem;font-weight:400}
   .margins-head .linkbtn{margin-left:auto;flex:0 0 auto}
-  .margins-view{font-size:1.02rem;line-height:1.72;max-width:44rem}
-  .margins-view > :first-child{margin-top:0}
   .det-notes-empty{color:var(--muted);font-size:.95rem;line-height:1.6;font-style:italic}
   .bc-ref-title{opacity:.72;font-weight:400}
-  .scratch-view a:not(.bc-ref), .note a:not(.bc-ref), #note-pop a:not(.bc-ref){color:var(--accent);text-decoration:underline;text-underline-offset:2px}
-  .scratch-edit-area{display:none;flex:1;min-height:60vh;width:100%;resize:none;border:1px solid var(--line);border-radius:11px;padding:.85rem;font:inherit;font-size:.95rem;line-height:1.6;background:var(--panel);color:var(--ink);box-sizing:border-box}
-  #scratch-panel.editing .scratch-view{display:none}
-  #scratch-panel.editing .scratch-edit-area{display:block}
+  /* ---- The margins page (ONE MARGINS EDITOR): read and written on one surface. A mark shows
+     where the cursor is while you write and steps back everywhere else. ---- */
+  .margins-page{font-family:var(--write-font);font-size:1.1rem;line-height:1.78;color:var(--ink);overflow-wrap:anywhere}
+  #details .margins-page{max-width:36rem}
+  #scratch-panel .margins-page{font-size:1.05rem;line-height:1.75}
+  .margins-page .cm-editor{background:transparent;color:inherit}
+  .margins-page .cm-editor.cm-focused{outline:none}
+  .margins-page .cm-scroller{font:inherit;line-height:inherit;overflow:visible !important}
+  .margins-page .cm-content{padding:0;caret-color:var(--accent);font-variant-ligatures:common-ligatures}
+  .margins-page.bc-writing .cm-content{min-height:40vh;padding-bottom:30vh}
+  .margins-page .cm-line{padding:0}
+  .margins-page .cm-cursor{border-left:2px solid var(--accent) !important;margin-left:-1px}
+  .margins-page .cm-selectionBackground,.margins-page .cm-focused .cm-selectionBackground{background:var(--accent-soft) !important}
+  .margins-page .cm-placeholder{color:var(--muted);font-style:italic}
+  .margins-page .cm-blank{line-height:1.1}
+  .margins-page .cm-mk{color:var(--muted);font-weight:400;font-style:normal}
+  .margins-page .cm-hide{display:none}
+  .margins-page .cm-h{font-weight:700;letter-spacing:-.01em;line-height:1.3}
+  .margins-page .cm-h1{font-size:1.3em;padding-top:.45em !important}
+  .margins-page .cm-h2{font-size:1.15em;padding-top:.4em !important}
+  .margins-page .cm-h3,.margins-page .cm-h4,.margins-page .cm-h5,.margins-page .cm-h6{font-size:1.02em;padding-top:.35em !important}
+  .margins-page .cm-hmark,.margins-page .cm-url,.margins-page .cm-tok,.margins-page .cm-task,.margins-page .cm-code,.margins-page .cm-fence{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .margins-page .cm-hmark{font-size:.6em;letter-spacing:.06em;color:var(--muted);font-weight:400}
+  .margins-page .cm-strong{font-weight:700}
+  .margins-page .cm-em{font-style:italic}
+  .margins-page .cm-strike{text-decoration:line-through;color:var(--muted)}
+  .margins-page .cm-hl{background:rgba(255,208,0,.4);border-radius:3px}
+  .margins-page .cm-code{font-size:.84em;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:.05em .3em}
+  .margins-page .cm-link{color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .margins-page .cm-url{font-size:.72em;color:var(--muted)}
+  .margins-page .cm-tok{font-size:.7em;color:var(--muted)}
+  .margins-page .cm-quote{border-left:3px solid var(--accent);padding-left:1em !important;color:var(--muted);font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;font-style:italic}   /* the book's voice */
+  .margins-page .cm-li{padding-left:var(--hang) !important;text-indent:calc(-1 * var(--hang))}
+  .margins-page .cm-li-ind{display:inline-block;text-indent:0}
+  .margins-page .cm-lmark{display:inline-block;text-indent:0;width:1.5em;color:var(--muted);font-variant-numeric:tabular-nums}
+  .margins-page .cm-bullet{color:transparent;position:relative}
+  .margins-page .cm-bullet::before{content:"\2022";color:var(--muted);position:absolute;left:.15em}
+  .margins-page .cm-task{font-size:.8em;color:var(--muted)}
+  .margins-page .cm-taskbox{color:var(--muted)}
+  .margins-page.bc-writing .cm-taskbox{cursor:pointer}
+  .margins-page .cm-hr{text-align:center;color:var(--muted);letter-spacing:.5em}
+  .margins-page .cm-hr-drawn{color:transparent;background:linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat}
+  .margins-page .cm-fence{font-size:.84em;line-height:1.6;background:var(--panel);padding-inline:.85em !important}
+  .margins-page .cm-fence-first{border-radius:8px 8px 0 0;padding-top:.35em !important}
+  .margins-page .cm-fence-last{border-radius:0 0 8px 8px;padding-bottom:.35em !important}
+  .margins-page .cm-table-wrap{overflow-x:auto;padding:.2em 0 .6em;-webkit-overflow-scrolling:touch}
+  .margins-page .cm-table-wrap table{border-collapse:collapse;font-size:.92em;line-height:1.5}
+  .margins-page .cm-table-wrap th,.margins-page .cm-table-wrap td{border:1px solid var(--line);padding:.35em .65em;text-align:left;vertical-align:top;min-width:5em}
+  .margins-page .cm-table-wrap th{background:var(--panel);font-weight:600}
+  .margins-page .cm-table-wrap mark{background:rgba(255,208,0,.4);color:inherit;border-radius:3px;padding:0 .12em}
+  .margins-page .cm-table-wrap a:not(.bc-ref){color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+  .margins-page .cm-tbl-head{font-weight:600}
+  .margins-page .cm-tbl-delim{color:var(--muted)}
+  .margins-page .md-img{display:inline-block;vertical-align:top}
+  .margins-page .md-video{display:inline-block;width:100%;vertical-align:top}
+  .margins-empty{color:var(--muted);font-style:italic;font-size:.95rem;line-height:1.6}
+  .margins-plain{white-space:pre-wrap}
+  .margins-plain-edit{display:block;width:100%;min-height:45vh;box-sizing:border-box;resize:vertical;border:1px solid var(--line);border-radius:11px;padding:1rem;font:inherit;background:var(--panel);color:var(--ink)}
+  .note a:not(.bc-ref), #note-pop a:not(.bc-ref){color:var(--accent);text-decoration:underline;text-underline-offset:2px}
   #help-status{font-size:.82rem;color:var(--muted);margin-bottom:.9rem;min-height:1em}
   .help-list{display:flex;flex-direction:column;gap:.45rem}
   .help-row{display:flex;align-items:center;gap:.75rem;font-size:.86rem;color:var(--ink)}
   .help-row kbd{flex:0 0 auto;min-width:70px;text-align:center;font-family:inherit;font-size:.72rem;background:var(--panel);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:.18rem .45rem;color:var(--ink)}
   .help-tip{font-size:.76rem;color:var(--muted);margin-top:1rem;line-height:1.5}
-  .det-notes-area{display:block;width:100%;min-height:52vh;box-sizing:border-box;resize:vertical;border:1px solid var(--line);border-radius:11px;padding:1rem 1.05rem;font:inherit;font-size:1.02rem;line-height:1.72;background:var(--panel);color:var(--ink)}
   #det-notes-editor .actions{margin-top:.7rem;display:flex;gap:.5rem;justify-content:flex-end}
-  /* ---- Writing surface: calm, distraction-free margins (write-first, iA-inspired) ---- */
-  .bc-write{
-    border:1px solid transparent !important; background:transparent !important;
-    outline:none !important; box-shadow:none !important; resize:none !important;
-    width:100%; max-width:33rem; margin:0 auto; box-sizing:border-box;
-    font-family:var(--write-font); font-size:1.2rem; line-height:1.8;
-    color:var(--ink); padding:2rem .2rem 1.6rem; -webkit-tap-highlight-color:transparent;
-  }
-  .bc-write::placeholder{ color:var(--muted); opacity:.7 }
-  .det-notes-area.bc-write{ overflow-y:hidden }   /* the book page's margins editor auto-grows to fit; no inner scrollbar */
   /* ---- Distraction-free writing: strip the chrome so the screen is just your words ---- */
   #scratch-panel.editing .panel-head{ border-bottom:0 }
   #scratch-panel.editing .panel-head h2{ opacity:.3; font-weight:500 }
@@ -447,15 +468,9 @@
   #details.bc-focus-write .det-wrap > *:not(#det-margins){ display:none }
   #details.bc-focus-write #det-margins{ border-top:0; margin-top:0; padding-top:min(7vh,4rem) }
   #details.bc-focus-write .margins-head{ display:none }
-  #details.bc-focus-write .det-notes-area.bc-write{ min-height:70vh }
+  #details.bc-focus-write .margins-page.bc-writing .cm-content{ min-height:70vh }
   #scratch-panel.editing .panel-body{ overflow:auto }
   .write-wc{ color:var(--muted); font-size:.78rem; font-variant-numeric:tabular-nums; margin-right:.6rem; opacity:.7 }
-  /* The book's voice: extracted quotes read distinct from your own prose */
-  .scratch-view blockquote,.margins-view blockquote{
-    border-left:3px solid var(--accent); color:var(--muted);
-    font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif; font-style:italic;
-    padding:.3em 1em; margin:.9em 0;
-  }
   .hl-item .row{display:flex;flex-wrap:wrap;gap:.35rem .8rem;margin-top:.5rem}
   .hl-item .row button{font-size:.75rem;color:var(--muted);white-space:nowrap;padding:0}
   .hl-item .row button:hover{color:var(--accent)}
@@ -569,7 +584,7 @@
   html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
   /* A panel, list or dialog scrolled to its end stops there instead of moving the page behind it.
      While reading, a pull down never reloads the page. */
-  .panel-body,.find-results,.rs-body,.cbx-pop,.note-edit .box,.note-edit .quote,.scratch-edit-area,#details,#viewport .epub-container{overscroll-behavior:contain}
+  .panel-body,.find-results,.rs-body,.cbx-pop,.note-edit .box,.note-edit .quote,#details,#viewport .epub-container{overscroll-behavior:contain}
   html:has(#reader:not(.hidden)),html:has(#details:not(.hidden)){overscroll-behavior-y:none}
   /* While a book is open the page itself never scrolls. On a phone a page that can scroll even a
      little (100vh is taller than the screen while the address bar shows) slides the address bar
@@ -871,8 +886,7 @@
 <div class="panel" id="scratch-panel">
   <div class="panel-head"><h2>Margins</h2><div class="grow"></div><span class="write-wc" id="scratch-wc"></span><button class="linkbtn" id="scratch-toggle">Edit</button><button class="iconbtn" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
   <div class="panel-body">
-    <div id="scratch-view" class="scratch-view"></div>
-    <textarea id="scratch-edit-area" class="scratch-edit-area bc-write" placeholder="Write anything about this book. Markdown works: # heading, **bold**, - list, > quote. Paste a location link from a highlight to jump back to a spot."></textarea>
+    <div id="scratch-page"></div>
   </div>
 </div>
 
@@ -1018,9 +1032,11 @@
    THE GUIDE: written in guide/guide.md and built into a real EPUB with seeded marks; raising its
    revision rebuilds it in place, keeping the reader's own marks.
 
-   MARGINS RENDERER (inlineMd, scratchHtml): Markdown and safe media. Pasted embed code never
-   runs: only a video id is taken, and the app builds the player. Everything written is escaped,
-   and only http(s) addresses reach attributes.
+   THE MARGINS (ONE MARGINS EDITOR): Point First's page, CodeMirror 6 with the Lezer Markdown
+   parser (lib/codemirror.js), read and written on one surface. Comments use the small inline
+   dialect (inlineMd). Pasted embed code never runs: only a video id is taken, and the app builds
+   the player (bcVideoCardHtml). Everything written is escaped, and only http(s) addresses reach
+   attributes.
    ============================================================ */
 
 /* Settle on whichever way an IndexedDB transaction ends. A failed request reaches onerror;
@@ -1194,7 +1210,7 @@ function bcBooksCached(){ return !!vault.handle && !bcTouchUI(); }   // this bro
 function bcShelfOnly(){ return bcTouchUI() && cloudOn(); }          // this device uses the folder for book files only
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.78";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.79";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 // How long ago a time was, as a sync line says it: "just now", "5 min ago", "3 h ago", "on 7/11/2026".
@@ -5640,7 +5656,16 @@ function bcRefLinkHtml(ref){
    images and video cards. It runs on already-escaped text and is deliberately small, so a
    note reads the same in a comment, in the margins, and on export. Block structure (lists,
    headings) is added by the callers. */
-/* ---------------- MARGINS RENDERER: markdown, links, images, safe video cards ---------------- */
+/* A video card: the video's own thumbnail and a play mark. A tap builds the player on the
+   nocookie host (the card's click handler); the pasted code never runs. Inside a baked book the
+   handler cannot hear the tap (the book renders in its own frame), so epub mode is a plain linked
+   thumbnail. Both close the img themselves: book chapters are strict XHTML. */
+function bcVideoCardHtml(id, url, forEpub){
+  var safe=String(url).replace(/"/g,"%22");
+  if(forEpub) return '<a href="'+safe+'" target="_blank" rel="noopener">\x3cimg loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video" style="max-width:100%"/></a>';
+  return '<span class="md-video" data-vid="'+id+'" role="button" tabindex="0">\x3cimg loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video"/><span class="md-video-play">&#9658;</span><a class="md-video-ext" href="'+safe+'" target="_blank" rel="noopener" title="Open on YouTube">&#8599;</a></span>';
+}
+/* ---------------- INLINE RENDERER: markdown, links, images, safe video cards ---------------- */
 function inlineMd(s, forEpub){
   s=s.replace(/`([^`]+)`/g,"<code>$1</code>");
   s=s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
@@ -5657,11 +5682,7 @@ function inlineMd(s, forEpub){
   // Inside a baked book the tap-to-play handler cannot hear clicks (the book renders in
   // its own frame), so epub mode degrades a video to a plain linked thumbnail. Both forms
   // self-close the img: book chapters are strict XHTML and an unclosed void breaks the parse.
-  function vidCard(id,url){
-    var safe=url.replace(/"/g,"%22");
-    if(forEpub) return '<a href="'+safe+'" target="_blank" rel="noopener">\x3cimg loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video" style="max-width:100%"/></a>';
-    return '<span class="md-video" data-vid="'+id+'" role="button" tabindex="0">\x3cimg loading="lazy" src="https://img.youtube.com/vi/'+id+'/hqdefault.jpg" alt="Video"/><span class="md-video-play">&#9658;</span><a class="md-video-ext" href="'+safe+'" target="_blank" rel="noopener" title="Open on YouTube">&#8599;</a></span>';
-  }
+  function vidCard(id,url){ return bcVideoCardHtml(id, url, forEpub); }
   s=s.replace(/&lt;iframe\b.*?youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{6,20}).*?&lt;\/iframe&gt;/g, function(_,id){ return vidCard(id, "https://www.youtube.com/watch?v="+id); });
   s=s.replace(/&lt;iframe\b.*?youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{6,20}).*?&gt;/g, function(_,id){ return vidCard(id, "https://www.youtube.com/watch?v="+id); });
   s=s.replace(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g,function(_,alt,u){ return '\x3cimg class="md-img" loading="lazy" src="'+u.replace(/"/g,"%22").replace(/'/g,"%27")+'" alt="'+alt+'"/>'; });
@@ -5721,53 +5742,6 @@ function mdTableLines(lines){
   }
   return inT;
 }
-/* Block-level markdown for the margins: headings, lists, tasks, blockquotes, code, tables and
-   paragraphs, with inlineMd applied inside each line. Tables are read as Point First reads
-   them when it publishes (GitHub-style pipe tables, :-- :-: --: for alignment, \| for a pipe
-   inside a cell), so a table written in either app looks the same in both. Same placeholder trick as commentHtml:
-   location tokens are stashed behind sentinel characters before escaping and restored as
-   clickable links at the very end. No raw HTML is ever passed through. */
-function scratchHtml(md){
-  md=md||"";
-  var toks=[];
-  md=md.replace(BC_LINK_RE, function(m){ toks.push(m); return "\u0001"+(toks.length-1)+"\u0001"; });
-  md=escapeHtml(md);
-  function inline(x){ return inlineMd(x); }
-  var lines=md.split(/\n/), html=[], listType=null, inQuote=false;
-  function closeList(){ if(listType){ html.push(listType==="ol"?"</ol>":"</ul>"); listType=null; } }
-  function closeQuote(){ if(inQuote){ html.push("</blockquote>"); inQuote=false; } }
-  function openList(kind){ if(listType&&listType!==kind) closeList(); if(!listType){ html.push(kind==="ol"?"<ol>":"<ul>"); listType=kind; } }
-  var isTable=function(k){ return mdTableStarts(lines, k); }, splitRow=mdSplitRow;
-  for(var i=0;i<lines.length;i++){
-    var t=lines[i].trim();
-    if(/^```/.test(t)){ closeList(); closeQuote(); var code=[]; i++; for(;i<lines.length;i++){ if(/^```/.test(lines[i].trim())) break; code.push(lines[i]); } html.push("<pre><code>"+code.join("\n")+"</code></pre>"); continue; }
-    if(!t){ closeList(); closeQuote(); continue; }
-    if(isTable(i)){
-      closeList(); closeQuote();
-      var head=splitRow(lines[i]), aligns=splitRow(lines[i+1]).map(function(c){ var l=/^:/.test(c), r=/:$/.test(c); return l&&r?"center":r?"right":l?"left":""; });
-      var al=function(j){ return aligns[j] ? ' style="text-align:'+aligns[j]+'"' : ""; };
-      var rows=[]; i+=2;
-      while(i<lines.length && lines[i].trim() && lines[i].indexOf("|")>=0 && !/^```/.test(lines[i].trim())){ rows.push(splitRow(lines[i])); i++; }
-      i--;   // the for loop steps past the last row
-      var tb='<div class="md-table"><table><thead><tr>'+head.map(function(c,j){ return "<th"+al(j)+">"+inline(c)+"</th>"; }).join("")+"</tr></thead>";
-      if(rows.length) tb+="<tbody>"+rows.map(function(r){ return "<tr>"+head.map(function(_,j){ return "<td"+al(j)+">"+inline(r[j]!=null?r[j]:"")+"</td>"; }).join("")+"</tr>"; }).join("")+"</tbody>";
-      html.push(tb+"</table></div>"); continue;
-    }
-    if(/^(?:-{3,}|\*{3,}|_{3,})$/.test(t)){ closeList(); closeQuote(); html.push("<hr>"); continue; }
-    var hm=t.match(/^(#{1,6})\s+(.*)$/);
-    if(hm){ closeList(); closeQuote(); var lv=hm[1].length; html.push("<h"+lv+">"+inline(hm[2])+"</h"+lv+">"); continue; }
-    var tk=t.match(/^[-*]\s+\[([ xX])\]\s+(.*)$/);
-    if(tk){ closeQuote(); openList("ul"); var on=/x/i.test(tk[1]); html.push('<li class="task"><input type="checkbox" disabled'+(on?" checked":"")+">"+inline(tk[2])+"</li>"); continue; }
-    if(/^[-*]\s+/.test(t)){ closeQuote(); openList("ul"); html.push("<li>"+inline(t.replace(/^[-*]\s+/,""))+"</li>"); continue; }
-    if(/^\d+[.)]\s+/.test(t)){ closeQuote(); openList("ol"); html.push("<li>"+inline(t.replace(/^\d+[.)]\s+/,""))+"</li>"); continue; }
-    if(/^&gt;\s?/.test(t)){ closeList(); if(!inQuote){ html.push("<blockquote>"); inQuote=true; } html.push(inline(t.replace(/^&gt;\s?/,""))+"<br>"); continue; }
-    closeList(); closeQuote(); html.push("<p>"+inline(t)+"</p>");
-  }
-  closeList(); closeQuote();
-  var out=html.join("\n");
-  return out.replace(/\u0001(\d+)\u0001/g, function(_,n){ var ref=bcParseAny(toks[Number(n)]); return ref?bcRefLinkHtml(ref):escapeHtml(toks[Number(n)]); });
-}
-
 function handleRefHash(){
   if(typeof cloudHandleSetupHash==="function" && cloudHandleSetupHash()) return true;
   var ref=bcParseUrl(location.hash||"");
@@ -6395,62 +6369,698 @@ function renderConnectionsSection(b){
    source. The rendered view hides syntax (**, #, []()), so this is a best-effort
    match: it reads the visible text up to the click, then finds that snippet in the
    source. Exact for plain prose, close for formatted spans. */
-function marginsClickToSource(view, x, y, source){
-  try{
-    if(!source) return 0;
-    var caret=caretFromPoint(document, x, y);
-    if(!caret) return source.length;
-    var r=document.createRange(); r.setStart(view,0);
-    try{ r.setEnd(caret.startContainer, caret.startOffset); }catch(e){ return source.length; }
-    var before=r.toString(), vis=before.length;
-    for(var len=Math.min(36,vis); len>=6; len-=5){
-      var snip=before.slice(vis-len); if(!snip) continue;
-      var idx=source.indexOf(snip);
-      if(idx>=0){ var best=idx,k=idx; while((k=source.indexOf(snip,k+1))>=0){ if(Math.abs((k+len)-vis)<Math.abs((best+len)-vis)) best=k; } return best+len; }
-    }
-    return Math.max(0, Math.min(source.length, vis));
-  }catch(e){ return source.length; }
-}
 /* ============================================================
    ONE MARGINS EDITOR
-   A book's margins are one Markdown field (scratch) of its one record, shown and edited in two
-   places, the reader's drawer and the book's page, by this one editor. One view (bcMarginsView):
-   the Markdown as scratchHtml draws it, location links that land and carry their passage's title,
-   other links that open in a new tab, or are copied where a page blocks new tabs. One way into
-   editing (bcMarginsOpen): the book's own text, the caret where you asked. One save
-   (bcSaveMargins): the margins, and only the margins, into the stored record in one step, then
-   into the copies of it the reader and the page hold, so neither's next save writes old margins
-   back. Text belongs to the book it was opened for: each place keeps the id it opened, and a late
-   save after another book has opened is dropped. Each place keeps its own controls. The drawer:
-   Edit and Done, typing saved as you go, the folder written when the book closes. The page: a
-   click into the words, Save and Cancel, leaving the field saves, and the folder is written then.
+   A book's margins are one Markdown field (scratch) of its one record, read and written in two
+   places, the reader's drawer and the book's page, on one page: Point First's, CodeMirror 6 with
+   the Lezer Markdown parser (lib/codemirror.js). It loads after the first screen, so the start
+   pays nothing for it. The page is read-only until you write; then the same page takes the caret
+   where you put it, and nothing moves. Every mark is drawn as what it means. While you write, a
+   mark shows where the cursor is and steps back everywhere else: you write it, it shows. An image,
+   a video card, a table, a task's box and a location link are drawn in place, each showing its
+   Markdown only while the cursor is on it. A web link opens in a new tab (copied where the page
+   blocks new tabs) and a location link lands on its passage; while you write, either one takes
+   Ctrl or Cmd with the click, so that a plain click puts the caret in it. The keys are Point
+   First's (bcMdEnter and the rest, below).
+   One save (bcSaveMargins): the margins, and only the margins, into the stored record in one step,
+   then into the copies of it the reader and the page hold, so neither's next save writes old
+   margins back. Text belongs to the book it was opened for: each place keeps the id it opened, and
+   a late save after another book has opened is dropped. Each place keeps its own controls. The
+   drawer: Edit and Done, typing saved as you go, the folder written when the book closes. The
+   page: a click into the words, Save and Cancel, leaving the field saves, and the folder is
+   written then. Until the editor has loaded, or should it fail to, the margins show as their
+   plain text and are written in a plain text box.
    ============================================================ */
-function bcMarginsView(el, md, emptyHtml){
-  if(!el) return;
-  el.innerHTML=(md && String(md).trim()) ? scratchHtml(md) : (emptyHtml||"");
-  [].forEach.call(el.querySelectorAll(".bc-ref"), function(a){ a.onclick=bcRefClick; });
-  try{ bcRefTitleFill(el); }catch(e){}
-  [].forEach.call(el.querySelectorAll("a:not(.bc-ref)"), function(a){
-    a.addEventListener("click", function(e){
-      e.stopPropagation();   // a link is followed, never taken for a click into the words
-      var href=a.getAttribute("href")||"";
-      if(!/^https?:/i.test(href)) return;
-      e.preventDefault();
-      var w=null; try{ w=window.open(href,"_blank","noopener"); }catch(_e){}
-      if(w){ try{ w.opener=null; }catch(_e){} return; }
-      bcCopyText(href, "", function(){});
-      toast("Popups are blocked here. Link copied: "+href);
-    });
-  });
+var _bcEdLoad=null;
+function bcEditorLoad(){
+  if(window.CM) return Promise.resolve(window.CM);
+  if(!_bcEdLoad) _bcEdLoad=new Promise(function(res, rej){
+    var s=document.createElement("script"); s.src="lib/codemirror.js"; s.async=true;
+    s.onload=function(){ if(window.CM) res(window.CM); else rej(new Error("lib/codemirror.js holds no editor")); };
+    s.onerror=function(){ rej(new Error("lib/codemirror.js did not load")); };
+    document.head.appendChild(s);
+  }).catch(function(e){ _bcEdLoad=null; console.warn("margins editor", e); throw e; });   // asked again, it tries again
+  return _bcEdLoad;
 }
-function bcMarginsOpen(ta, b, caret){
-  if(!ta) return;
-  ta.value=(b && b.scratch)||"";
-  bcFocus(ta); bcAutoGrow(ta);
-  if(typeof caret==="number" && caret>=0){
-    try{ ta.setSelectionRange(caret, caret); }catch(e){}
-    try{ scrollTextareaToCaret(ta, caret); }catch(e){}
+// A web address the margins open: http(s), or www. as https.
+function bcOpenWeb(href){
+  href=String(href||"").trim(); if(/^www\./i.test(href)) href="https://"+href;
+  if(!/^https?:\/\//i.test(href)) return;
+  var w=null; try{ w=window.open(href,"_blank","noopener"); }catch(_e){}
+  if(w){ try{ w.opener=null; }catch(_e){} return; }
+  bcCopyText(href, "", function(){});
+  toast("Popups are blocked here. Link copied: "+href);
+}
+var BC_URL_ONLY=/^(?:https?:\/\/|www\.)\S+$/i;
+// A YouTube video in the margins: its embed code pasted, or its address on its own. Only the id is
+// ever kept; the card and, on a tap, the player are Backchat's own (bcVideoCardHtml).
+var BC_VID_IFRAME=/<iframe\b[^>]*?youtube(?:-nocookie)?\.com\/embed\/([A-Za-z0-9_-]{6,20})[^>]*>(?:\s*<\/iframe>)?/gi;
+var BC_VID_URL=/(^|[\s(])((?:https?:\/\/)(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})[^\s<)"']*)/g;
+
+/* --- what the page draws, made once the editor has loaded ---
+   Headings, emphasis, links, quotes, lists, tasks, code, rules and tables, each drawn as what it
+   means, as Point First draws them. Hidden marks are display:none spans, not replaced ranges, so
+   no line ever breaks between a word and its full stop. Backchat adds what the margins hold:
+   images, video cards, location links and ==highlight==. Read-only, nothing shows its marks. */
+var BC_ED=null;
+function bcEd(){
+  if(BC_ED) return BC_ED;
+  var C=window.CM, Decoration=C.Decoration, EditorView=C.EditorView, syntaxTree=C.syntaxTree;
+  var lang=new C.Language(C.defineLanguageFacet(), C.parser.configure(C.GFM), [], "markdown");
+  var HIDE=Decoration.mark({class:"cm-hide"}), MK=Decoration.mark({class:"cm-mk"}), marks={}, lines={};
+  function mark(c){ return marks[c]||(marks[c]=Decoration.mark({class:c})); }
+  function line(c){ return lines[c]||(lines[c]=Decoration.line({class:c})); }
+  function linkMark(href){ return Decoration.mark({class:"cm-link", attributes:{"data-href":href}}); }
+  function writingOf(st){ return st.facet(EditorView.editable); }
+
+  class ImgW extends C.WidgetType{
+    constructor(src, alt){ super(); this.src=src; this.alt=alt; }
+    eq(o){ return o.src===this.src && o.alt===this.alt; }
+    toDOM(){ var i=document.createElement("img"); i.className="md-img"; i.loading="lazy"; i.alt=this.alt; i.src=this.src; return i; }
+    ignoreEvent(){ return false; }
   }
+  class VidW extends C.WidgetType{
+    constructor(id, url){ super(); this.id=id; this.url=url; }
+    eq(o){ return o.id===this.id && o.url===this.url; }
+    toDOM(){ var s=document.createElement("span"); s.innerHTML=bcVideoCardHtml(this.id, this.url); return s.firstChild; }
+    ignoreEvent(){ return true; }   // a tap plays it (the card's own handler); it never moves the caret
+  }
+  class RefW extends C.WidgetType{
+    constructor(raw, ref){ super(); this.raw=raw; this.ref=ref; }
+    eq(o){ return o.raw===this.raw; }
+    toDOM(){ var s=document.createElement("span"); s.className="bc-ref-wrap"; s.innerHTML=bcRefLinkHtml(this.ref); try{ bcRefTitleFill(s); }catch(e){} return s; }
+    ignoreEvent(){ return false; }
+  }
+  class TaskW extends C.WidgetType{
+    constructor(done){ super(); this.done=done; }
+    eq(o){ return o.done===this.done; }
+    toDOM(){ var s=document.createElement("span"); s.className="cm-taskbox"+(this.done?" done":""); s.textContent=this.done?"☑":"☐"; s.setAttribute("aria-label", this.done?"Done":"To do"); return s; }
+    ignoreEvent(){ return false; }
+  }
+  /* A table is drawn as a table until the cursor comes in, then it is its Markdown. A click on a
+     cell, while you write, puts the cursor in that cell. Only tables at the top level are drawn;
+     one inside a list or a quote stays Markdown. */
+  class TableW extends C.WidgetType{
+    constructor(src, from){ super(); this.src=src; this.from=from; }
+    eq(o){ return o.src===this.src && o.from===this.from; }
+    toDOM(){ var w=document.createElement("div"); w.className="cm-table-wrap"; w.innerHTML=bcTableHtml(this.src, this.from); return w; }
+    ignoreEvent(){ return true; }
+  }
+
+  function build(view){
+    var st=view.state, doc=st.doc, out=[], sel=writingOf(st) ? st.selection.ranges : [];
+    function touches(a, b){ return sel.some(function(r){ return r.from<=b && r.to>=a; }); }
+    function onLine(pos){ var ln=doc.lineAt(pos); return touches(ln.from, ln.to); }
+    function showOr(a, b, shown){ if(b>a) out.push((shown?MK:HIDE).range(a, b)); }
+    var tree=C.ensureSyntaxTree(st, view.viewport.to, 50) || syntaxTree(st);
+    view.visibleRanges.forEach(function(vr){
+      var from=vr.from, to=vr.to, text=doc.sliceString(from, to), m;
+      for(var p=from; p<=to;){ var ln=doc.lineAt(p); if(!ln.text.trim()) out.push(line("cm-blank").range(ln.from)); p=ln.to+1; }
+      // Where nothing else is drawn: code; and where a link or an image already is.
+      var code=[], linked=[];
+      tree.iterate({ from:from, to:to, enter:function(n){
+        if(n.name==="InlineCode" || n.name==="FencedCode" || n.name==="CodeBlock") code.push([n.from, n.to]);
+        else if(n.name==="Link" || n.name==="Image") linked.push([n.from, n.to]);
+      }});
+      var overlaps=function(list, a, b){ return list.some(function(r){ return r[0]<b && r[1]>a; }); };
+      var taken=[];   // drawn as one thing: a location link or a video
+      // Location links, which the parser reads as a link of its own.
+      var re=new RegExp(BC_LINK_RE.source, "g");
+      while((m=re.exec(text))){
+        var a=from+m.index, b=a+m[0].length, ref=bcParseAny(m[0]);
+        if(!ref || overlaps(code, a, b)) continue;
+        taken.push([a, b]);
+        out.push(touches(a, b) ? mark("cm-tok").range(a, b) : Decoration.replace({ widget:new RefW(m[0], ref) }).range(a, b));
+      }
+      // Videos: the embed code, or the address on its own (never inside a link or an image).
+      var vid=function(a, b, id, url){
+        if(overlaps(code, a, b) || overlaps(taken, a, b)) return;
+        taken.push([a, b]);
+        out.push(touches(a, b) ? mark("cm-tok").range(a, b) : Decoration.replace({ widget:new VidW(id, url) }).range(a, b));
+      };
+      re=new RegExp(BC_VID_IFRAME.source, "gi");
+      while((m=re.exec(text))){ var a1=from+m.index; vid(a1, a1+m[0].length, m[1], "https://www.youtube.com/watch?v="+m[1]); }
+      re=new RegExp(BC_VID_URL.source, "g");
+      while((m=re.exec(text))){ var a2=from+m.index+m[1].length, b2=a2+m[2].length; if(!overlaps(linked, a2, b2)) vid(a2, b2, m[3], m[2]); }
+      var free=function(a, b){ return !overlaps(taken, a, b); };
+      tree.iterate({ from:from, to:to, enter:function(n){
+        var name=n.name, hm;
+        if((hm=name.match(/^ATXHeading(\d)$/))){
+          var hl=doc.lineAt(n.from); out.push(line("cm-h cm-h"+hm[1]).range(hl.from));
+          var mk=n.node.getChild("HeaderMark");
+          if(mk && mk.from===hl.from){ var e=mk.to; if(doc.sliceString(e, e+1)===" ") e++;
+            out.push(onLine(n.from) ? mark("cm-hmark").range(mk.from, e) : HIDE.range(mk.from, e)); }
+          return;
+        }
+        switch(name){
+          case "Emphasis": case "StrongEmphasis": case "Strikethrough": {
+            if(!free(n.from, n.to)) return false;
+            var cls=name==="Emphasis" ? "cm-em" : name==="StrongEmphasis" ? "cm-strong" : "cm-strike", em=name==="Strikethrough" ? "StrikethroughMark" : "EmphasisMark";
+            out.push(mark(cls).range(n.from, n.to)); var on=touches(n.from, n.to);
+            n.node.getChildren(em).forEach(function(c){ showOr(c.from, c.to, on); });
+            return;
+          }
+          case "InlineCode": {
+            out.push(mark("cm-code").range(n.from, n.to)); var onc=touches(n.from, n.to);
+            n.node.getChildren("CodeMark").forEach(function(c){ showOr(c.from, c.to, onc); });
+            return false;
+          }
+          case "Link": {
+            if(!free(n.from, n.to)) return false;
+            var onl=touches(n.from, n.to), ms=n.node.getChildren("LinkMark"), u=n.node.getChild("URL");
+            if(ms.length>=2 && ms[0].from===n.from){
+              if(ms[1].from>ms[0].to) out.push(linkMark(u ? doc.sliceString(u.from, u.to) : "").range(ms[0].to, ms[1].from));
+              if(onl){ out.push(MK.range(ms[0].from, ms[0].to)); out.push(MK.range(ms[1].from, n.to)); if(u) out.push(mark("cm-url").range(u.from, u.to)); }
+              else { out.push(HIDE.range(ms[0].from, ms[0].to)); if(n.to>ms[1].from) out.push(HIDE.range(ms[1].from, n.to)); }
+            }
+            return false;
+          }
+          case "Image": {
+            if(!free(n.from, n.to)) return false;
+            var iu=n.node.getChild("URL"), src=iu ? doc.sliceString(iu.from, iu.to) : "", im=n.node.getChildren("LinkMark");
+            var alt=im.length>=2 ? doc.sliceString(im[0].to, im[1].from) : "";
+            if(/^https?:\/\//i.test(src) && !touches(n.from, n.to)) out.push(Decoration.replace({ widget:new ImgW(src, alt) }).range(n.from, n.to));
+            else if(iu) out.push(mark("cm-url").range(iu.from, iu.to));
+            return false;
+          }
+          case "URL": {   // an address on its own
+            if(free(n.from, n.to)) out.push(linkMark(doc.sliceString(n.from, n.to)).range(n.from, n.to));
+            return false;
+          }
+          case "Blockquote": {
+            for(var q=n.from; q<=n.to;){ var ql=doc.lineAt(q); out.push(line("cm-quote").range(ql.from)); q=ql.to+1; }
+            return;
+          }
+          case "QuoteMark": { var qe=n.to; if(doc.sliceString(qe, qe+1)===" ") qe++; showOr(n.from, qe, onLine(n.from)); return; }
+          case "ListItem": {
+            var li=doc.lineAt(n.from), lm=n.node.getChild("ListMark"); if(!lm || lm.from<li.from) return;
+            var le=lm.to; if(doc.sliceString(le, le+1)===" ") le++;
+            var ind=lm.from-li.from, depth=Math.round(ind/2);
+            out.push(Decoration.line({ class:"cm-li", attributes:{ style:"--hang:"+(1.5+depth*1.5)+"em" } }).range(li.from));
+            if(ind>0) out.push(Decoration.mark({ class:"cm-li-ind", attributes:{ style:"width:"+(depth*1.5)+"em" } }).range(li.from, lm.from));
+            var plain=/^[-*+]$/.test(doc.sliceString(lm.from, lm.to)), off=!onLine(n.from);
+            if(plain && off && n.node.getChild("Task")) out.push(HIDE.range(lm.from, le));   // a task's box stands where its bullet would
+            else out.push(mark(plain && off ? "cm-lmark cm-bullet" : "cm-lmark").range(lm.from, le));
+            return;
+          }
+          case "TaskMarker": {
+            var done=/x/i.test(doc.sliceString(n.from, n.to));
+            out.push(touches(n.from, n.to) ? mark("cm-task").range(n.from, n.to) : Decoration.replace({ widget:new TaskW(done) }).range(n.from, n.to));
+            return;
+          }
+          case "HorizontalRule": { out.push(line(onLine(n.from) ? "cm-hr" : "cm-hr cm-hr-drawn").range(doc.lineAt(n.from).from)); return false; }
+          case "Table": {
+            var tsp=bcTableSpan(doc, n);
+            if(!sel.some(function(r){ return r.from<=tsp.to && r.to>=tsp.from; })) return false;   // drawn whole by the tables field
+            for(var i=tsp.first; i<=tsp.last; i++) out.push(line("cm-tbl"+(i===tsp.first?" cm-tbl-head":"")+(i===tsp.first+1?" cm-tbl-delim":"")).range(doc.line(i).from));
+            return;
+          }
+          case "TableDelimiter": out.push(MK.range(n.from, n.to)); return false;
+          case "FencedCode": {
+            var fa=doc.lineAt(n.from), fb=doc.lineAt(n.to);
+            for(var j=fa.number; j<=fb.number; j++) out.push(line("cm-fence"+(j===fa.number?" cm-fence-first":"")+(j===fb.number?" cm-fence-last":"")).range(doc.line(j).from));
+            return false;
+          }
+        }
+      }});
+      // ==highlight==, which the parser reads as plain text.
+      re=/==(?=\S)([^=\n]*?\S)==/g;
+      while((m=re.exec(text))){
+        var ha=from+m.index, hb=ha+m[0].length; if(overlaps(code, ha, hb) || !free(ha, hb)) continue;
+        out.push(mark("cm-hl").range(ha, hb)); var onh=touches(ha, hb); showOr(ha, ha+2, onh); showOr(hb-2, hb, onh);
+      }
+    });
+    return Decoration.set(out, true);
+  }
+  var preview=C.ViewPlugin.fromClass(class{
+    constructor(v){ this.decorations=build(v); }
+    update(u){ if(u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged || syntaxTree(u.startState)!==syntaxTree(u.state) || writingOf(u.startState)!==writingOf(u.state)) this.decorations=build(u.view); }
+  }, { decorations:function(v){ return v.decorations; } });
+  function tableDecos(state){
+    var out=[], doc=state.doc, sel=writingOf(state) ? state.selection.ranges : [];
+    for(var n=syntaxTree(state).topNode.firstChild; n; n=n.nextSibling){
+      if(n.name!=="Table") continue;
+      var sp=bcTableSpan(doc, n), a=sp.from, b=sp.to;
+      if(sel.some(function(r){ return r.from<=b && r.to>=a; })) continue;
+      out.push(Decoration.replace({ widget:new TableW(doc.sliceString(a, b), a), block:true }).range(a, b));
+    }
+    return Decoration.set(out);
+  }
+  var tables=C.StateField.define({ create:tableDecos,
+    update:function(d, tr){ return (tr.docChanged || tr.selection || syntaxTree(tr.startState)!==syntaxTree(tr.state) || writingOf(tr.startState)!==writingOf(tr.state)) ? tableDecos(tr.state) : d; },
+    provide:function(f){ return EditorView.decorations.from(f); } });
+
+  /* Clicks. Read-only, a link follows and a task's box is only drawn. While you write, a click
+     puts the caret, Ctrl or Cmd with it follows a link, a task's box ticks, and a table's cell
+     takes the cursor. A video card plays wherever it is (its own handler, outside the editor). */
+  var events=EditorView.domEventHandlers({
+    mousedown:function(e, view){
+      if(e.button!==0) return false;
+      var w=writingOf(view.state), mod=e.ctrlKey || e.metaKey, t=e.target, el;
+      if(!t || !t.closest) return false;
+      if((el=t.closest(".cm-taskbox")) && w){
+        e.preventDefault(); var at=view.posAtDOM(el), ch=view.state.doc.sliceString(at+1, at+2);
+        view.dispatch({ changes:{ from:at+1, to:at+2, insert:/x/i.test(ch) ? " " : "x" }, userEvent:"input" }); return true;
+      }
+      if(t.closest(".bc-ref, [data-href], .cm-table-wrap a[href]") && (!w || mod)){ e.preventDefault(); return true; }   // followed on click
+      if((el=t.closest(".cm-table-wrap [data-pos]")) && w){ e.preventDefault(); view.dispatch({ selection:{ anchor:+el.dataset.pos }, scrollIntoView:true }); view.focus(); return true; }
+      return false;
+    },
+    click:function(e, view){
+      var w=writingOf(view.state), mod=e.ctrlKey || e.metaKey, t=e.target, el;
+      if(!t || !t.closest || (w && !mod)) return false;
+      if((el=t.closest(".bc-ref"))){ e.preventDefault(); e.stopPropagation(); followBcRef(bcRefFromEl(el)); return true; }
+      if((el=t.closest("[data-href], .cm-table-wrap a[href]"))){ e.preventDefault(); e.stopPropagation(); bcOpenWeb(el.getAttribute("data-href") || el.getAttribute("href")); return true; }
+      return false;
+    },
+    paste:function(e, view){ return bcLinkOnPaste(e, view); },
+    keydown:function(e){ if(e.key==="Escape") _bcEscAt=Date.now(); return false; }
+  });
+  // A mark typed over a selection wraps it: * italic (twice, bold), _ italic, ` code, ~ (twice,
+  // strikethrough), = (twice, highlight). [ makes the selection a link.
+  var input=EditorView.inputHandler.of(function(view, from, to, text){
+    if(from===to || text.length!==1) return false;
+    if("*_`~=".indexOf(text)>=0) return bcWrapSel(view, text);
+    if(text==="[") return bcMakeLink(view);
+    return false;
+  });
+  var keys=C.keymap.of([
+    { key:"Enter", run:bcMdEnter },
+    { key:"Tab", run:function(v){ return bcMdTab(v, false); }, shift:function(v){ return bcMdTab(v, true); } },
+    { key:"Mod-b", run:function(v){ return bcToggleWrap(v, "**"); } },
+    { key:"Mod-i", run:function(v){ return bcToggleWrap(v, "*"); } },
+    { key:"Mod-k", run:bcMakeLink },
+    { key:"Alt-ArrowUp", run:function(v){ return bcMoveBlock(v, -1); } },
+    { key:"Alt-ArrowDown", run:function(v){ return bcMoveBlock(v, 1); } },
+    { key:"ArrowDown", run:function(v){ return bcArrowIntoTable(v, true); } },
+    { key:"ArrowUp", run:function(v){ return bcArrowIntoTable(v, false); } }
+  ].concat(C.standardKeymap, C.historyKeymap));
+  BC_ED={ C:C, lang:lang, preview:preview, tables:tables, events:events, input:input, keys:keys };
+  return BC_ED;
+}
+
+/* --- one editor, in one place ---
+   host: the element it fills. opts.empty: HTML shown read-only when there is nothing yet.
+   opts.placeholder: the line shown while you write on an empty page. opts.onInput: after each of
+   your edits (never after set). opts.onBlur: when the page loses the caret while you write.
+   opts.topInset: the height of a bar laid over the top of the page, which the caret keeps clear of. */
+function bcMarginsEditor(host, opts){
+  opts=opts||{};
+  var ed={ writing:false }, text="", view=null, plain=null, comp=null;
+  host.innerHTML=""; host.classList.add("margins-page");
+  var empty=document.createElement("div"); empty.className="margins-empty"; empty.innerHTML=opts.empty||"";
+  var body=document.createElement("div"); body.className="margins-body";
+  host.appendChild(empty); host.appendChild(body);
+  function fire(fn){ try{ if(fn) fn(); }catch(e){ console.error("margins", e); } }
+  function paint(){ host.classList.toggle("bc-writing", ed.writing); empty.style.display=(!ed.writing && opts.empty && !text.trim()) ? "" : "none"; }
+  function modeExt(w){ var C=window.CM; return [C.EditorView.editable.of(w), C.EditorState.readOnly.of(!w), w ? C.drawSelection() : [], w && opts.placeholder ? C.placeholder(opts.placeholder) : []]; }
+  function stateFor(t, w){
+    var E=bcEd(), C=E.C; comp=comp||new C.Compartment();
+    return C.EditorState.create({ doc:t, selection:{ anchor:w ? t.length : 0 }, extensions:[
+      E.lang, E.preview, E.tables, C.history(), C.EditorView.lineWrapping, E.keys, E.input, E.events, comp.of(modeExt(w)),
+      C.EditorView.contentAttributes.of({ spellcheck:"true", autocorrect:"on", autocapitalize:"sentences", "aria-label":"Margins" }),
+      C.EditorState.allowMultipleSelections.of(false),
+      C.EditorView.scrollMargins.of(function(){ return { top:opts.topInset ? opts.topInset() : 0, bottom:16 }; }),
+      C.EditorView.updateListener.of(function(u){ if(u.focusChanged && !u.view.hasFocus && ed.writing) fire(opts.onBlur); })
+    ]});
+  }
+  function mount(){
+    if(view || !window.CM || (plain && plain.tagName==="TEXTAREA")) return;   // never swapped from under your typing
+    if(plain){ plain.remove(); plain=null; }
+    try{
+      view=new window.CM.EditorView({ parent:body, state:stateFor(text, ed.writing),
+        dispatchTransactions:function(trs, v){
+          v.update(trs);
+          if(trs.some(function(t){ return t.docChanged && t.annotation(window.CM.Transaction.userEvent)!==undefined; })){ text=v.state.doc.toString(); fire(opts.onInput); }
+        }});
+    }catch(e){ console.error("margins editor", e); view=null; plainShow(); }
+  }
+  function plainShow(){
+    if(plain) plain.remove();
+    if(ed.writing){
+      plain=document.createElement("textarea"); plain.className="margins-plain-edit"; plain.value=text;
+      if(opts.placeholder) plain.placeholder=opts.placeholder;
+      plain.addEventListener("input", function(){ text=plain.value; fire(opts.onInput); });
+      plain.addEventListener("blur", function(){ if(ed.writing) fire(opts.onBlur); });
+    } else { plain=document.createElement("div"); plain.className="margins-plain"; plain.textContent=text; }
+    body.appendChild(plain);
+  }
+  Object.defineProperty(ed, "value", { get:function(){ return view ? view.state.doc.toString() : text; } });
+  Object.defineProperty(ed, "view", { get:function(){ return view; } });
+  // The text to show: read-only, unless keep (and you are writing), with a fresh undo history.
+  ed.set=function(t, keep){
+    text=String(t==null ? "" : t);
+    if(!keep) ed.writing=false;
+    if(view) view.setState(stateFor(text, ed.writing));
+    else if(window.CM) mount();
+    else whenLoaded();
+    paint();
+  };
+  // Not loaded yet: the page waits a moment for the editor rather than flash the bare Markdown,
+  // then shows the plain text, and the editor takes over when it comes.
+  function whenLoaded(){
+    if(plain){ plainShow(); return; }
+    var late=setTimeout(function(){ if(!view && !ed.destroyed) plainShow(); }, 1200);
+    bcEditorLoad().then(function(){ clearTimeout(late); if(!ed.destroyed) mount(); }, function(){ clearTimeout(late); if(!ed.destroyed && !view) plainShow(); });
+  }
+  // Write, the caret at pos (the end when none is given). At once when the editor has loaded.
+  ed.edit=function(pos){
+    ed.writing=true; paint();
+    if(window.CM && !ed.destroyed){ mount(); write(pos); return Promise.resolve(); }
+    return bcEditorLoad().then(function(){ if(!ed.destroyed) mount(); }, function(){ if(!ed.destroyed && !view) plainShow(); }).then(function(){ write(pos); });
+  };
+  function write(pos){
+    if(ed.destroyed || !ed.writing) return;
+    var at;
+    if(view){
+      at=(typeof pos==="number" && pos>=0) ? Math.min(pos, view.state.doc.length) : view.state.doc.length;
+      view.dispatch({ effects:[comp.reconfigure(modeExt(true)), window.CM.EditorView.scrollIntoView(at, { y:"center" })], selection:{ anchor:at } });
+      view.focus();
+    } else if(plain){
+      if(plain.tagName!=="TEXTAREA") plainShow();
+      at=(typeof pos==="number" && pos>=0) ? Math.min(pos, text.length) : text.length;
+      bcFocus(plain); try{ plain.setSelectionRange(at, at); }catch(e){}
+    }
+  }
+  ed.read=function(){
+    if(!ed.writing) return;
+    ed.writing=false;
+    if(view){ view.dispatch({ effects:comp.reconfigure(modeExt(false)) }); try{ view.contentDOM.blur(); }catch(e){} }
+    else if(plain){ text=plain.value!=null ? plain.value : text; plainShow(); }
+    paint();
+  };
+  // Where a click landed in the text, for a click into the words to start writing there.
+  ed.posAt=function(e){
+    if(!view || !e) return null;
+    var cell=e.target && e.target.closest && e.target.closest(".cm-table-wrap [data-pos]");
+    if(cell) return +cell.dataset.pos;
+    var p=view.posAtCoords({ x:e.clientX, y:e.clientY });
+    return p==null ? null : p;
+  };
+  ed.focus=function(){ if(view) view.focus(); else if(plain) bcFocus(plain); };
+  ed.destroy=function(){ ed.destroyed=true; try{ if(view) view.destroy(); }catch(e){} view=null; host.innerHTML=""; };
+  paint();
+  return ed;
+}
+
+/* --- the keys: Point First's, on the margins ---
+   Each edit is one step to undo and counts as your own, so the margins save it. */
+var _bcEscAt=0;
+function bcEdText(v){ return v.state.doc.toString(); }
+function bcMdEdit(v, from, to, text, selFrom, selTo){
+  v.dispatch({ changes:{ from:from, to:to, insert:text }, selection:selFrom==null ? undefined : { anchor:selFrom, head:selTo==null ? selFrom : selTo }, userEvent:"input", scrollIntoView:true });
+  return true;
+}
+function bcLineStart(val, pos){ return val.lastIndexOf("\n", pos-1)+1; }
+// Wrap the selection in a mark, the selection kept inside, so a second press doubles it.
+function bcWrapSel(v, ch){
+  var sel=v.state.selection.main, val=bcEdText(v), s=sel.from, e=sel.to; if(s===e) return false;
+  var raw=val.slice(s, e); s+=raw.length-raw.trimStart().length; e-=raw.length-raw.trimEnd().length;
+  if(s>=e) return false;   // the words are wrapped; selected spaces stay outside the marks
+  var mid=val.slice(s, e); return bcMdEdit(v, s, e, ch+mid+ch, s+ch.length, s+ch.length+mid.length);
+}
+// Ctrl or Cmd + B and I: bold or italic on the selection, or off if it already is. With nothing
+// selected, an empty pair with the caret inside, ready to type.
+function bcToggleWrap(v, ch){
+  var val=bcEdText(v), sel=v.state.selection.main, s=sel.from, e=sel.to;
+  if(s===e) return bcMdEdit(v, s, s, ch+ch, s+ch.length);
+  var raw=val.slice(s, e); s+=raw.length-raw.trimStart().length; e-=raw.length-raw.trimEnd().length; if(s>=e) return true;
+  var n=ch.length, inner=val.slice(s, e), dbl=ch+ch;
+  var wrapped=val.slice(s-n, s)===ch && val.slice(e, e+n)===ch && !(n===1 && val.slice(s-2, s)===dbl && val.slice(e, e+2)===dbl);
+  if(wrapped) return bcMdEdit(v, s-n, e+n, inner, s-n, e-n);
+  if(inner.length>2*n && inner.startsWith(ch) && inner.endsWith(ch) && !(n===1 && inner.startsWith(dbl))){ var t=inner.slice(n, -n); return bcMdEdit(v, s, e, t, s, s+t.length); }
+  return bcMdEdit(v, s, e, ch+inner+ch, s+n, e+n);
+}
+// Ctrl or Cmd + K, as in Obsidian and Ghost. Selected words become [words]() with the caret
+// ready for the address; a selected address becomes [](address) with the caret where the words
+// go; nothing selected, [](), the caret in the square brackets.
+function bcMakeLink(v){
+  var val=bcEdText(v), sel=v.state.selection.main, s=sel.from, e=sel.to;
+  var raw=val.slice(s, e); s+=raw.length-raw.trimStart().length; e-=raw.length-raw.trimEnd().length;
+  if(s>=e){ var p=sel.from; return bcMdEdit(v, p, p, "[]()", p+1); }
+  var words=val.slice(s, e);
+  if(/\n/.test(words)){ toast("A link fits on one line. Select fewer words.", 2400); return true; }
+  if(BC_URL_ONLY.test(words)) return bcMdEdit(v, s, e, "[]("+words+")", s+1);
+  return bcMdEdit(v, s, e, "["+words+"]()", s+words.length+3);
+}
+// An address pasted over selected words on one line links them: [words](address). A location
+// link pastes as itself.
+function bcLinkOnPaste(e, view){
+  var sel=view.state.selection.main; if(sel.empty) return false;
+  var url=""; try{ url=((e.clipboardData || window.clipboardData).getData("text") || "").trim(); }catch(_e){ return false; }
+  if(!BC_URL_ONLY.test(url) || new RegExp(BC_LINK_RE.source).test(url)) return false;
+  var val=bcEdText(view), raw=val.slice(sel.from, sel.to), s=sel.from+(raw.length-raw.trimStart().length), en=sel.to-(raw.length-raw.trimEnd().length);
+  if(s>=en || /\n/.test(val.slice(s, en)) || BC_URL_ONLY.test(val.slice(s, en).trim())) return false;
+  e.preventDefault();
+  var tail="]("+url+")";
+  view.dispatch({ changes:[{ from:s, insert:"[" }, { from:en, insert:tail }], selection:{ anchor:en+1+tail.length }, userEvent:"input.paste", scrollIntoView:true });
+  toast("Linked", 1400);
+  return true;
+}
+/* Enter inside a list or a quote carries it on to the next line, a numbered list counting up and
+   a task starting unticked. Enter on an empty item ends it: a nested item steps out one level
+   first; otherwise the marker goes and a blank line is left above the cursor, because in Markdown
+   a paragraph written straight under a list becomes part of its last item. In a table, Enter adds
+   a row. */
+function bcMdEnter(v){
+  var sel=v.state.selection.main; if(!sel.empty) return false;
+  if(bcTableEnter(v)) return true;
+  var val=bcEdText(v), s=sel.from, a=bcLineStart(val, s), e=val.indexOf("\n", s); if(e<0) e=val.length;
+  var m=val.slice(a, s).match(/^(\s*)([-*+] \[[ xX]\] |[-*+] |\d+[.)] |> )(.*)$/); if(!m) return false;
+  var indent=m[1], marker=m[2], rest=m[3];
+  if(!rest.trim() && !val.slice(s, e).trim()){
+    if(indent){ var k=indent.charAt(0)==="\t" ? 1 : Math.min(2, indent.length); return bcMdEdit(v, a, a+k, "", s-k); }
+    var prevBlank=a===0 || !val.slice(bcLineStart(val, a-1), a-1).trim();
+    return bcMdEdit(v, a, e, prevBlank ? "" : "\n", prevBlank ? a : a+1);
+  }
+  var next=marker.replace(/\[[xX]\]/, "[ ]"), om=marker.match(/^(\d+)([.)]) $/);
+  if(om) next=(parseInt(om[1], 10)+1)+om[2]+" ";
+  var ins="\n"+indent+next; return bcMdEdit(v, s, s, ins, s+ins.length);
+}
+
+/* A table's lines: its first through its last line that holds a pipe. A line without one, written
+   straight under a table, ends it, as Backchat has always read a table (GFM would make it a row). */
+function bcTableSpan(doc, n){
+  var a=doc.lineAt(n.from), b=doc.lineAt(n.to);
+  while(b.number>a.number+1 && b.text.indexOf("|")<0) b=doc.line(b.number-1);
+  return { from:a.from, to:b.to, first:a.number, last:b.number };
+}
+/* --- tables ---
+   A GFM table: a heading row, a line of dashes (colons set the alignment), then a line per row,
+   with | between cells. Its spacing is never rewritten, so it reads the same in Point First,
+   Obsidian and Ghost. The cells of a table's lines, with where each sits; the dash line is left
+   out. a and b bound a cell between its pipes; row 0 is the heading row. */
+function bcTableCells(val, from, to){
+  var out=[], pos=from, row=0, tre=new RegExp(BC_LINK_RE.source, "g");
+  val.slice(from, to).split("\n").forEach(function(ln){
+    if(row!==1){
+      var keep=[], m; tre.lastIndex=0; while((m=tre.exec(ln))) keep.push([m.index, m.index+m[0].length]);   // a location link's own pipes are not walls between cells
+      var inLink=function(i){ return keep.some(function(r){ return i>r[0] && i<r[1]; }); };
+      var bars=[]; for(var i=0; i<ln.length; i++){ if(ln[i]==="\\" && ln[i+1]==="|"){ i++; continue; } if(ln[i]==="|" && !inLink(i)) bars.push(i); }
+      var lead=/^\s*\|/.test(ln), trail=/\|\s*$/.test(ln);
+      var edges=[lead ? bars[0] : -1].concat(bars.slice(lead ? 1 : 0, trail ? bars.length-1 : bars.length), [trail ? bars[bars.length-1] : ln.length]);
+      for(var k=0; k+1<edges.length; k++) out.push({ row:row>1 ? row-1 : 0, a:pos+edges[k]+1, b:pos+edges[k+1], text:ln.slice(edges[k]+1, edges[k+1]) });
+    }
+    pos+=ln.length+1; row++;
+  });
+  return out;
+}
+function bcTableAligns(ln){ return ln.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function(c){ c=c.trim(); var l=c.charAt(0)===":", r=c.slice(-1)===":"; return l&&r ? "center" : r ? "right" : l ? "left" : ""; }); }
+// A table's Markdown as a table, each cell carrying where it starts, so a click lands the caret
+// in that cell. A cell's text is drawn as a comment's is (commentHtml): escaped, with links.
+function bcTableHtml(src, from){
+  var ls=src.split("\n"), al=bcTableAligns(ls[1]||""), cells=bcTableCells(src, 0, src.length), rows=[];
+  var where=function(c){ var lead=c.text.length-c.text.trimStart().length; return from+c.a+(c.text.trim() ? lead : Math.min(1, c.text.length)); };
+  var html=function(t){ return commentHtml(t.trim().replace(/\\\|/g, "|")); };
+  var st=function(j){ return al[j] ? ' style="text-align:'+al[j]+'"' : ""; };
+  cells.forEach(function(c){ (rows[c.row]=rows[c.row]||[]).push(c); });
+  var head=rows[0]||[], n=head.length;
+  var h="<table><thead><tr>"+head.map(function(c, j){ return "<th"+st(j)+' data-pos="'+where(c)+'">'+html(c.text)+"</th>"; }).join("")+"</tr></thead><tbody>";
+  for(var r=1; r<rows.length; r++){
+    if(!rows[r]) continue;
+    h+="<tr>";
+    for(var j=0; j<n; j++){ var c=rows[r][j]; h+=c ? "<td"+st(j)+' data-pos="'+where(c)+'">'+html(c.text)+"</td>" : "<td"+st(j)+"></td>"; }
+    h+="</tr>";
+  }
+  return h+"</tbody></table>";
+}
+// The table holding a position, as { from, to } on whole lines, or null.
+function bcTableAt(v, pos){
+  var st=v.state, tree=window.CM.syntaxTree(st);
+  for(var side=-1; side<=1; side+=2){ for(var n=tree.resolveInner(pos, side); n; n=n.parent) if(n.name==="Table"){ var sp=bcTableSpan(st.doc, n); return pos>=sp.from && pos<=sp.to ? { from:sp.from, to:sp.to } : null; } }
+  return null;
+}
+// Tab in a table goes to the next cell and selects what is in it; Shift+Tab, the one before. Tab
+// past the last cell adds a row.
+function bcTableTab(v, back){
+  var s=v.state.selection.main.from, t=bcTableAt(v, s); if(!t) return false;
+  var val=bcEdText(v), cells=bcTableCells(val, t.from, t.to); if(!cells.length) return true;
+  var i=cells.findIndex(function(c){ return s>=c.a && s<=c.b; }); if(i<0) i=back ? cells.length : -1;
+  var j=back ? i-1 : i+1; if(j<0) return true;
+  if(j>=cells.length){ var n=cells.filter(function(c){ return c.row===0; }).length || 2, end=t.to; return bcMdEdit(v, end, end, "\n|"+"  |".repeat(n), end+3); }
+  var c=cells[j], lead=c.text.length-c.text.trimStart().length, body=c.text.trim();
+  v.dispatch({ selection:body ? { anchor:c.a+lead, head:c.a+lead+body.length } : { anchor:c.a+Math.min(1, c.text.length) }, scrollIntoView:true });
+  return true;
+}
+// Enter in a table adds a row under the one you are in (on the heading row, under the dashes),
+// the caret in its first cell. Enter on an empty last row ends the table, as an empty item ends a
+// list.
+function bcTableEnter(v){
+  var sel=v.state.selection.main; if(!sel.empty) return false;
+  var s=sel.from, t=bcTableAt(v, s); if(!t) return false;
+  var val=bcEdText(v), ls=bcLineStart(val, s), le=val.indexOf("\n", s); if(le<0) le=val.length;
+  var li=val.slice(t.from, ls).split("\n").length-1, n=bcTableCells(val, t.from, t.to).filter(function(c){ return c.row===0; }).length || 2;
+  if(li>=2 && !val.slice(ls, le).replace(/[|\s]/g, "") && le===t.to) return bcMdEdit(v, ls-1, le, "\n\n", ls+1);
+  var at=le;
+  if(li<2){ var d=val.indexOf("\n", ls), d2=d<0 ? -1 : val.indexOf("\n", d+1); at=li===0 ? (d2<0 ? val.length : d2) : le; }
+  if(li<2 && at>t.to) at=t.to;
+  return bcMdEdit(v, at, at, "\n|"+"  |".repeat(n), at+3);
+}
+// Up and Down stop at a drawn table instead of passing over it: the cursor lands on its first line
+// going down, its last going up, and the table opens to its Markdown.
+function bcArrowIntoTable(v, down){
+  var sel=v.state.selection.main; if(!sel.empty) return false;
+  var next=v.moveVertically(sel, down), lo=Math.min(sel.head, next.head), hi=Math.max(sel.head, next.head), hit=null;
+  v.state.field(bcEd().tables).between(lo, hi, function(f, t){ if(f>=lo && t<=hi && f!==t && !hit) hit={ f:f, t:t }; });
+  if(!hit) return false;
+  v.dispatch({ selection:{ anchor:down ? hit.f : v.state.doc.lineAt(hit.t).from }, scrollIntoView:true });
+  return true;
+}
+
+/* --- Tab and Shift+Tab ---
+   In a table, the next or the previous cell. Anywhere else, every line the cursor or the selection
+   touches moves one step right, or left, as one step to undo. A list item steps two spaces, which
+   is how Markdown nests a list, and so does code in a fence. Prose steps by an em space: Markdown
+   has no paragraph indent, and a tab or four spaces would make it code in Obsidian and Ghost. In a
+   quote it goes after the >. Headings, rules and fence lines stay. Esc, then Tab, leaves the page. */
+var BC_EMSP=" ";
+function bcMdTab(v, out){
+  if(bcTableTab(v, out)) return true;
+  if(Date.now()-_bcEscAt<=2000) return false;
+  var val=bcEdText(v), sel=v.state.selection.main, ss=sel.from, se=sel.to, L=bcMvLines(val), id=bcMvBlocks(L);
+  var lineOf=function(pos){ var lo=0, hi=L.length-1; while(lo<hi){ var mid=(lo+hi+1)>>1; if(L[mid].s<=pos) lo=mid; else hi=mid-1; } return lo; };
+  var a=lineOf(ss), b=lineOf(se); if(se>ss && b>a && se===L[b].s) b--;
+  var kind=[], f="";
+  L.forEach(function(l){ var fm=l.t.match(/^\s{0,3}(```|~~~)/);
+    if(f){ if(fm && l.t.trim().indexOf(f)===0){ kind.push("fence"); f=""; } else kind.push("code"); return; }
+    if(fm){ kind.push("fence"); f=fm[1]; } else kind.push(""); });
+  var kindOf=function(i){ var t=L[i].t; if(kind[i]) return kind[i];
+    if(/^\s{0,3}(#{1,6}(\s|$)|([*_-])(\s*\3){2,}\s*$|\|)/.test(t)) return "fixed";
+    return bcMvItem(L, id, i) ? "list" : /^\s*>/.test(t) ? "quote" : "prose"; };
+  var edits=[], one=a===b && ss===se, m;
+  for(var i=a; i<=b; i++){
+    var l=L[i], t=l.t, k=kindOf(i);
+    if(k==="fence" || k==="fixed") continue;
+    if(!t.trim()){
+      if(!one) continue;
+      if(!out) edits.push({ from:se, to:se, insert:k==="code" ? "  " : BC_EMSP });
+      else if(t.charAt(0)===BC_EMSP || t.charAt(0)==="\t") edits.push({ from:l.s, to:l.s+1, insert:"" });
+      else if(t.charAt(0)===" ") edits.push({ from:l.s, to:l.s+Math.min(t.length, k==="code" ? 2 : 4), insert:"" });
+      continue;
+    }
+    if(!out){
+      if(k==="prose"){ var e0=t.match(/^ */)[0].length; edits.push({ from:l.s+e0, to:l.s+e0, insert:BC_EMSP }); }
+      else if(k==="quote"){ m=t.match(/^\s*(?:>[ \t]?)+ */); edits.push({ from:l.s+m[0].length, to:l.s+m[0].length, insert:BC_EMSP }); }
+      else edits.push({ from:l.s, to:l.s, insert:"  " });
+    }
+    else if(k==="quote" && (m=t.match(/^(\s*(?:>[ \t]?)+) /))) edits.push({ from:l.s+m[1].length, to:l.s+m[1].length+1, insert:"" });
+    else if(t.charAt(0)===BC_EMSP || t.charAt(0)==="\t") edits.push({ from:l.s, to:l.s+1, insert:"" });
+    else if((m=t.match(/^ +/))) edits.push({ from:l.s, to:l.s+Math.min(m[0].length, k==="prose" ? 4 : 2), insert:"" });
+  }
+  if(edits.length){
+    var cs=v.state.changes(edits);
+    v.dispatch({ changes:cs, selection:{ anchor:cs.mapPos(ss, 1), head:cs.mapPos(se, 1) }, userEvent:"input", scrollIntoView:true });
+  }
+  return true;
+}
+
+/* --- moving paragraphs ---
+   Alt+Up and Alt+Down move the paragraph the cursor is in past the one before or after it. The
+   blank lines between them stay where they were, so the spacing never changes. A selection moves
+   every paragraph it touches, together. A heading is a paragraph of its own; a code block keeps
+   the blank lines inside it. In a list, the item moves past its neighbour at the same depth, its
+   own sub-items with it, and a numbered list keeps counting up. At the top or the end nothing
+   moves. */
+var BC_MV_ITEM=/^([ \t]*)([-*+]|\d+[.)])(?=[ \t]|$)/;
+// Each line's place: start, end (before its line break) and text.
+function bcMvLines(val){ var L=[], p=0; val.split("\n").forEach(function(t){ L.push({ s:p, e:p+t.length, t:t }); p+=t.length+1; }); return L; }
+// Which paragraph each line belongs to, numbered from 0, or -1 for a blank line. A heading stands
+// alone, and so does a code block, which runs on across blank lines inside it.
+function bcMvBlocks(L){
+  var id=new Array(L.length).fill(-1), b=-1, fence="", fresh=true;
+  for(var i=0; i<L.length; i++){
+    var t=L[i].t;
+    if(fence){ id[i]=b; if(t.trim().indexOf(fence)===0){ fence=""; fresh=true; } continue; }
+    if(!t.trim()){ fresh=true; continue; }
+    var f=t.match(/^\s{0,3}(```|~~~)/), h=/^\s{0,3}#{1,6}(\s|$)/.test(t);
+    if(fresh || f || h) b++;
+    id[i]=b; fresh=!!h;
+    if(f){ fence=f[1]; fresh=false; }
+  }
+  return id;
+}
+// A list item's depth: its indent, a tab counting as four spaces.
+function bcMvDepth(t){ var m=t.match(BC_MV_ITEM); return m ? m[1].replace(/\t/g, "    ").length : -1; }
+// The list item line i sits in: its first line and its last, sub-items and run-on lines included.
+function bcMvItem(L, id, i){
+  var j=i; while(j>=0 && id[j]===id[i] && bcMvDepth(L[j].t)<0) j--;
+  if(j<0 || id[j]!==id[i]) return null;
+  var d=bcMvDepth(L[j].t), e=j;
+  while(e+1<L.length && id[e+1]===id[j]){ var dd=bcMvDepth(L[e+1].t); if(dd>=0 && dd<=d) break; e++; }
+  return { a:j, b:e, d:d };
+}
+// Works out a move without making it: the span that changes, the pieces of the old text that fill
+// it in their new order (a piece may carry new text: a list number), and where the selection goes.
+function bcPlanMove(val, ss, se, dir){
+  var L=bcMvLines(val), id=bcMvBlocks(L);
+  var lineOf=function(pos){ var lo=0, hi=L.length-1; while(lo<hi){ var mid=(lo+hi+1)>>1; if(L[mid].s<=pos) lo=mid; else hi=mid-1; } return lo; };
+  var a=lineOf(ss), b=lineOf(se); if(se>ss && b>a && se===L[b].s) b--;
+  var piece=function(x, y, unit){ return { s:x, e:y, unit:unit }; };
+  var ia=bcMvItem(L, id, a), k;
+  if(ia && id[b]===id[a]){
+    var kb=-1; for(k=b; k>=ia.a; k--){ var dk=bcMvDepth(L[k].t); if(dk>=0 && dk<ia.d) break; if(dk===ia.d){ kb=k; break; } }
+    var ib=kb>=0 ? bcMvItem(L, id, kb) : null;
+    if(ib && ib.b>=b){
+      var u={ a:ia.a, b:ib.b, d:ia.d }, o=null;
+      if(dir<0){ for(k=u.a-1; k>=0 && id[k]===id[u.a]; k--){ var d2=bcMvDepth(L[k].t); if(d2>=0 && d2<u.d) break; if(d2===u.d){ o=bcMvItem(L, id, k); break; } } }
+      else if(u.b+1<L.length && id[u.b+1]===id[u.a] && bcMvDepth(L[u.b+1].t)===u.d) o=bcMvItem(L, id, u.b+1);
+      if(!o) return null;
+      var up=dir<0, first=up ? o : u, second=up ? u : o;   // in the old text, first sits above second
+      var P=[piece(L[second.a].s, L[second.b].e, up), piece(L[second.a].s-1, L[second.a].s, false), piece(L[first.a].s, L[first.b].e, !up)];
+      var nf=L[first.a].t.match(BC_MV_ITEM), ns=L[second.a].t.match(BC_MV_ITEM);
+      if(nf && ns && /\d/.test(nf[2]) && /\d/.test(ns[2])){   // a numbered list keeps counting up: the two heads trade numbers
+        var nA=nf[2].match(/\d+/)[0], nB=ns[2].match(/\d+/)[0];
+        var cut=function(pc, ln, mm, num){ var at=ln.s+mm[1].length, len=mm[2].match(/\d+/)[0].length; return [piece(pc.s, at, pc.unit), { s:at, e:at+len, unit:pc.unit, text:num }, piece(at+len, pc.e, pc.unit)]; };
+        P.splice.apply(P, [0, 1].concat(cut(P[0], L[second.a], ns, nA)));
+        P.splice.apply(P, [P.length-1, 1].concat(cut(P[P.length-1], L[first.a], nf, nB)));
+      }
+      return bcMvFinish(val, L[first.a].s, L[second.b].e, P, ss, se);
+    }
+  }
+  while(a<=b && id[a]<0) a++; while(b>=a && id[b]<0) b--; if(a>b) return null;
+  var ua=a, ub=b; while(ua>0 && id[ua-1]===id[a]) ua--; while(ub+1<L.length && id[ub+1]===id[b]) ub++;
+  var j;
+  if(dir<0){
+    j=ua-1; while(j>=0 && id[j]<0) j--; if(j<0) return null; k=j; while(k>0 && id[k-1]===id[j]) k--;
+    return bcMvFinish(val, L[k].s, L[ub].e, [piece(L[ua].s, L[ub].e, true), piece(L[j].e, L[ua].s, false), piece(L[k].s, L[j].e, false)], ss, se);
+  }
+  j=ub+1; while(j<L.length && id[j]<0) j++; if(j>=L.length) return null; k=j; while(k+1<L.length && id[k+1]===id[j]) k++;
+  return bcMvFinish(val, L[ua].s, L[k].e, [piece(L[j].s, L[k].e, false), piece(L[ub].e, L[j].s, false), piece(L[ua].s, L[ub].e, true)], ss, se);
+}
+// Lays the pieces end to end and carries the selection along with the piece it was in.
+function bcMvFinish(val, from, to, P, ss, se){
+  var text="", at=from, map=[];
+  P.forEach(function(p){ var t=p.text!=null ? p.text : val.slice(p.s, p.e); map.push({ p:p, at:at, len:t.length }); text+=t; at+=t.length; });
+  var carry=function(pos){
+    for(var i=0; i<map.length; i++){ var mm=map[i]; if(mm.p.unit && pos>=mm.p.s && pos<=mm.p.e) return mm.at+Math.min(pos-mm.p.s, mm.len); }
+    var us=map.filter(function(mm){ return mm.p.unit; }); return pos<us[0].p.s ? us[0].at : us[us.length-1].at+us[us.length-1].len;
+  };
+  return { from:from, to:to, text:text, anchor:carry(ss), head:carry(se) };
+}
+function bcMoveBlock(v, dir){
+  var sel=v.state.selection.main, m=bcPlanMove(bcEdText(v), sel.from, sel.to, dir); if(!m) return true;
+  v.dispatch({ changes:{ from:m.from, to:m.to, insert:m.text }, selection:{ anchor:m.anchor, head:m.head }, userEvent:"move.line", scrollIntoView:true });
+  return true;
 }
 // opts.push: write the book's record to the folder now, as an explicit save does. Resolves to true
 // when the margins changed.
@@ -6466,10 +7076,11 @@ function bcSaveMargins(b, text, opts){
     return true;
   }).catch(function(e){ console.error("save margins", e); toast("Could not save changes"); return false; });
 }
-var _notesBtnAction=false, _detNotesOwnerId=null;
+var _notesBtnAction=false, _detNotesOwnerId=null, _detEd=null;
 function renderMarginsSection(b){
   var box=$("#det-margins"); if(!box) return;
   try{ var _dfx=document.getElementById("details"); if(_dfx) _dfx.classList.remove("bc-focus-write"); }catch(e){}
+  if(_detEd){ _detEd.destroy(); _detEd=null; }
   var hasScratch=b.scratch && b.scratch.trim();
   var wc=hasScratch ? b.scratch.trim().split(/\s+/).filter(Boolean).length : 0;
   var editBtn='<button class="linkbtn" id="det-notes-edit">'+(hasScratch
@@ -6477,72 +7088,46 @@ function renderMarginsSection(b){
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add')+'</button>';
   var count=hasScratch ? '<span class="det-notes-count">'+wc+' word'+(wc===1?'':'s')+'</span>' : '';
   box.innerHTML='<section id="det-notes-sec"><div class="margins-head"><h2>Margins</h2>'+count+editBtn+'</div>'
-    +'<div class="scratch-view margins-view" id="details-scratch"></div>'
+    +'<div id="details-scratch"></div>'
     +'<div id="det-notes-editor" style="display:none">'
-    +'<textarea id="det-notes-area" class="det-notes-area bc-write" placeholder="Write anything about this book. Markdown: # heading, **bold**, *italic*, ==highlight==, ~~strike~~, - list, 1. list, - [ ] task, > quote, | a | b | table, ![alt](image url), and paste a YouTube link."></textarea>'
     +'<div class="actions"><button class="btn-ghost" id="det-notes-cancel">Cancel</button><button class="btn-primary" id="det-notes-save">Save notes</button></div>'
     +'</div></section>';
-  var mv=$("#details-scratch"), ta=$("#det-notes-area");
-  bcMarginsView(mv, b.scratch, '<span class="det-notes-empty">Nothing in the margins yet. This is where you talk back to the book, in your own words, separate from highlights. Click here to start. Markdown works: headings, lists, quotes, tables, ==highlight==, ~~strikethrough~~, images, and YouTube links.</span>');
-  if(mv){
-    // Click the notes to edit in place, caret near the click.
-    mv.style.cursor="text";
-    mv.addEventListener("click", function(e){
-      if(e.target.closest && e.target.closest("a, input, button, .md-video, .md-embed, iframe")) return;   // links, tasks, buttons, and video embeds handle their own click, not edit
-      var sel=window.getSelection&&window.getSelection();
-      if(sel&&String(sel).length) return;
-      var caret=marginsClickToSource(mv, e.clientX, e.clientY, (detailsBook&&detailsBook.scratch)||"");
-      detailsNotesEdit(caret);
-    });
-  }
-  // Click-out (blur) saves, unless the Save/Cancel button was the thing pressed.
-  if(ta){
-    ta.addEventListener("blur", function(){
-      setTimeout(function(){
-        if(_notesBtnAction){ _notesBtnAction=false; return; }
-        var ed=$("#det-notes-editor");
-        if(ed && ed.style.display!=="none") detailsNotesSave();
-      }, 120);
-    });
-  }
+  var mv=$("#details-scratch");
+  _detEd=bcMarginsEditor(mv, {
+    empty:'<span class="det-notes-empty">Nothing in the margins yet. This is where you talk back to the book, in your own words, separate from highlights. Click here to start. Markdown works: headings, lists, quotes, tables, ==highlight==, ~~strikethrough~~, images, and YouTube links.</span>',
+    placeholder:"Write anything about this book. Markdown: # heading, **bold**, *italic*, ==highlight==, ~~strike~~, - list, 1. list, - [ ] task, > quote, | a | b | table, ![alt](image url), and paste a YouTube link.",
+    // Leaving the words saves, unless Save or Cancel was the thing pressed.
+    onBlur:function(){ setTimeout(function(){ if(_notesBtnAction){ _notesBtnAction=false; return; } if(_detEd && _detEd.writing) detailsNotesSave(); }, 120); },
+    topInset:function(){ var t=document.querySelector("#details .topbar"); return t ? t.getBoundingClientRect().height+12 : 0; }
+  });
+  _detEd.set(b.scratch);
+  // A click into the words starts writing, the caret where you clicked.
+  mv.style.cursor="text";
+  mv.addEventListener("click", function(e){
+    if(!_detEd || _detEd.writing) return;
+    if(e.target.closest && e.target.closest("a, input, button, .bc-ref, .md-video, .md-embed, iframe")) return;   // links, buttons and video cards handle their own click
+    var sel=window.getSelection && window.getSelection();
+    if(sel && String(sel).length) return;
+    detailsNotesEdit(_detEd.posAt(e));
+  });
   var ne=$("#det-notes-edit"); if(ne) ne.onclick=function(){ detailsNotesEdit(); };
   var ns=$("#det-notes-save"); if(ns){ ns.onmousedown=function(){ _notesBtnAction=true; }; ns.onclick=detailsNotesSave; }
   var nc=$("#det-notes-cancel"); if(nc){ nc.onmousedown=function(){ _notesBtnAction=true; }; nc.onclick=detailsNotesCancel; }
 }
-/* Scroll a textarea so the caret at char index `pos` sits centered. A hidden mirror
-   div copies the textarea's box and wrapping so we get the caret's true pixel Y,
-   which line-counting cannot (it ignores word wrap). */
-function scrollTextareaToCaret(ta, pos){
-  try{
-    if(!ta) return;
-    var cs=getComputedStyle(ta), doc=document, mirror=doc.createElement("div"), st=mirror.style;
-    st.position="absolute"; st.top="-9999px"; st.left="-9999px"; st.visibility="hidden";
-    st.whiteSpace="pre-wrap"; st.wordWrap="break-word"; st.overflow="hidden"; st.boxSizing="border-box";
-    st.width=ta.clientWidth+"px"; st.borderWidth="0";
-    ["paddingTop","paddingRight","paddingBottom","paddingLeft","fontFamily","fontSize","fontWeight","fontStyle","lineHeight","letterSpacing","textTransform","wordSpacing","tabSize"].forEach(function(p){ try{ st[p]=cs[p]; }catch(e){} });
-    mirror.textContent=ta.value.slice(0,pos);
-    var mark=doc.createElement("span"); mark.textContent=ta.value.slice(pos)||"."; mirror.appendChild(mark);
-    doc.body.appendChild(mirror);
-    var top=mark.offsetTop;
-    doc.body.removeChild(mirror);
-    ta.scrollTop=Math.max(0, top - ta.clientHeight/2);
-  }catch(e){}
-}
 function detailsNotesEdit(caret){
-  var ed=$("#det-notes-editor"), view=$("#details-scratch"), btn=$("#det-notes-edit"), ta=$("#det-notes-area");
-  if(!ed||!detailsBook||!ta) return;
+  var ed=$("#det-notes-editor"), btn=$("#det-notes-edit");
+  if(!ed || !detailsBook || !_detEd) return;
   _detNotesOwnerId=detailsBook.id;
-  if(view) view.style.display="none"; ed.style.display="block"; if(btn) btn.style.display="none";
+  ed.style.display="block"; if(btn) btn.style.display="none";
   try{ var _df=document.getElementById("details"); if(_df) _df.classList.add("bc-focus-write"); }catch(e){}
-  bcMarginsOpen(ta, detailsBook, caret);
+  _detEd.edit(caret);
   bcBackSoon();
 }
 function detailsNotesCancel(){ try{ var _d=document.getElementById("details"); if(_d) _d.classList.remove("bc-focus-write"); }catch(e){} if(detailsBook) renderRichDetails(detailsBook); }
 function detailsNotesSave(){
-  var ta=$("#det-notes-area");
-  if(!detailsBook || !ta || detailsBook.id!==_detNotesOwnerId) return;   // text opened for another book is never saved into this one
+  if(!detailsBook || !_detEd || detailsBook.id!==_detNotesOwnerId) return;   // text opened for another book is never saved into this one
   try{ var _d=document.getElementById("details"); if(_d) _d.classList.remove("bc-focus-write"); }catch(e){}
-  bcSaveMargins(detailsBook, ta.value, { push:true, allowPrompt:true }).then(function(){ renderDetails(); toast("Notes saved"); });
+  bcSaveMargins(detailsBook, _detEd.value, { push:true, allowPrompt:true }).then(function(){ renderDetails(); toast("Notes saved"); });
 }
 // Library-wide Markdown snapshot: one file per book, connections resolved to [[wikilinks]],
 // bundled as a .zip you can unzip straight into an Obsidian vault.
@@ -7502,7 +8087,17 @@ function closePanels(){ $("#overlay").classList.remove("open"); flushScratch(); 
    The editor's text belongs to the book it was loaded for (_scratchOwnerId). A late save
    (the typing debounce, or a blur) that fires after another book has opened is dropped,
    so one book's margins can never be written over another's. */
-var _scratchTimer=null, _scratchOwnerId=null;
+var _scratchTimer=null, _scratchOwnerId=null, _scratchEd=null;
+// The drawer's page, made the first time the margins open.
+function bcScratchEd(){
+  if(!_scratchEd) _scratchEd=bcMarginsEditor($("#scratch-page"), {
+    empty:"Nothing here yet. Tap Edit to start writing about this book.",
+    placeholder:"Write anything about this book. Markdown works: # heading, **bold**, - list, > quote. Paste a location link from a highlight to jump back to a spot.",
+    onInput:function(){ clearTimeout(_scratchTimer); _scratchTimer=setTimeout(saveScratch, 800); updateScratchWc(); },
+    onBlur:saveScratch
+  });
+  return _scratchEd;
+}
 function openScratch(){
   if(!currentBook){ return; }
   $("#scratch-panel").classList.remove("editing");
@@ -7510,24 +8105,25 @@ function openScratch(){
   renderScratchView();
   openPanel($("#scratch-panel"));
 }
-function renderScratchView(){ bcMarginsView($("#scratch-view"), currentBook && currentBook.scratch, ""); }
+function renderScratchView(){ bcScratchEd().set(currentBook ? currentBook.scratch : ""); try{ updateScratchWc(); }catch(e){} }
 function toggleScratchEdit(){
-  var panel=$("#scratch-panel"), editing=panel.classList.toggle("editing");
+  var panel=$("#scratch-panel"), editing=panel.classList.toggle("editing"), ed=bcScratchEd();
   if(editing){
     _scratchOwnerId=currentBook?currentBook.id:null;
     $("#scratch-toggle").textContent="Done";
-    bcMarginsOpen($("#scratch-edit-area"), currentBook);
+    if(currentBook && ed.value!==(currentBook.scratch||"")) ed.set(currentBook.scratch);
+    ed.edit();
   } else {
     saveScratch();
     $("#scratch-toggle").textContent="Edit";
-    renderScratchView();
+    ed.read();
   }
   try{ updateScratchWc(); }catch(e){}
 }
 function saveScratch(){
   clearTimeout(_scratchTimer);
-  if(!currentBook || currentBook.id!==_scratchOwnerId) return;
-  bcSaveMargins(currentBook, $("#scratch-edit-area").value);
+  if(!currentBook || currentBook.id!==_scratchOwnerId || !_scratchEd) return;
+  bcSaveMargins(currentBook, _scratchEd.value);
 }
 // One tap from a highlight to the margins: quote, location link, the comment if the mark
 // carries one, and an open line for the note. The mechanical half of the homemade index.
@@ -7563,8 +8159,8 @@ function appendToMargins(entry){
   if(cur && !/\n$/.test(cur)) cur+="\n";
   if(cur && !/\n\n$/.test(cur)) cur+="\n";
   bcSaveMargins(currentBook, cur+entry);
-  var ta=$("#scratch-edit-area"); if(ta){ ta.value=currentBook.scratch; _scratchOwnerId=currentBook.id; }
-  try{ renderScratchView(); }catch(e){}
+  _scratchOwnerId=currentBook.id;
+  try{ bcScratchEd().set(currentBook.scratch, true); updateScratchWc(); }catch(e){}   // writing stays writing
   toast("Added to margins");
 }
 // Persist any in-progress edit before the panel closes or the book is left.
@@ -7572,52 +8168,11 @@ function flushScratch(){
   var panel=$("#scratch-panel");
   if(panel && panel.classList.contains("editing")) saveScratch();
 }
-/* ---- Writing surface behavior (both margins editors: the reader's panel and the book page) ---- */
-function bcInsertText(ta, text){
-  ta.focus(); var ok=false;
-  try{ ok=document.execCommand("insertText", false, text); }catch(e){}
-  if(!ok){ var s=ta.selectionStart, en=ta.selectionEnd, v=ta.value; ta.value=v.slice(0,s)+text+v.slice(en); ta.selectionStart=ta.selectionEnd=s+text.length; ta.dispatchEvent(new Event("input",{bubbles:true})); }
-}
-function bcReplaceRange(ta, from, to, text){
-  ta.focus();
-  if(typeof ta.setRangeText==="function"){ ta.setRangeText(text, from, to, "end"); }
-  else { var v=ta.value; ta.value=v.slice(0,from)+text+v.slice(to); ta.selectionStart=ta.selectionEnd=from+text.length; }
-  ta.dispatchEvent(new Event("input",{bubbles:true}));
-}
-function bcAutoGrow(ta){ if(!ta||!ta.classList||!ta.classList.contains("bc-write")) return; ta.style.height="auto"; var h=ta.scrollHeight; if(h) ta.style.height=(h+2)+"px"; }
-/* Enter continues a list or quote (an empty item ends it); Tab indents inside a list. execCommand keeps
-   the browser's native undo intact. Anything not a list/quote falls through to normal typing. */
-function bcWriterKeydown(e){
-  var ta=e.target; if(e.isComposing) return;
-  if(e.key==="Enter" && !e.shiftKey && ta.selectionStart===ta.selectionEnd){
-    var val=ta.value, pos=ta.selectionStart, ls=val.lastIndexOf("\n",pos-1)+1, line=val.slice(ls,pos);
-    var m=line.match(/^(\s*)((?:[-*+]\s\[[ xX]\]\s)|(?:[-*+]\s)|(?:\d+\.\s)|(?:>\s))/);
-    if(m){
-      var indent=m[1], marker=m[2], content=line.slice(m[0].length);
-      if(content.trim()===""){ e.preventDefault(); bcReplaceRange(ta, ls, pos, indent); return; }
-      e.preventDefault();
-      var next=marker, om=marker.match(/^(\d+)\.\s$/);
-      if(om) next=(parseInt(om[1],10)+1)+". ";
-      else if(/\[[ xX]\]/.test(marker)) next=marker.replace(/\[[xX]\]/,"[ ]");
-      bcInsertText(ta, "\n"+indent+next); return;
-    }
-  }
-  if(e.key==="Tab" && ta.selectionStart===ta.selectionEnd){
-    var v2=ta.value, p2=ta.selectionStart, ls2=v2.lastIndexOf("\n",p2-1)+1;
-    var le=v2.indexOf("\n",p2); if(le<0) le=v2.length;
-    if(/^\s*((?:[-*+]\s)|(?:\d+\.\s)|(?:>\s))/.test(v2.slice(ls2,le))){
-      e.preventDefault();
-      if(e.shiftKey){ var lead=v2.slice(ls2).match(/^\s{1,2}/); if(lead) bcReplaceRange(ta, ls2, ls2+lead[0].length, ""); }
-      else bcReplaceRange(ta, ls2, ls2, "  ");
-    }
-  }
-}
 function updateScratchWc(){
   var el=document.getElementById("scratch-wc"); if(!el) return;
   var panel=document.getElementById("scratch-panel");
-  if(!panel || !panel.classList.contains("editing")){ el.textContent=""; return; }
-  var ta=document.getElementById("scratch-edit-area");
-  var w=ta? ((ta.value.trim().match(/\S+/g)||[]).length) : 0;
+  if(!panel || !panel.classList.contains("editing") || !_scratchEd){ el.textContent=""; return; }
+  var w=(_scratchEd.value.trim().match(/\S+/g)||[]).length;
   el.textContent=w+" word"+(w===1?"":"s");
 }
 /* ---------- Keyboard shortcut help, with a quiet reading status line ---------- */
@@ -8524,12 +9079,6 @@ $("#set-btn").onclick=function(){ resetResetField(); reflectFaithful(); openPane
 $("#hl-btn").onclick=function(){ renderHlControls(); renderHighlightList(); openPanel($("#hl-panel")); };
 $("#scratch-btn").onclick=openScratch;
 $("#scratch-toggle").onclick=toggleScratchEdit;
-$("#scratch-edit-area").addEventListener("input", function(){ clearTimeout(_scratchTimer); _scratchTimer=setTimeout(saveScratch, 800); updateScratchWc(); });
-// Markdown flow for every writing surface (both margins editors), via delegation so dynamically-rendered editors get it too.
-document.addEventListener("keydown", function(e){ var t=e.target; if(t && t.classList && t.classList.contains("bc-write")) bcWriterKeydown(e); }, true);
-document.addEventListener("input", function(e){ if(e.target && e.target.classList && e.target.classList.contains("bc-write")) bcAutoGrow(e.target); }, true);
-document.addEventListener("focusin", function(e){ if(e.target && e.target.classList && e.target.classList.contains("bc-write")) bcAutoGrow(e.target); }, true);
-$("#scratch-edit-area").addEventListener("blur", saveScratch);
 $("#toc-btn").onclick=openToc;
 $("#export-md").onclick=function(e){ e.stopPropagation(); if(!currentBook){ toast("Open a book first"); return; } if(!hlLive(highlights).length){ toast("No highlights"); return; } var _bk=currentBook, _items=highlights; DB.all("meta").catch(function(){ return []; }).then(function(_ms){ var _base=safeName(_bk.title)+"-highlights"; downloadBlob(buildHighlightMarkdown(_bk, _items, {selfFile:_base}, tagRelatedTitles(_bk, _ms)), "text/markdown;charset=utf-8", _base+".md"); toast("Exported"); }); };
 $("#overlay").onclick=closePanels;
@@ -8771,6 +9320,7 @@ window.addEventListener("hashchange", handleRefHash);
 function boot(){
   if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(function(){}); }
   setTimeout(bcCheckQuota, 5000); setInterval(bcCheckQuota, 180000);   // a disk nearly full is said before a save fails
+  setTimeout(function(){ bcEditorLoad().catch(function(){}); }, 2000);   // the margins' editor, once the first screen is up
   applyTheme();
   syncSettingsUI();
   refreshIndexedCount();
