@@ -1702,6 +1702,98 @@ with sync_playwright() as p:
            "with no storage the app showed an empty library and said nothing")
     nctx2.close()
 
+    # 4p. What the reader did is what is kept. A sideways swipe on the page is the page's, never
+    #     the browser's Back; keys pressed after a click in the words are still the reader's keys;
+    #     margins closed with the X are closed, and never saved again over margins written since;
+    #     a book that opens keeps its progress; a database connection the browser closed is opened
+    #     again; and a save that failed is never followed by "saved".
+    nxctx = browser.new_context(viewport={"width": 1280, "height": 800}, bypass_csp=True); nxp = nxctx.new_page(); watch(nxp, "kept")
+    nxp.goto(URL); wait(nxp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+    nxp.set_input_files("#file-input", [LONG])
+    wait(nxp, "DB.all('meta').then(ms=>window.__nx=(ms.filter(m=>/Long Landing/.test(m.title))[0]||{}).id), !!window.__nx", 30000); settle(1.0)
+    nx_id = nxp.evaluate("window.__nx")
+    def nx_open():
+        nxp.evaluate("(id)=>{ openBook(id); }", nx_id)
+        wait(nxp, "rendition && rendition.getContents().length>0 && currentBook && !document.querySelector('#reader').classList.contains('hidden')"); settle(1.2)
+    NX_PAGE = "()=>{ const l=rendition && rendition.currentLocation(); return l && l.start ? (l.start.displayed||{}).page : null; }"
+    NX_SCRATCH = "(id)=>DB.get('meta', id).then(m=>m.scratch||'')"
+    try:
+        nx_open()
+        expect("a sideways swipe on the page is left to the page, which refuses the browser's Back while a book is open",
+               ev(nxp, "()=>{ const h=getComputedStyle(document.documentElement), c=getComputedStyle(document.querySelector('#viewport .epub-container')); return [h.overscrollBehaviorX, c.overscrollBehaviorX, c.overscrollBehaviorY]; }"),
+               ["none", "auto", "contain"],
+               "the book's scroller held sideways overscroll itself, and current Chrome then took a swipe across the page as its own Back gesture: the book closed")
+
+        nx0 = ev(nxp, NX_PAGE)
+        nxp.mouse.click(640, 420); settle(0.4)                      # a click in the words moves the keyboard focus into the page
+        nx_focus = ev(nxp, "()=>{ const f=document.querySelector('#viewport iframe'); if(document.activeElement!==f) f.focus(); return document.activeElement.tagName; }")
+        nxp.keyboard.press("ArrowRight"); settle(0.8); nx1 = ev(nxp, NX_PAGE)
+        nxp.keyboard.press("ArrowLeft"); settle(0.8); nx2 = ev(nxp, NX_PAGE)
+        expect("after a click in the words, the arrow keys still turn the page",
+               [nx_focus, isinstance(nx0, int) and isinstance(nx1, int) and nx1 > nx0, nx2 == nx0], ["IFRAME", True, True],
+               "a click in the page moved the focus into it, and no shortcut worked again until a click on a button (pages: %s, %s, %s)" % (nx0, nx1, nx2))
+
+        nxp.click("#scratch-btn"); settle(0.5); nxp.click("#scratch-toggle"); settle(1.2)
+        nxp.keyboard.type("First thought."); settle(1.2)
+        nxp.click("#scratch-panel [data-close]"); settle(0.5)       # the X, not Done
+        nx_still = ev(nxp, "()=>document.querySelector('#scratch-panel').classList.contains('editing')")
+        ev(nxp, """async(id)=>{ closeBook(); await new Promise(r=>setTimeout(r,400));
+          await bcSaveMargins(await DB.get('meta', id), "First thought. Second thought, written on the book's page."); return true; }""", nx_id)
+        nx_open()
+        ev(nxp, "()=>{ openPanel(document.querySelector('#toc-panel')); return true; }"); settle(0.4)
+        nx_after_panel = ev(nxp, NX_SCRATCH, nx_id)
+        ev(nxp, "()=>{ closePanels(); closeBook(); return true; }"); settle(0.6)
+        expect("margins closed with the X are closed: what they held is never saved again over margins written since",
+               [nx_still, nx_after_panel, ev(nxp, NX_SCRATCH, nx_id)],
+               [False, "First thought. Second thought, written on the book's page.", "First thought. Second thought, written on the book's page."],
+               "the drawer stayed in writing with its old words, and the next panel opened or book closed saved them over what the book's page had saved since")
+
+        nx_open()
+        ev(nxp, "()=>rendition.display(2).then(()=>true)"); settle(1.2)
+        wait(nxp, "book && book.locations && book.locations.total>0", 30000)
+        ev(nxp, "()=>rendition.next().then(()=>true)"); settle(1.0)
+        nx_p0 = ev(nxp, "(id)=>DB.get('meta', id).then(m=>m.progress)", nx_id)
+        # The list of locations as it is while epub.js is still building it: entries, and no total yet.
+        nx_mid = ev(nxp, """async()=>{ const L=book.locations, keep=[L._locations, L.total], before=currentBook.progress;
+          L._locations=keep[0].slice(0,3); L.total=0;
+          rendition.emit('relocated', rendition.currentLocation()); await new Promise(r=>setTimeout(r,300));
+          const during=currentBook.progress; L._locations=keep[0]; L.total=keep[1]; currentBook.progress=before; await saveProgress(currentBook);
+          return during===before; }""")
+        ev(nxp, "()=>{ closeBook(); return true; }"); settle(0.6)
+        nx_open(); settle(2.0)
+        nx_p1 = ev(nxp, "(id)=>DB.get('meta', id).then(m=>m.progress)", nx_id)
+        expect("a book that opens keeps its progress while its locations are still being counted",
+               [isinstance(nx_p0, float) and nx_p0 > 0.4, nx_mid, isinstance(nx_p1, float) and abs(nx_p1 - nx_p0) < 0.02], [True, True, True],
+               "the page reported its place before the count of locations was finished, and 0%% was shown and stored (before %s, after reopening %s)" % (nx_p0, nx_p1))
+        ev(nxp, "()=>{ closeBook(); return true; }"); settle(0.4)
+    except Exception as e:
+        expect("the checks of what is kept run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    nxctx.close()
+    # Not watched: a save is made to fail here, and the page says so in its console.
+    stctx = browser.new_context(viewport={"width": 1280, "height": 800}, bypass_csp=True); stp = stctx.new_page(); stp.on("dialog", lambda d: d.accept())
+    stp.goto(URL); wait(stp, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+    stp.set_input_files("#file-input", [ALPHA])
+    wait(stp, "DB.all('meta').then(ms=>window.__st=(ms.filter(m=>/Alpha Testing/.test(m.title))[0]||{}).id), !!window.__st", 30000); settle(1.0)
+    try:
+        stp.evaluate("()=>{ openBook(window.__st); }")
+        wait(stp, "rendition && rendition.getContents().length && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent)"); settle(0.8)
+        ST_MARK = """async([quote, color])=>{ const c=rendition.getContents()[0], r=findQuoteRange(c, secTextMap(c), quote);
+          lastSelection={ cfiRange:c.cfiFromRange(r), text:quote, contents:c }; await createHighlight(color); await new Promise(r=>setTimeout(r,300));
+          return document.getElementById('toast').textContent; }"""
+        ev(stp, "async()=>{ (await DB.open()).close(); return true; }")   # as a browser does to a tab it has put away, or when storage is cleared
+        st_toast = ev(stp, ST_MARK, ["quick brown fox", "yellow"])
+        st_stored = ev(stp, "async()=>{ try{ return hlLive(((await DB.get('highlights', currentBook.id))||{}).items||[]).map(h=>h.text); }catch(e){ return 'storage unreadable: '+e.name; } }")
+        expect("a database connection the browser closed is opened again, and the mark made next is stored", [st_toast, st_stored], ["Highlighted", ["quick brown fox"]],
+               "every write failed until the page was reloaded, while the page went on drawing marks it could not keep")
+        ev(stp, "()=>{ window.__put=DB.put; DB.put=function(store){ return store==='highlights' ? Promise.reject(new Error('disk')) : window.__put.apply(DB, arguments); }; return true; }")
+        st_fail = ev(stp, ST_MARK, ["Call me Ishmael", "green"])
+        ev(stp, "()=>{ DB.put=window.__put; return true; }")
+        expect('a save that failed is never followed by "saved"', ["Highlighted" in str(st_fail), "Could not save" in str(st_fail)], [False, True],
+               'the words "Could not save" were replaced at once by "Highlighted", so a mark that was only drawn read as kept')
+    except Exception as e:
+        expect("the storage checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    stctx.close()
+
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
     #    is the one marked). Run in pages and in scroll mode.
