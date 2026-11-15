@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-iDR/S8n4YGVa+tNaMkRHfxlJztocDXcXWnTLLNMkUbg=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ug5Yk/FyoC/AqUuGD9rwmC9nJSeH+9lZ9fYJjequw9o=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -17,6 +17,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Backchat">
@@ -391,6 +392,13 @@
   .margins-head .det-notes-count{color:var(--muted);font-size:.8rem;font-weight:400}
   .margins-head .linkbtn{margin-left:auto;flex:0 0 auto}
   .det-notes-empty{color:var(--muted);font-size:.95rem;line-height:1.6;font-style:italic}
+  /* An earlier version of the margins that was kept: a quiet box under them, closed until asked for. */
+  .det-prev{margin:1.4rem 0 0;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:.7rem .9rem;background:var(--panel)}
+  .det-prev summary{cursor:pointer;font-weight:600;font-size:.92rem;color:var(--ink)}
+  .det-prev-why{color:var(--muted);font-size:.85rem;line-height:1.5;margin:.6rem 0}
+  .det-prev-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.9rem;line-height:1.55;margin:0 0 .7rem;max-height:22rem;overflow:auto;padding:.6rem .7rem;background:var(--bg);border-radius:6px;color:var(--ink)}
+  .det-prev-acts{display:flex;gap:.4rem;flex-wrap:wrap}
+  .scratch-prev-note{color:var(--muted);font-size:.82rem;line-height:1.45;margin:0 0 .8rem;padding:.5rem .7rem;border-left:3px solid var(--accent);background:var(--bg);border-radius:6px}
   .bc-ref-title{opacity:.72;font-weight:400}
   /* ---- The margins page (ONE MARGINS EDITOR): read and written on one surface. A mark shows
      where the cursor is while you write and steps back everywhere else. ---- */
@@ -476,7 +484,7 @@
   #details.bc-focus-write .topbar #det-edit-top{ display:none }
   #details.bc-focus-write .det-wrap > *:not(#det-margins){ display:none }
   #details.bc-focus-write #det-margins{ border-top:0; margin-top:0; padding-top:min(7vh,4rem) }
-  #details.bc-focus-write .margins-head{ display:none }
+  #details.bc-focus-write .margins-head, #details.bc-focus-write .det-prev{ display:none }
   #details.bc-focus-write .margins-page.bc-writing .cm-content{ min-height:70vh }
   /* Writing on a book's page: Save and Cancel wait in the top bar, and the words sit on a sheet
      whose edge shows where a click outside saves. A desktop gives the sheet room to be a real
@@ -912,6 +920,7 @@
 <div class="panel" id="scratch-panel">
   <div class="panel-head"><h2>Margins</h2><div class="grow"></div><span class="write-wc" id="scratch-wc"></span><button class="linkbtn" id="scratch-toggle">Edit</button><button class="iconbtn" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
   <div class="panel-body">
+    <p class="scratch-prev-note" id="scratch-prev-note" hidden>An earlier version of these margins is kept. It is on the book’s page, under the margins.</p>
     <div id="scratch-page"></div>
   </div>
 </div>
@@ -1079,7 +1088,8 @@ function txSettle(t, done, fail){
    blob, highlights, fulltext, app, ftseg, ftblk. Every method returns a promise of the request's
    result, and rejects if the transaction fails or aborts; a full disk aborts at commit, and the
    reader is told (bcStorageFull). Every write that lands passes through one list of hooks
-   (DB.onWrite(fn), fn(store, op, value, key)): device sync schedules a check there.
+   (DB.onWrite(fn), fn(store, op, value, key, note)): device sync schedules a check there. note
+   is a word DB.update was given about the write ("place" for a page turn), or nothing.
    DB.update(store, key, fn): read one record and write fn's answer back in one transaction, so
    nothing written between the read and the write is lost.
    DB.snapshot(store), for "meta" and "highlights": the whole store, held in memory for the screens
@@ -1090,7 +1100,7 @@ function txSettle(t, done, fail){
    null while none is held, for code that cannot wait, such as a copy to the clipboard. */
 var DB = (function () {
   var dbp, hooks=[], snaps={}, chan=null, SNAP={ meta:1, highlights:1 };
-  try{ chan=new BroadcastChannel("backchat-db"); chan.onmessage=function(e){ var st=e && e.data && e.data.store; if(st) delete snaps[st]; else snaps={}; }; }catch(e){}   // another tab wrote
+  try{ chan=new BroadcastChannel("backchat-db"); chan.onmessage=function(e){ var st=e && e.data && e.data.store; if(st) delete snaps[st]; else snaps={}; try{ if(st==="meta" && typeof bcMarginsFreshSoon==="function") bcMarginsFreshSoon(); }catch(_e){} }; }catch(e){}   // another tab wrote
   function open(){
     if(dbp) return dbp;
     dbp = new Promise(function(res,rej){
@@ -1137,14 +1147,14 @@ var DB = (function () {
   }
   function copy(v){ try{ return structuredClone(v); }catch(e){ try{ return JSON.parse(JSON.stringify(v)); }catch(_e){ return v; } } }
   // A write landed: the snapshot takes it, other tabs drop theirs, and every hook hears of it.
-  function wrote(store, op, key, val){
+  function wrote(store, op, key, val, note){
     var sn=snaps[store];
     if(sn){
       if(op==="clear") snaps[store]=[];
       else { var i=-1; for(var j=0;j<sn.length;j++){ if(sn[j] && sn[j].id===key){ i=j; break; } } if(op==="del"){ if(i>=0) sn.splice(i,1); } else { var c=copy(val); if(i>=0) sn[i]=c; else sn.push(c); } }
     }
     if(chan && SNAP[store]) try{ chan.postMessage({ store:store }); }catch(e){}
-    for(var h=0;h<hooks.length;h++){ try{ hooks[h](store, op, val, key); }catch(e){ console.warn("db write hook", e); } }
+    for(var h=0;h<hooks.length;h++){ try{ hooks[h](store, op, val, key, note); }catch(e){ console.warn("db write hook", e); } }
   }
   function failed(e){ try{ bcStorageFull(e); }catch(_e){} throw e; }
   function keyOf(store, val){ return val ? (store==="app" ? val.key : val.id) : undefined; }
@@ -1158,10 +1168,10 @@ var DB = (function () {
     keys:function(store){ return tx(store,"readonly",function(s){ return s.getAllKeys(); }); },
     count:function(store){ return tx(store,"readonly",function(s){ return s.count(); }); },
     // fn(stored) returns the record to write, or nothing to leave it as it is. Resolves to what was written.
-    update:function(store,key,fn){
+    update:function(store,key,fn,note){
       var out;
       return tx(store,"readwrite",function(s){ var g=s.get(key); g.onsuccess=function(){ out=fn(g.result); if(out) s.put(out); }; return null; })
-        .then(function(){ if(out) wrote(store, "put", key, out); return out; }, failed);
+        .then(function(){ if(out) wrote(store, "put", key, out, note); return out; }, failed);
     },
     peek:function(store){ return snaps[store] ? snaps[store].slice() : null; },
     snapshot:function(store){
@@ -1247,7 +1257,7 @@ function bcBooksCached(){ return !!vault.handle && !bcTouchUI(); }   // this bro
 function bcShelfOnly(){ return bcTouchUI() && cloudOn(); }          // this device uses the folder for book files only
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.85";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.86";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 // How long ago a time was, as a sync line says it: "just now", "5 min ago", "3 h ago", "on 7/11/2026".
@@ -1307,6 +1317,10 @@ function cleanSettings(base, src){
 }
 function saveSettings(){ try{ localStorage.setItem("reader-settings", JSON.stringify(settings)); }catch(e){ console.warn("settings not stored", e); } }   // storage full or turned off: the change holds for this visit
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+// The stamp of an edit: now, and always later than the stamp of what was edited. Two devices'
+// clocks never agree exactly, and the newer of two versions wins by its stamp: by the clock alone,
+// an edit made on a device whose clock runs slow lost to the very version it was made on top of.
+function bcAfter(prev){ return Math.max(Date.now(), (Number(prev)||0)+1); }
 
 /* ============================================================
    BOOK IDENTITY
@@ -1909,7 +1923,7 @@ function bcToggleFav(id, btnEl){
   return DB.get("meta", id).then(function(b){
     if(!b) return;
     if(rendition && currentBook && currentBook.id===id) b=currentBook;   // the open book: one copy of its record, as on its page
-    b.fav=!b.fav; b.updated=Date.now();
+    b.fav=!b.fav; b.updated=bcAfter(b.updated);
     if(btnEl){ btnEl.classList.toggle("fav-on", !!b.fav); btnEl.title=b.fav?"Favorited (searchable inside)":"Favorite (also keeps it searchable inside)"; }
     if(typeof detailsBook!=="undefined" && detailsBook && detailsBook.id===id){ detailsBook.fav=b.fav; var _df=$("#det-fav"); if(_df){ _df.classList.toggle("fav-on", !!b.fav); _df.title=b.fav?"Favorited · kept searchable inside · tap to remove":"Favorite (also kept searchable inside)"; } }
     saveProgress(b, {immediate:true});
@@ -2256,17 +2270,36 @@ function bcHeldTwin(metas, meta, tomb){ return findLiveBookFor(metas||[], meta, 
    open book adopts the result, so its next save keeps it. The later of the two stamps is kept even
    when the marks agree: two copies that differ only in it were each written back to the folder
    every time Backchat opened. metas, when given, is kept current; stamp is the time to record
-   when the marks change and neither side has one; from names the device the record came from. */
+   when the marks change and neither side has one; from names the device the record came from.
+   Each of the two stores is read, merged and written in one transaction (DB.update). Read, then
+   merged, then written in separate steps, a mark made or a field saved between the read and the
+   write was written over: it had read as saved, and was gone. So the record merged with is the
+   one stored at that instant; held only says which book this is, and stands in for a book whose
+   record is not stored. */
 async function bcMergeRecord(tid, held, rec, metas, stamp, from){
-  var lh=await DB.get("highlights", tid), before=(lh && lh.items)||[], was=(lh && lh.updatedAt)||0;
-  var merged=mergeHighlights(before, rec.highlights||[]);
-  var mm=mergeMeta(held, rec.meta), key=(held && held.bookKey) || (rec.meta && rec.meta.bookKey);
-  mm.id=tid; if(key) mm.bookKey=key;
-  if(held) bcLearnIds(mm, bcBookTokens(rec.meta));   // a record of this book under another key: the book is known by that key's identifier too
-  var hl=!lh || bcHlSig(merged)!==bcHlSig(before), mt=!held || bcMetaDiffers(held, mm);
-  var at=Math.max(was, rec.updatedAt||0) || (hl && stamp) || 0;
-  if(hl || at!==was) await DB.put("highlights", { id:tid, items:hl ? merged : before, updatedAt:at });
-  if(mt){ await DB.put("meta", mm); if(metas){ for(var q=0;q<metas.length && metas[q].id!==tid;q++); metas[q]=mm; } }
+  var before, merged, hl=false, mm, mt=false, err=null;
+  await DB.update("highlights", tid, function(lh){
+    try{
+      before=(lh && lh.items)||[];
+      var was=(lh && lh.updatedAt)||0;
+      merged=mergeHighlights(before, rec.highlights||[]);
+      hl=!lh || bcHlSig(merged)!==bcHlSig(before);
+      var at=Math.max(was, rec.updatedAt||0) || (hl && stamp) || 0;
+      if(hl || at!==was) return { id:tid, items:hl ? merged : before, updatedAt:at };
+    }catch(e){ err=e; }
+  });
+  if(err) throw err;
+  await DB.update("meta", tid, function(cur){
+    try{
+      var h=cur || held || null, key=(h && h.bookKey) || (rec.meta && rec.meta.bookKey);
+      mm=mergeMeta(h, rec.meta); mm.id=tid; if(key) mm.bookKey=key;
+      if(h) bcLearnIds(mm, bcBookTokens(rec.meta));   // a record of this book under another key: the book is known by that key's identifier too
+      mt=!h || bcMetaDiffers(h, mm);
+      if(mt) return mm;
+    }catch(e){ err=e; }
+  });
+  if(err) throw err;
+  if(mt && metas){ for(var q=0;q<metas.length && metas[q].id!==tid;q++); metas[q]=mm; }
   if(hl) markCorpusDirty();
   if((hl || mt) && currentBook && currentBook.id===tid) cloudAdoptOpen(tid, mm, (hl && _highlightsOwnerId===tid) ? merged : null, from);
   return { meta:mm, items:merged, before:before, changed:hl||mt };
@@ -2286,8 +2319,8 @@ async function bcMergeRecord(tid, held, rec, metas, stamp, from){
    A file written by hand, by another tool, or damaged on its way, could otherwise store a book that
    stops the home screen from drawing. A record with no usable id is not taken; a field not named
    here is left as it is. */
-var BC_META_TEXT=["title","author","publisher","year","summary","scratch","bookKey","lastCfi","kind","cover","sourceUrl","videoId","sig","bookmarkCfi","voiceCfi"];
-var BC_META_NUM=["updated","addedAt","lastOpened","readMs","progress","posAt","tagsUpdated","bookmarkAt","voiceAt"];
+var BC_META_TEXT=["title","author","publisher","year","summary","scratch","scratchBy","scratchFor","scratchPrev","bookKey","lastCfi","kind","cover","sourceUrl","videoId","sig","bookmarkCfi","voiceCfi"];
+var BC_META_NUM=["updated","addedAt","lastOpened","readMs","progress","posAt","tagsUpdated","bookmarkAt","voiceAt","scratchAt","scratchBase","scratchPrevAt"];
 var BC_META_LIST=["tags","related","ids"];
 function bcCleanValue(v, want){
   if(v==null) return v;
@@ -3568,14 +3601,14 @@ function addDetTag(raw){
   var b=detailsBook; if(!b) return;
   var t=(raw||"").replace(/,/g,"").trim(); if(!t) return;
   if(!b.tags) b.tags=[];
-  if(b.tags.map(function(x){ return String(x).toLowerCase(); }).indexOf(t.toLowerCase())<0){ b.tags.push(t); b.updated=Date.now(); b.tagsUpdated=Date.now(); try{ saveProgress(b,{immediate:true}); }catch(e){} }
+  if(b.tags.map(function(x){ return String(x).toLowerCase(); }).indexOf(t.toLowerCase())<0){ b.tags.push(t); b.updated=bcAfter(b.updated); b.tagsUpdated=bcAfter(b.tagsUpdated); try{ saveProgress(b,{immediate:true}); }catch(e){} }
   renderDetTags();
   try{ renderRelatedSection(b); }catch(e){}
   setTimeout(function(){ var i=$("#det-tag-input"); if(i) i.focus(); },0);
 }
 function removeDetTag(t){
   var b=detailsBook; if(!b) return;
-  b.tags=(b.tags||[]).filter(function(x){ return x!==t; }); b.updated=Date.now(); b.tagsUpdated=Date.now(); try{ saveProgress(b,{immediate:true}); }catch(e){}
+  b.tags=(b.tags||[]).filter(function(x){ return x!==t; }); b.updated=bcAfter(b.updated); b.tagsUpdated=bcAfter(b.tagsUpdated); try{ saveProgress(b,{immediate:true}); }catch(e){}
   renderDetTags();
   try{ renderRelatedSection(b); }catch(e){}
 }
@@ -4659,9 +4692,9 @@ function wireOpenedBook(){
     hideSelPop(); hideNotePop();
     if(!currentBook) return;
     currentBook.lastCfi=loc.start.cfi;
-    if(bcReadMoved()) currentBook.posAt=Date.now();
+    if(bcReadMoved()) currentBook.posAt=bcAfter(currentBook.posAt);
     if(book.locations && book.locations.total) currentBook.progress=book.locations.percentageFromCfi(loc.start.cfi)||0;
-    updateProgress(); saveProgress(currentBook);
+    updateProgress(); saveProgress(currentBook, {place:true});
     var ch=chapterFor(loc.start.cfi)||"";
     var dp=loc.start && loc.start.displayed;
     var pg=(dp && dp.total) ? ("page "+dp.page+" of "+dp.total) : "";
@@ -4681,11 +4714,11 @@ function bcSavePlaceNow(){
     var l=rendition.currentLocation(); if(!l || !l.start || !l.start.cfi) return;
     if(tts.state==="playing") ttsNoteVoicePlace();
     if(l.start.cfi!==currentBook.lastCfi){
-      if(bcReadMoved()) currentBook.posAt=Date.now();
+      if(bcReadMoved()) currentBook.posAt=bcAfter(currentBook.posAt);
       currentBook.lastCfi=l.start.cfi;
       try{ if(book && book.locations && book.locations.total){ var p=book.locations.percentageFromCfi(l.start.cfi); if(p || p===0) currentBook.progress=p; } }catch(e){}
     }
-    saveProgress(currentBook);
+    saveProgress(currentBook, {place:true});
   }catch(e){}
 }
 document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="hidden") bcSavePlaceNow(); });
@@ -4715,7 +4748,7 @@ function closeBook(){
   if(currentBook){
     try{
       if(loc && loc.start && loc.start.cfi){
-        if(moved && loc.start.cfi!==currentBook.lastCfi) currentBook.posAt=Date.now();
+        if(moved && loc.start.cfi!==currentBook.lastCfi) currentBook.posAt=bcAfter(currentBook.posAt);
         currentBook.lastCfi = loc.start.cfi;
         if(book && book.locations && book.locations.total){
           var p = book.locations.percentageFromCfi(loc.start.cfi);
@@ -4724,6 +4757,7 @@ function closeBook(){
       }
     }catch(e){}
     saveProgress(currentBook, {immediate:true});
+    try{ cloudPlaceSoon(); }catch(e){}   // device sync: the place this book was left at goes with the next check
   }
   try{ localStorage.removeItem("reader-last-book"); }catch(e){}
   try{ if(rendition) rendition.destroy(); }catch(e){}
@@ -5233,10 +5267,11 @@ function makeHighlight(cfiRange, text, color){ var t=Date.now(); return { id:uid
 function makeComment(cfiRange, text, comment){ var t=Date.now(); return { id:uid(), kind:"note", cfiRange:cfiRange, text:text, color:"note", note:comment, fav:false, chapter:chapterFor(cfiRange)||"", created:t, updated:t }; }
 // Single path for writing a book's metadata/progress: cache first, then mirror to the folder. Every caller goes through here.
 // Persist reading position/progress; the furthest position wins on later merges.
+// opts.place: only the place read changed (a page turn): device sync does not check for it.
 function saveProgress(bk, opts){
   if(!bk) return Promise.resolve();
   opts=opts||{};
-  return DB.put("meta", bk).then(function(r){
+  return bcPutMeta(bk, opts.place ? "place" : "").then(function(r){
     if(vault.handle){
       // Only meaningful edits push to the folder. Progress-only saves (page turns, and the
       // save on leaving the page) stay in local storage and sync to the folder when the book closes.
@@ -5263,7 +5298,7 @@ function createHighlight(color, note){
   // A plain highlight inside the new one is replaced. It is deleted the way every mark is, kept
   // with deleted:true and a fresh time, so no merge with a stored or synced copy brings it back.
   // One that carries a note or a star stays: nothing you wrote or chose is dropped to tidy a page.
-  if(cnt && cnt.range){ try{ var nr=cnt.range(item.cfiRange); if(nr){ highlights.forEach(function(h){ if(h.deleted||h.kind==="note"||h.note||h.fav) return; try{ var er=cnt.range(h.cfiRange); if(er && nr.compareBoundaryPoints(Range.START_TO_START,er)<=0 && nr.compareBoundaryPoints(Range.END_TO_END,er)>=0){ h.deleted=true; h.updated=item.created; try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){} } }catch(e){} }); } }catch(e){} }
+  if(cnt && cnt.range){ try{ var nr=cnt.range(item.cfiRange); if(nr){ highlights.forEach(function(h){ if(h.deleted||h.kind==="note"||h.note||h.fav) return; try{ var er=cnt.range(h.cfiRange); if(er && nr.compareBoundaryPoints(Range.START_TO_START,er)<=0 && nr.compareBoundaryPoints(Range.END_TO_END,er)>=0){ h.deleted=true; h.updated=bcAfter(h.updated); try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){} } }catch(e){} }); } }catch(e){} }
   captureHlAnchor(cnt, item);
   highlights.push(item); settings.hlColor=item.color; saveSettings();
   if(cnt) renderHighlightsFor(cnt); else renderAllHighlights();
@@ -5992,14 +6027,27 @@ function persistHighlights(){
    kept, and the open book takes it. Each mark keeps its newest edit, as in every sync, so an edit or
    a delete made here still wins. stamp: record this as a change to the marks (a rebind is not). */
 function bcSaveOpenMarks(stamp){
-  var id=currentBook.id, key=bookKeyOf(currentBook), mine=highlights;
-  return DB.get("highlights", id).then(function(rec){
-    var stored=(rec && rec.items)||[], merged=mergeHighlights(stored, mine), byId={};
-    mine.forEach(function(h){ if(h && h.id) byId[h.id]=h; });
-    var took=merged.some(function(h){ return byId[h.id]!==h; });
-    mine.forEach(function(h){ if(h && !h.id) merged.push(h); });   // a mark with no id (none is made so now) is kept as it was, never dropped by the merge
-    if(took && _highlightsOwnerId===id && highlights===mine){ highlights=merged; try{ renderAllHighlights(); }catch(e){} try{ renderHighlightList(); }catch(e){} }
-    return DB.put("highlights", { id:id, items:merged, updatedAt:stamp ? Date.now() : ((rec && rec.updatedAt) || Date.now()), bookKey:key });
+  var id=currentBook.id, key=bookKeyOf(currentBook), mine=highlights, merged, took=false, err=null;
+  // Read, merged and written in one transaction, so a record that arrives at the same moment
+  // (a sync, a second tab) and this save cannot write over each other.
+  return DB.update("highlights", id, function(rec){
+    try{
+      var stored=(rec && rec.items)||[], byId={};
+      merged=mergeHighlights(stored, mine);
+      mine.forEach(function(h){ if(h && h.id) byId[h.id]=h; });
+      took=merged.some(function(h){ return byId[h.id]!==h; });
+      mine.forEach(function(h){ if(h && !h.id) merged.push(h); });   // a mark with no id (none is made so now) is kept as it was, never dropped by the merge
+      return { id:id, items:merged, updatedAt:stamp ? Date.now() : ((rec && rec.updatedAt) || Date.now()), bookKey:key };
+    }catch(e){ err=e; }
+  }).then(function(r){
+    if(err) throw err;
+    if(_highlightsOwnerId===id){
+      // The list on the page was replaced while this save was on its way (a record arrived and
+      // the open book took it): what was just stored joins it, so the mark being saved shows.
+      if(highlights!==mine){ highlights=mergeHighlights(highlights, merged); try{ renderAllHighlights(); }catch(e){} try{ renderHighlightList(); }catch(e){} }
+      else if(took){ highlights=merged; try{ renderAllHighlights(); }catch(e){} try{ renderHighlightList(); }catch(e){} }
+    }
+    return r;
   });
 }
 function clearNativeSelection(){ rendition.getContents().forEach(function(c){ try{ c.window.getSelection().removeAllRanges(); }catch(e){} }); }
@@ -6007,9 +6055,9 @@ function jumpToHighlight(id){
   var h=highlights.filter(function(x){ return x.id===id; })[0];
   if(h && currentBook) bcGoTo(currentBook.id, bcPlaceOfMark(h));
 }
-function deleteHighlight(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.deleted=true; h.updated=Date.now(); try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){} renderAllHighlights(); persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast("Removed"); }); }   // soft-delete: mark it deleted with a fresh timestamp so the deletion propagates and wins by recency
-function recolorHighlight(id,color){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.color=color; h.updated=Date.now(); settings.hlColor=color; saveSettings(); renderAllHighlights(); persistHighlights().then(function(){ renderHighlightList(); }); }
-function toggleFav(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.fav=!h.fav; h.updated=Date.now(); persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast(h.fav?"Favorited":"Unfavorited"); }); }
+function deleteHighlight(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.deleted=true; h.updated=bcAfter(h.updated); try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){} renderAllHighlights(); persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast("Removed"); }); }   // soft-delete: mark it deleted with a fresh timestamp so the deletion propagates and wins by recency
+function recolorHighlight(id,color){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.color=color; h.updated=bcAfter(h.updated); settings.hlColor=color; saveSettings(); renderAllHighlights(); persistHighlights().then(function(){ renderHighlightList(); }); }
+function toggleFav(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.fav=!h.fav; h.updated=bcAfter(h.updated); persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast(h.fav?"Favorited":"Unfavorited"); }); }
 function renderHlControls(){
   var c=$("#hl-controls");
   var dots=Object.keys(COLORS).map(function(n){ return '<span class="dot'+(hlFilter===n?" active":"")+'" data-hf="'+n+'" title="'+escapeHtml(hlLabel(n))+'" style="background:'+COLORS[n]+'"></span>'; }).join("");
@@ -6055,12 +6103,12 @@ function saveNote(){
   } else {
     var h=highlights.filter(function(x){ return x.id===noteContext.id; })[0];
     if(h && h.kind==="note" && !val){
-      h.deleted=true; h.updated=Date.now();
+      h.deleted=true; h.updated=bcAfter(h.updated);
       try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){}
       renderAllHighlights();
       done=persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast("Comment removed"); });
     } else if(h){
-      h.note=val; h.updated=Date.now();
+      h.note=val; h.updated=bcAfter(h.updated);
       renderAllHighlights();
       done=persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast(val?"Comment saved":"Comment cleared"); });
     } else { done=Promise.resolve(); }
@@ -6261,10 +6309,144 @@ function buildNotesBundle(since){
     return { app:"epub-reader", format:"wr-notes", version:1, exportedAt:new Date().toISOString(), device:getDeviceId(), books:books };
   });
 }
+/* ---------------- MARGINS: their own stamp, one writer, and nothing written over unseen ----------------
+   Margins are one text, so two versions cannot be merged word by word as marks are: the newer
+   replaces the older. Three rules keep that from costing words.
+   Their own stamp. scratchAt is when the words were last written, and nothing else moves it.
+   They used to go by the record's 'updated', so a favorite, a tag or a saved spot on a device
+   holding older margins made those older margins the newer ones. scratchFor is the mark of the
+   words the stamp was given to: a build from before the stamp writes the words and leaves the
+   stamp as it found it, so a stamp counts only while it is the stamp of the words beside it
+   (bcStamped). Margins without one go by 'updated', as they always did (bcMarginsAt), and are
+   given a stamp the first time this build starts (bcStampOldMargins) or takes them in.
+   One writer. Only bcSaveMargins writes them. Every other save of a book's record carries the
+   stored margins forward (bcPutMeta), because a copy held in memory can be older than what
+   another device, another tab or the book's page has saved since: a page turn used to write
+   such a copy back.
+   An earlier version. scratchBy names the device the words were written on and scratchBase the
+   version they were written on top of. Words written here that are replaced by words written
+   elsewhere, and not on top of them, are kept (scratchPrev); so are stored words this page never
+   read that a save here is about to write over. The reader is told, and finds them on the
+   book's page. They are shown, never merged back, so a deletion still holds. */
+var BC_MARGIN_STAMP=["scratchAt","scratchBy","scratchBase","scratchFor"];
+var BC_MARGIN_VERSION=["scratch"].concat(BC_MARGIN_STAMP);
+var BC_MARGIN_FIELDS=BC_MARGIN_VERSION.concat(["scratchPrev","scratchPrevAt"]);
+function bcTextMark(t){ return _hashStr(String(t==null ? "" : t)); }
+// Is the margins' stamp the stamp of the words beside it?
+function bcStamped(r){ return !!r && r.scratchAt>0 && r.scratchFor===bcTextMark(r.scratch); }
+// When a record's margins were written, as far as the record can say: their own stamp; without
+// one, the record's 'updated'; and never, for a record with no words and no stamp, so that
+// margins never written cannot replace any.
+function bcMarginsAt(r){
+  if(!r) return 0;
+  if(bcStamped(r)) return r.scratchAt;
+  return (r.scratch||"").trim() ? (r.updated||0) : 0;
+}
+function bcVersionKey(r){ return String(r.scratchBy||"")+"|"+(r.scratchBase||0); }
+var BC_PREV_SEP="\n\n---\n\n";
+function bcCarry(keys, to, from){ keys.forEach(function(k){ if(from[k]===undefined) delete to[k]; else to[k]=from[k]; }); return to; }
+function bcMarginsDiffer(a, b){ return BC_MARGIN_FIELDS.some(function(k){ return (a[k]===undefined ? null : a[k])!==(b[k]===undefined ? null : b[k]); }); }
+// Write a book's record, all but its margins, which stay as they are stored.
+function bcPutMeta(bk, note){
+  return DB.update("meta", bk.id, function(rec){ return rec ? bcCarry(BC_MARGIN_FIELDS, Object.assign({}, bk), rec) : bk; }, note);
+}
+// Two kept versions become one: the same words once; a removal (no words) holds against what was
+// kept before it; two different texts are both kept, the newer first.
+function bcPrevJoin(a, b){
+  if(!a || !a.at) return (b && b.at) ? b : { t:"", at:0 };
+  if(!b || !b.at) return a;
+  var at=Math.max(a.at, b.at);
+  if(a.t===b.t) return { t:a.t, at:at };
+  if(!a.t) return a.at>=b.at ? a : b;
+  if(!b.t) return b.at>=a.at ? b : a;
+  if(a.t.indexOf(b.t)>=0) return { t:a.t, at:at };
+  if(b.t.indexOf(a.t)>=0) return { t:b.t, at:at };
+  var n=(a.at>b.at || (a.at===b.at && a.t>b.t)) ? a : b, o=(n===a) ? b : a;
+  return { t:n.t+BC_PREV_SEP+o.t, at:at };
+}
+// What is left of a kept version once the margins hold text: the parts the margins do not contain.
+function bcPrevLeft(prev, text){
+  return String(prev||"").split(BC_PREV_SEP).filter(function(part){ return part.trim() && text.indexOf(part.trim())<0; }).join(BC_PREV_SEP);
+}
+var _bcKeptT=0;
+function bcMarginsKeptSay(b){
+  clearTimeout(_bcKeptT);
+  var title=(b && b.title) ? "\u201c"+b.title+"\u201d" : "a book";
+  _bcKeptT=setTimeout(function(){ try{ toast("The margins of "+title+" were changed in two places. The other version is kept on the book\u2019s page.", 9000); }catch(e){} }, 400);
+}
+// The margins of two copies of a record; out starts as a copy of local.
+function bcMergeMargins(out, local, inc){
+  var mine=local.scratch||"", come=inc.scratch||"", ls=bcStamped(local), is=bcStamped(inc), la=bcMarginsAt(local), ia=bcMarginsAt(inc), keep=null, theirs;
+  // The same words on both sides: one stamp for the two, the later of those that are stamps.
+  if(mine===come) theirs=is && (!ls || inc.scratchAt>local.scratchAt || (inc.scratchAt===local.scratchAt && bcVersionKey(inc)>bcVersionKey(local)));
+  // Different words: the later written win. Written in the same millisecond, the same side wins on every device.
+  else theirs=ia>la || (ia===la && ia>0 && come>mine);
+  if(theirs){
+    if(mine!==come && mine.trim() && ls && local.scratchBy && local.scratchBy===getDeviceId() && (inc.scratchBase||0)!==local.scratchAt && come.indexOf(mine.trim())<0) keep={ t:mine, at:Math.max(bcAfter(local.scratchPrevAt), bcAfter(inc.scratchPrevAt)) };
+    out.scratch=come;
+    if(is) bcCarry(BC_MARGIN_STAMP, out, inc);
+    else { out.scratchAt=ia; out.scratchFor=bcTextMark(come); delete out.scratchBy; delete out.scratchBase; }   // words from a build without stamps are given theirs as they are taken
+  }
+  var p=bcPrevJoin({ t:local.scratchPrev||"", at:local.scratchPrevAt||0 }, { t:inc.scratchPrev||"", at:inc.scratchPrevAt||0 });
+  if(keep){ p=bcPrevJoin(p, keep); bcMarginsKeptSay(local); }
+  if(p.at){ out.scratchPrev=p.t; out.scratchPrevAt=p.at; }
+}
+/* Is this copy of a book's record being written in? The book's page, opened from the reader, holds
+   the reader's own copy (one object, not two), so either editor counts for it. Judged apart, the
+   drawer's writing was protected from an arriving record and then given that record's margins
+   anyway, as the book page's copy: the next save took them for the words it had started from, and
+   wrote over them with nothing kept. */
+function bcMarginsWriting(o){
+  var sp=$("#scratch-panel");
+  return !!o && ((o===currentBook && !!(sp && sp.classList.contains("editing"))) || (o===detailsBook && bcDetailsWriting()));
+}
+// The margins as they are stored, into the copies this page holds, unless one is being written in.
+function bcMarginsFresh(id){
+  return DB.get("meta", id).then(function(rec){
+    if(!rec) return false;
+    var changed=false, sp=$("#scratch-panel");
+    if(currentBook && currentBook.id===id && !bcMarginsWriting(currentBook) && bcMarginsDiffer(currentBook, rec)){
+      bcCarry(BC_MARGIN_FIELDS, currentBook, rec); changed=true;
+      try{ if(sp && sp.classList.contains("open")) renderScratchView(); }catch(e){}
+    }
+    if(detailsBook && detailsBook.id===id && !bcMarginsWriting(detailsBook) && bcMarginsDiffer(detailsBook, rec)){
+      bcCarry(BC_MARGIN_FIELDS, detailsBook, rec); changed=true;
+      try{ if(!$("#details").classList.contains("hidden")) renderDetails(); }catch(e){}
+    }
+    return changed;
+  }, function(){ return false; });
+}
+/* Margins written before they had a stamp are given one the first time this build starts: the
+   time their record says it was last changed, which is what they went by until now. From then on
+   a favorite or a saved spot moves the record's time and leaves the margins' time alone. A device
+   still on the build before this one goes on writing margins without a stamp; they are read by
+   their record's time when they arrive, and stamped here the same way. */
+function bcStampOldMargins(){
+  return DB.all("meta").then(function(all){
+    var ids=(all||[]).filter(function(m){ return m && m.id && (m.scratch||"").trim() && !bcStamped(m); }).map(function(m){ return m.id; });
+    return ids.reduce(function(p, id){
+      return p.then(function(){
+        return DB.update("meta", id, function(rec){
+          if(!rec || !(rec.scratch||"").trim() || bcStamped(rec)) return;
+          rec.scratchAt=rec.updated||rec.addedAt||1; rec.scratchFor=bcTextMark(rec.scratch); delete rec.scratchBy; delete rec.scratchBase;
+          return rec;
+        });
+      });
+    }, Promise.resolve()).then(function(){ if(ids.length) bcMarginsFreshSoon(); return ids.length; });
+  }).catch(function(e){ console.warn("stamp margins", e); return 0; });
+}
+var _bcFreshT=0;
+function bcMarginsFreshSoon(){
+  clearTimeout(_bcFreshT);
+  _bcFreshT=setTimeout(function(){
+    try{ if(currentBook) bcMarginsFresh(currentBook.id); if(detailsBook && !(currentBook && currentBook.id===detailsBook.id)) bcMarginsFresh(detailsBook.id); }catch(e){}
+  }, 300);
+}
 /* ---------------- MERGE CORE: field-level merge of two meta records ----------------
    Position resolves by the place read last (posAt), on whichever device; counters by max; tags
    by the newer tag edit (a plain union for legacy records); the saved listening spot by when it
-   was saved (bookmarkAt); content fields (summary, margins, rating...) by the newer 'updated'.
+   was saved (bookmarkAt); margins by their own stamp (MARGINS, above); the other content fields
+   (summary, rating...) by the newer 'updated'.
    Fields derived from the EPUB bytes (source, signature) come from an incoming re-import. Marks
    are merged separately, item by item (mergeHighlights).
    Position used to resolve by furthest read. That undid going back: reread an earlier chapter on
@@ -6296,12 +6478,13 @@ function mergeMeta(local, inc){
   else if(local.tags || inc.tags){ var tg={}; (local.tags||[]).concat(inc.tags||[]).forEach(function(t){ if(t) tg[t]=1; }); out.tags=Object.keys(tg); }   // legacy records without a tag timestamp: keep the old additive union
   ["title","author","cover","year","publisher","kind"].forEach(function(k){ if(!out[k] && inc[k]) out[k]=inc[k]; });
   var newer = ((inc.updated||0) > (local.updated||0)) ? inc : local;
-  ["summary","scratch","rating","related","fav","faithful"].forEach(function(k){ if(newer[k]!==undefined) out[k]=newer[k]; });
+  ["summary","rating","related","fav","faithful"].forEach(function(k){ if(newer[k]!==undefined) out[k]=newer[k]; });
   if(!bl && !bi && newer.bookmarkCfi!==undefined) out.bookmarkCfi=newer.bookmarkCfi;   // a spot saved before bookmarkAt existed
-  // Margins (scratch) are newest-wins by the updated timestamp, like every field above. Keeping
-  // the older text under a divider was tried and dropped: it resurrected deleted text on the
-  // next sync, so a deletion could never stick across devices. Newest-wins lets edits AND
-  // deletions hold. Granular marks (highlights and their notes) are merged item by item.
+  // Margins: the newer words win, by the margins' own stamp, so edits AND deletions hold. Keeping
+  // the older text under a divider in the margins was tried and dropped: it resurrected deleted
+  // text on the next sync. Words that would be lost are kept beside the margins instead
+  // (bcMergeMargins). Granular marks (highlights and their notes) are merged item by item.
+  bcMergeMargins(out, local, inc);
   ["title","author","cover","year","publisher"].forEach(function(k){ if(newer[k]!==undefined && newer[k]!==null && newer[k]!=="") out[k]=newer[k]; });
   ["videoId","sourceUrl","sig"].forEach(function(k){ if(inc[k]) out[k]=inc[k]; });   // source and content signature are derived from the EPUB bytes: an incoming (re)import/refresh is authoritative, a notes-only merge (field absent) keeps the local value
   if((inc.ids && inc.ids.length) || local.ids){ var _ids={}; (local.ids||[]).concat(inc.ids||[]).forEach(function(t){ if(t) _ids[t]=1; }); out.ids=Object.keys(_ids).sort(); }   // every identifier the book's files have carried, on any device: they are only ever added
@@ -7478,18 +7661,51 @@ function bcMoveBlock(v, dir){
   return true;
 }
 // opts.push: write the book's record to the folder now, as an explicit save does. Resolves to true
-// when the margins changed.
+// when the margins changed, false when they were already so, null when the save failed. The one
+// writer of a book's margins (MARGINS, above the merge).
 function bcSaveMargins(b, text, opts){
   opts=opts||{};
   if(!b || !b.id) return Promise.resolve(false);
   text=String(text==null ? "" : text);
-  if(text===(b.scratch||"")) return Promise.resolve(false);
-  var now=Date.now();
+  var was=b.scratch||"";
+  if(text===was) return Promise.resolve(false);
+  var now=bcAfter(b.updated), me=getDeviceId(), kept=false, saved=null, wasAt=bcMarginsAt(b), stamped=bcStamped(b);
+  // The version these words are written on top of: the last one that came from another device.
+  var base=(stamped && b.scratchBy && b.scratchBy===me) ? (b.scratchBase||0) : (stamped ? b.scratchAt : 0);
   [b, currentBook, detailsBook].forEach(function(o){ if(o && o.id===b.id){ o.scratch=text; o.updated=now; } });
-  return DB.update("meta", b.id, function(rec){ rec=rec || Object.assign({}, b); rec.scratch=text; rec.updated=now; return rec; }).then(function(){
+  return DB.update("meta", b.id, function(rec){
+    rec=rec || Object.assign({}, b);
+    var there=rec.scratch||"", prev={ t:rec.scratchPrev||"", at:rec.scratchPrevAt||0 };
+    // The stored margins are not the ones this page last read: another tab saved since, or another
+    // device's words arrived while these were being written. They are kept, not written over unseen.
+    if(there.trim() && there!==was && there!==text && text.indexOf(there.trim())<0){ prev=bcPrevJoin(prev, { t:there, at:bcAfter(prev.at) }); kept=true; }
+    // A kept version the margins now hold in full has nothing left to keep.
+    if(prev.t){ var left=bcPrevLeft(prev.t, text); if(left!==prev.t) prev={ t:left, at:bcAfter(prev.at) }; }
+    if(prev.at){ rec.scratchPrev=prev.t; rec.scratchPrevAt=prev.at; }
+    var at=Math.max(bcAfter(bcMarginsAt(rec)), bcAfter(wasAt));     // later than the version stored and the version written on, stamped or not
+    rec.scratch=text; rec.scratchAt=at; rec.scratchFor=bcTextMark(text); rec.scratchBy=me; rec.scratchBase=base; rec.updated=now;
+    saved=rec; return rec;
+  }).then(function(){
+    [b, currentBook, detailsBook].forEach(function(o){ if(o && o.id===b.id && (o.scratch||"")===text) bcCarry(BC_MARGIN_FIELDS, o, saved); });
+    if(kept) bcMarginsKeptSay(b);
+    bcScratchPrevNote();
     if(opts.push && vault.handle) vaultPushBook(b.id, !!opts.allowPrompt);
     return true;
-  }).catch(function(e){ console.error("save margins", e); toast("Could not save changes"); return false; });
+  }).catch(function(e){
+    console.error("save margins", e); toast("Could not save changes");
+    [b, currentBook, detailsBook].forEach(function(o){ if(o && o.id===b.id && (o.scratch||"")===text) o.scratch=was; });   // not stored: the next save tries again
+    return null;
+  });
+}
+// Put the kept earlier version away for good. The removal carries its own stamp, so it holds on
+// every device against anything kept before it.
+function bcPrevDrop(b){
+  var now=bcAfter(b.updated), at=now;
+  return DB.update("meta", b.id, function(rec){ if(!rec) return; at=bcAfter(rec.scratchPrevAt); rec.scratchPrev=""; rec.scratchPrevAt=at; rec.updated=now; return rec; }).then(function(){
+    [b, currentBook, detailsBook].forEach(function(o){ if(o && o.id===b.id){ o.scratchPrev=""; o.scratchPrevAt=at; o.updated=now; } });
+    if(vault.handle) vaultPushBook(b.id, false);
+    return true;
+  }).catch(function(e){ console.error("drop kept margins", e); toast("Could not save changes"); return null; });
 }
 var _notesBtnAction=false, _detNotesOwnerId=null, _detEd=null;
 function renderMarginsSection(b){
@@ -7503,8 +7719,25 @@ function renderMarginsSection(b){
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add')+'</button>';
   var count=hasScratch ? '<span class="det-notes-count">'+wc+' word'+(wc===1?'':'s')+'</span>' : '';
   // Save and Cancel are in the page's top bar while you write, always in reach (#det-notes-save).
+  // An earlier version that was kept (MARGINS): shown as plain text, never merged back.
+  var prev=(b.scratchPrev && b.scratchPrev.trim()) ? '<details class="det-prev" id="det-prev"><summary>An earlier version of these margins is kept</summary>'
+    +'<p class="det-prev-why">These margins were changed in two places before the two could meet. The newer words are above. The others are here, so nothing you wrote is lost.</p>'
+    +'<pre class="det-prev-text" id="det-prev-text"></pre>'
+    +'<div class="det-prev-acts"><button class="linkbtn" id="det-prev-copy">Copy</button><button class="linkbtn" id="det-prev-add">Add to the margins</button><button class="linkbtn" id="det-prev-drop">Remove</button></div></details>' : '';
   box.innerHTML='<section id="det-notes-sec"><div class="margins-head"><h2>Margins</h2>'+count+editBtn+'</div>'
-    +'<div id="details-scratch"></div></section>';
+    +'<div id="details-scratch"></div>'+prev+'</section>';
+  if(prev){
+    $("#det-prev-text").textContent=b.scratchPrev;
+    $("#det-prev-copy").onclick=function(){ bcCopyText(b.scratchPrev, "Copied"); };
+    $("#det-prev-add").onclick=function(){
+      var cur=(b.scratch||"").replace(/\s+$/,"");
+      bcSaveMargins(b, (cur ? cur+"\n\n" : "")+b.scratchPrev.replace(/\s+$/,"")+"\n", { push:true }).then(function(ok){ if(ok===null) return; renderDetails(); toast("Added to the margins"); });
+    };
+    $("#det-prev-drop").onclick=function(){
+      if(!confirm("Remove the earlier version of these margins? It cannot be brought back.")) return;
+      bcPrevDrop(b).then(function(ok){ if(ok===null) return; renderDetails(); toast("Removed"); });
+    };
+  }
   var mv=$("#details-scratch");
   _detEd=bcMarginsEditor(mv, {
     empty:'<span class="det-notes-empty">Nothing in the margins yet. This is where you talk back to the book, in your own words, separate from highlights. Click here to start. Markdown works: headings, lists, quotes, tables, ==highlight==, ~~strikethrough~~, images, and YouTube links.</span>',
@@ -7538,19 +7771,23 @@ function detailsNotesEdit(caret){
   _detEd.edit(caret);
   bcBackSoon();
 }
-function detailsNotesCancel(){ try{ var _d=document.getElementById("details"); if(_d) _d.classList.remove("bc-focus-write"); }catch(e){} if(detailsBook) renderRichDetails(detailsBook); }
+function detailsNotesCancel(){ try{ var _d=document.getElementById("details"); if(_d) _d.classList.remove("bc-focus-write"); }catch(e){} if(detailsBook){ renderRichDetails(detailsBook); bcMarginsFresh(detailsBook.id); } }
 // Ctrl+S (Cmd+S): save and keep writing.
 // Whether the margins are being written on the book's page: a redraw of the page then waits, or
 // it would put away the words not saved yet (a sync, an import finishing).
 function bcDetailsWriting(){ return !!(_detEd && _detEd.writing); }
 function detailsNotesSaveNow(){
   if(!detailsBook || !_detEd || !_detEd.writing || detailsBook.id!==_detNotesOwnerId) return;
-  bcSaveMargins(detailsBook, _detEd.value, { push:true }).then(function(){ toast("Margins saved"); });
+  bcSaveMargins(detailsBook, _detEd.value, { push:true }).then(function(ok){ if(ok!==null) toast("Margins saved"); });
 }
 function detailsNotesSave(){
   if(!detailsBook || !_detEd || detailsBook.id!==_detNotesOwnerId) return;   // text opened for another book is never saved into this one
   try{ var _d=document.getElementById("details"); if(_d) _d.classList.remove("bc-focus-write"); }catch(e){}
-  bcSaveMargins(detailsBook, _detEd.value, { push:true, allowPrompt:true }).then(function(){ renderDetails(); toast("Notes saved"); });
+  var _id=detailsBook.id;
+  bcSaveMargins(detailsBook, _detEd.value, { push:true, allowPrompt:true }).then(function(ok){
+    if(ok===null) return;                                   // not stored: the words stay in the editor, and the page said so
+    return bcMarginsFresh(_id).then(function(){ renderDetails(); toast("Notes saved"); });
+  });
 }
 // Library-wide Markdown snapshot: one file per book, connections resolved to [[wikilinks]],
 // bundled as a .zip you can unzip straight into an Obsidian vault.
@@ -7644,10 +7881,14 @@ function saveMetaForm(){
   detailsBook.summary = $("#meta-summary").value.trim();
   detailsBook.rating = metaDraftRating || 0;
   detailsBook.related = metaDraftRelated.slice();
+  var _tagsWas=JSON.stringify(detailsBook.tags||[]);
   detailsBook.tags = $("#meta-tags").value.split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+  // Tags have their own stamp, and the newest set wins: without one, a change made in this form
+  // never reached the other device, which kept its own set for good.
+  if(JSON.stringify(detailsBook.tags)!==_tagsWas) detailsBook.tagsUpdated=bcAfter(detailsBook.tagsUpdated);
   detailsBook.year = $("#meta-year").value.trim();
   detailsBook.cover = null;   // covers live in the app store, never inline in meta
-  detailsBook.updated = Date.now();
+  detailsBook.updated = bcAfter(detailsBook.updated);
   var _cid=detailsBook.id, _cv=metaDraftCover;
   if(metaRelatedCbx){ try{ metaRelatedCbx.close(); }catch(e){} }
   saveProgress(detailsBook, {immediate:true, allowPrompt:true}).then(function(){ return _cv ? putCover(_cid, _cv) : delCover(_cid); }).then(function(){ renderDetails(); renderHome(); toast("Saved"); $("#meta-modal").style.display="none"; });
@@ -7962,7 +8203,7 @@ function ttsNoteVoicePlace(){
     var ch=tts.chunks[tts.cidx]; if(!ch) return;
     var r=ttsRangeAt(ch, tts.state==="playing" ? ttsSentenceStart() : (tts.resumeAt||0)); if(!r) return;
     var cfi=tts.contents.cfiFromRange(r); if(!cfi) return;
-    currentBook.voiceCfi=cfi; currentBook.voiceAt=Date.now();
+    currentBook.voiceCfi=cfi; currentBook.voiceAt=bcAfter(currentBook.voiceAt);
   }catch(e){}
 }
 
@@ -8051,9 +8292,9 @@ function ttsBookmarkSet(){
   try{ if(tts.state!=="idle" && ttsContentsLive() && tts.chunks[tts.cidx] && tts.curSentIdx>=0){ cfi=tts.contents.cfiFromRange(tts.chunks[tts.cidx].sentences[tts.curSentIdx].range); } }catch(e){}
   if(!cfi){ try{ var loc=rendition.currentLocation&&rendition.currentLocation(); if(loc&&loc.start) cfi=loc.start.cfi; }catch(e){} }
   if(!cfi){ toast("No position to save yet"); return; }
-  currentBook.bookmarkCfi=cfi; currentBook.bookmarkAt=Date.now(); currentBook.updated=Date.now();
+  currentBook.bookmarkCfi=cfi; currentBook.bookmarkAt=bcAfter(currentBook.bookmarkAt); currentBook.updated=bcAfter(currentBook.updated);
   var bk=currentBook;
-  DB.put("meta", bk).then(function(){ if(vault.connected) vaultPushBook(bk.id, false); });
+  bcPutMeta(bk).then(function(){ if(vault.connected) vaultPushBook(bk.id, false); });
   ttsBookmarkUI(); toast("Spot saved");
 }
 // Back to my spot: the saved spot becomes where you are, so the voice reads on from it, now if it
@@ -8062,7 +8303,7 @@ function ttsBookmarkGo(){
   if(!currentBook||!currentBook.bookmarkCfi){ toast("No saved spot yet"); return; }
   var wasPlaying=tts.state==="playing", spot=currentBook.bookmarkCfi, id=currentBook.id;
   if(wasPlaying) ttsPause();
-  currentBook.voiceCfi=spot; currentBook.voiceAt=Date.now();
+  currentBook.voiceCfi=spot; currentBook.voiceAt=bcAfter(currentBook.voiceAt);
   bcGoTo(id, { cfi:spot }).then(function(){
     toast("Back to your spot");
     if(!wasPlaying || !ttsSupported()) return;
@@ -8078,7 +8319,7 @@ function ttsPause(){
   tts.resumeAt=ttsSentenceStart(); tts.state="paused"; tts.pausedAt=Date.now();
   ttsNoteVoicePlace();
   tts.token++; ttsCancel(); ttsWatchStop(); ttsEstStop(); ttsSetUI();
-  try{ if(currentBook) saveProgress(currentBook); }catch(e){}
+  try{ if(currentBook) saveProgress(currentBook, {place:true}); }catch(e){}
 }
 // Play reads from where you are (ttsReaderPlace): on the page where the voice stopped, from its
 // sentence or a passage you marked further on; on any other page, from the top of that page.
@@ -8522,8 +8763,11 @@ function openScratch(){
   $("#scratch-toggle").textContent="Edit";
   renderScratchView();
   openPanel($("#scratch-panel"));
+  bcMarginsFresh(currentBook.id);   // another tab or device may have saved since this book's record was read
 }
-function renderScratchView(){ bcScratchEd().set(currentBook ? currentBook.scratch : ""); try{ updateScratchWc(); }catch(e){} }
+function renderScratchView(){ bcScratchEd().set(currentBook ? currentBook.scratch : ""); try{ updateScratchWc(); }catch(e){} bcScratchPrevNote(); }
+// The drawer's one line about a kept earlier version of the margins.
+function bcScratchPrevNote(){ try{ $("#scratch-prev-note").hidden=!(currentBook && currentBook.scratchPrev && currentBook.scratchPrev.trim()); }catch(e){} }
 function toggleScratchEdit(){
   var panel=$("#scratch-panel"), editing=panel.classList.toggle("editing"), ed=bcScratchEd();
   if(editing){
@@ -8535,8 +8779,10 @@ function toggleScratchEdit(){
     saveScratch();
     $("#scratch-toggle").textContent="Edit";
     ed.read();
+    if(currentBook) bcMarginsFresh(currentBook.id);   // words that arrived while these were being written show now
   }
   try{ updateScratchWc(); }catch(e){}
+  bcScratchPrevNote();
 }
 function saveScratch(){
   clearTimeout(_scratchTimer);
@@ -8845,7 +9091,7 @@ window.addEventListener("popstate", function(){
      (reading-time counters excluded), debounced, so a quiet library makes
      no writes at all and two devices converge instead of ping-ponging.
    ============================================================ */
-var CLOUD_CFG_KEY="bc-cloud-sync", CLOUD_SEEN_KEY="bc-cloud-seen", CLOUD_SIG_KEY="bc-cloud-sig", CLOUD_OK_KEY="bc-cloud-ok";
+var CLOUD_CFG_KEY="bc-cloud-sync", CLOUD_SEEN_KEY="bc-cloud-seen", CLOUD_SIG_KEY="bc-cloud-sig", CLOUD_PLACE_KEY="bc-cloud-place", CLOUD_OK_KEY="bc-cloud-ok";
 var cloud={ cfg:null, key:null, keyLoaded:false, pushing:false, again:false, pulling:null, pushT:null, firstDirtyAt:0, lastPullAt:0, lastOk:0, lastError:"", errCode:"", devices:[], timer:null };
 try{ cloud.cfg=JSON.parse(localStorage.getItem(CLOUD_CFG_KEY)||"null"); if(!(cloud.cfg && cloud.cfg.url && cloud.cfg.token)) cloud.cfg=null; }catch(e){ cloud.cfg=null; }
 try{ cloud.lastOk=+(localStorage.getItem(CLOUD_OK_KEY)||0)||0; }catch(e){}
@@ -8866,9 +9112,11 @@ function cloudGetSeen(){ try{ return JSON.parse(localStorage.getItem(CLOUD_SEEN_
 function cloudSetSeen(m){ try{ localStorage.setItem(CLOUD_SEEN_KEY, JSON.stringify(m||{})); }catch(e){} }
 function cloudGetSig(){ try{ return localStorage.getItem(CLOUD_SIG_KEY)||""; }catch(e){ return ""; } }
 function cloudSetSig(s){ try{ localStorage.setItem(CLOUD_SIG_KEY, s||""); }catch(e){} }
+function cloudGetPlaceSig(){ try{ return localStorage.getItem(CLOUD_PLACE_KEY)||""; }catch(e){ return ""; } }
+function cloudSetPlaceSig(s){ try{ localStorage.setItem(CLOUD_PLACE_KEY, s||""); }catch(e){} }
 function cloudForgetLocal(){
   cloud.cfg=null; cloud.key=null; cloud.lastError=""; cloud.errCode=""; cloud.devices=[];
-  try{ [CLOUD_CFG_KEY,CLOUD_SEEN_KEY,CLOUD_SIG_KEY,CLOUD_OK_KEY].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
+  try{ [CLOUD_CFG_KEY,CLOUD_SEEN_KEY,CLOUD_SIG_KEY,CLOUD_PLACE_KEY,CLOUD_OK_KEY].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
   try{ DB.del("app","cloud-key").catch(function(){}); }catch(e){}
 }
 
@@ -8933,10 +9181,22 @@ function cloudBuildBundle(){
     return { app:"backchat-sync", v:1, build:BC_VERSION, device:cloudSlotId(), name:cloudDeviceName(), at:Date.now(), tombstones:{ ids:t.ids||{}, keys:t.keys||{}, undo:t.undo||{ids:{},keys:{}} }, books:r[0] };
   });
 }
-// Content fingerprint: ignores the reading-time counters that tick while you read, so only real changes cause an upload.
+/* Two fingerprints. What the reader changed (cloudSig): marks, margins, tags, deletions. It leaves
+   out the reading-time counters that tick while you read, and the place read. The place read has
+   its own (cloudPlaceSig). An upload carries every book's notes, so one after each page turn was
+   megabytes over a commute for a library of a few hundred books. A change of place alone is sent
+   when the book closes, when the app is left, and with each regular look for other devices'
+   changes (every four minutes while the app is in view); any other change is sent as before and
+   takes the place with it. */
+var CLOUD_PLACE_FIELDS=["lastCfi","progress","posAt","voiceCfi","voiceAt"];
 function cloudSig(b){
-  return _hashStr(cloudCanon({ t:b.tombstones, b:b.books.map(function(x){ var m=Object.assign({}, x.meta); delete m.readMs; delete m.lastOpened; return { m:m, h:x.highlights }; }) }));
+  return _hashStr(cloudCanon({ t:b.tombstones, b:b.books.map(function(x){ var m=Object.assign({}, x.meta); delete m.readMs; delete m.lastOpened; CLOUD_PLACE_FIELDS.forEach(function(k){ delete m[k]; }); return { m:m, h:x.highlights }; }) }));
 }
+function cloudPlaceSig(b){
+  return _hashStr(cloudCanon(b.books.map(function(x){ var m=x.meta||{}; return [m.id, m.lastCfi||"", m.posAt||0, m.voiceCfi||"", m.voiceAt||0]; })));
+}
+// The place read goes with the next check.
+function cloudPlaceSoon(){ if(!cloudReady()) return; cloud.placeDue=true; cloudScheduleCheck(); }
 
 /* ---------- merge an incoming device's bundle into this library ---------- */
 function cloudApplyBundle(b){
@@ -8963,18 +9223,18 @@ function cloudApplyBundle(b){
 function cloudAdoptOpen(id, mm, items, from){
   try{
     if(currentBook && currentBook.id===id){
-      var sp=$("#scratch-panel"), editing=!!(sp && sp.classList.contains("editing")), keep=currentBook.scratch;
+      var sp=$("#scratch-panel"), editing=!!(sp && sp.classList.contains("editing")), keep=bcCarry(BC_MARGIN_VERSION, {}, currentBook);
       var wasCfi=currentBook.lastCfi, wasAt=currentBook.posAt||0, readMs=currentBook.readMs||0;
-      Object.assign(currentBook, mm); if(editing) currentBook.scratch=keep;
+      Object.assign(currentBook, mm); if(bcMarginsWriting(currentBook)) bcCarry(BC_MARGIN_VERSION, currentBook, keep);   // its stamp with its words: the save that follows then sees that the stored margins are not these
       if(readMs>(currentBook.readMs||0)) currentBook.readMs=readMs;   // reading time not yet saved stays counted
-      if(items && _highlightsOwnerId===id){ highlights=items; try{ renderAllHighlights(); }catch(e){} try{ renderHighlightList(); }catch(e){} }
+      if(items && _highlightsOwnerId===id){ highlights=mergeHighlights(highlights, items); try{ renderAllHighlights(); }catch(e){} try{ renderHighlightList(); }catch(e){} }   // joined, not replaced: a mark made while the record was on its way is in the list here and not yet in what was merged
       if(!editing){ try{ renderScratchView(); }catch(e){} }
       try{ ttsBookmarkUI(); }catch(e){}
       if(mm.lastCfi && mm.lastCfi!==wasCfi && (mm.posAt||0)>wasAt) bcFollowPlace(mm.lastCfi, from);
     }
     if(detailsBook && detailsBook.id===id){
-      var dEditing=bcDetailsWriting(), dKeep=detailsBook.scratch;
-      Object.assign(detailsBook, mm); if(dEditing) detailsBook.scratch=dKeep;
+      var dEditing=bcDetailsWriting(), dKeep=bcCarry(BC_MARGIN_VERSION, {}, detailsBook);
+      Object.assign(detailsBook, mm); if(bcMarginsWriting(detailsBook)) bcCarry(BC_MARGIN_VERSION, detailsBook, dKeep);
       if(items) detailsItems=hlLive(items);
       if(!dEditing && !$("#details").classList.contains("hidden")){ try{ renderDetails(); }catch(e){} }
     }
@@ -9013,23 +9273,26 @@ function cloudScheduleCheck(delay){
   var wait=Math.min(delay==null?15000:delay, Math.max(0, cloud.firstDirtyAt+90000-now));   // quiet for 15s, but never wait more than 90s
   cloud.pushT=setTimeout(function(){ cloud.firstDirtyAt=0; cloudPushIfChanged(false); }, wait);
 }
-function cloudPushIfChanged(force){
+// place: a change of place alone is worth an upload this time (cloudSig, above).
+function cloudPushIfChanged(force, place){
   if(!cloudReady()) return Promise.resolve(false);
+  if(place) cloud.placeDue=true;
   if(cloud.pushing){ cloud.again=true; return Promise.resolve(false); }
   cloud.pushing=true; updateSyncChip();
+  var withPlace=!!cloud.placeDue; cloud.placeDue=false;
   return cloudBuildBundle().then(function(b){
-    var sig=cloudSig(b);
-    if(!force && sig===cloudGetSig()) return false;
+    var sig=cloudSig(b), psig=cloudPlaceSig(b);
+    if(!force && sig===cloudGetSig() && !(withPlace && psig!==cloudGetPlaceSig())) return false;
     return cloudSeal(b).then(function(bytes){
       return cloudFetch("/slot/"+encodeURIComponent(cloudSlotId()), { method:"PUT", body:bytes, name:cloudDeviceName() });
     }).then(function(r){
       if(!r.ok) throw cloudErr("http","The relay refused the upload (error "+r.status+").");
-      cloudSetSig(sig); cloudMarkOk();
+      cloudSetSig(sig); cloudSetPlaceSig(psig); cloudMarkOk();
       var me=cloudSlotId(), row={ id:me, name:cloudDeviceName(), updated:Date.now() };   // show this device in the list right away
       cloud.devices=(cloud.devices||[]).filter(function(d){ return d.id!==me; }).concat([row]);
       return true;
     });
-  }).catch(function(e){ cloudFail(e); return false; }).then(function(x){
+  }).catch(function(e){ cloudFail(e); if(withPlace) cloud.placeDue=true; return false; }).then(function(x){   // a place that did not go is still due
     cloud.pushing=false; updateSyncChip(); cloudRenderStatus();
     if(cloud.again){ cloud.again=false; cloudScheduleCheck(3000); }
     return x;
@@ -9072,16 +9335,18 @@ function cloudPull(){
     return n;
   }).catch(function(e){ cloudFail(e); return 0; }).then(function(n){
     cloud.pulling=null; updateSyncChip(); cloudRenderStatus();
-    if(!cloud.lastError) cloudScheduleCheck(1500);   // publish the merged result so every slot becomes a superset
+    if(!cloud.lastError){ cloud.placeDue=true; cloudScheduleCheck(1500); }   // publish the merged result so every slot becomes a superset, and the place read with it
     return n;
   });
   updateSyncChip();
   return cloud.pulling;
 }
-function cloudSyncNow(){ return cloudPull().then(function(){ return cloudPushIfChanged(false); }); }
+function cloudSyncNow(){ return cloudPull().then(function(){ return cloudPushIfChanged(false, true); }); }
 
-/* Any change to books, marks or deletions schedules a (debounced) check. */
-DB.onWrite(function(store, op, val){
+/* Any change to books, marks or deletions schedules a (debounced) check. A page turn does not
+   (saveProgress marks it "place"): the check reads and fingerprints every book's notes. */
+DB.onWrite(function(store, op, val, key, note){
+  if(note==="place") return;
   if(store==="meta" || store==="highlights" || (store==="app" && op==="put" && val && val.key===TOMB_KEY)) cloudScheduleCheck();
 });
 
@@ -9097,7 +9362,7 @@ function cloudStart(){
       document.addEventListener("visibilitychange", function(){
         if(!cloudReady()) return;
         if(document.visibilityState==="visible"){ if(Date.now()-cloud.lastPullAt>30000) cloudPull(); }
-        else { clearTimeout(cloud.pushT); cloud.firstDirtyAt=0; cloudPushIfChanged(false); }   // leaving the app: send what is waiting now
+        else { clearTimeout(cloud.pushT); cloud.firstDirtyAt=0; cloudPushIfChanged(false, true); }   // leaving the app: send what is waiting now, and the place read
       });
       window.addEventListener("online", function(){ if(cloudReady()) cloudSyncNow(); });
     }
@@ -9756,8 +10021,25 @@ window.addEventListener("hashchange", handleRefHash);
    BOOT
    Wire events, restore state, render the home screen.
    ============================================================ */
+/* Start without a connection. Everything a reader has is on the device, but the page itself
+   came from the network each time: no signal, no Backchat. A small worker (sw.js, beside this
+   page) keeps the page, its libraries and the guide in a cache. It asks the network first, so a
+   new build is used as soon as it is published; the cache answers only when the network does
+   not. It is set up once the first screen is up, and where a browser has no such workers (or the
+   page is opened as a file) nothing changes. */
+function bcOfflineStart(){
+  try{
+    if(!("serviceWorker" in navigator) || !window.isSecureContext || !/^https?:$/.test(location.protocol)) return;
+    navigator.serviceWorker.register("sw.js").catch(function(e){ console.warn("offline start", e); });
+  }catch(e){}
+}
+// The page can be installed as an app from the browser's own menu. The browser's banner offering
+// it is not shown: nothing asks a reader to install anything.
+window.addEventListener("beforeinstallprompt", function(e){ try{ e.preventDefault(); }catch(_e){} });
 function boot(){
   if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(function(){}); }
+  setTimeout(bcOfflineStart, 3000);
+  setTimeout(bcStampOldMargins, 1500);
   setTimeout(bcCheckQuota, 5000); setInterval(bcCheckQuota, 180000);   // a disk nearly full is said before a save fails
   setTimeout(function(){ bcEditorLoad().catch(function(){}); }, 2000);   // the margins' editor, once the first screen is up
   applyTheme();

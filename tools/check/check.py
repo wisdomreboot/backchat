@@ -12,7 +12,7 @@ Run it before merging any change to index.html.
 
 Exit code 0 means every check passed. Each failure is printed with what was expected.
 """
-import base64, functools, http.server, json, os, re, socket, socketserver, sys, tempfile, threading, time, zipfile
+import base64, functools, http.server, json, os, re, shutil, socket, socketserver, sys, tempfile, threading, time, zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", ".."))
@@ -243,17 +243,41 @@ _srcs = re.findall(r'<script\b[^>]*\bsrc\s*=\s*["\']([^"\']+)', _html, re.I)
 expect("every script is kept in this repository", [s for s in _srcs if re.match(r"^(?:[a-z]+:)?//", s, re.I) or not os.path.isfile(os.path.join(SITE, s))], [],
        "the security policy runs only this site's files: save the library in lib/ and load it from there (see lib/README.md)")
 
+# 0b. Starting without a connection. Everything the page keeps for that (the list in sw.js) is a
+#     file in this repository, and everything the page loads is in the list: a library added to
+#     lib/ and left out of it would be missing the first time there was no connection.
+_swp = os.path.join(SITE, "sw.js")
+_sw = open(_swp, encoding="utf-8").read() if os.path.isfile(_swp) else ""
+_shell = re.findall(r'"([^"]+)"', (re.search(r"\bSHELL\s*=\s*\[(.*?)\]", _sw, re.S) or re.search(r"()", "")).group(1))
+_loads = sorted(set(["index.html", "guide/guide.md"] + [x for x in _srcs if not re.match(r"^(?:[a-z]+:)?//", x, re.I)] + re.findall(r"""["'](lib/[\w.\-]+\.js)["']""", _html)))
+expect("the files kept for a start without a connection are all here, and are all the page loads",
+       [bool(_shell), [f for f in _shell if not os.path.isfile(os.path.join(SITE, f))], [f for f in _loads if f not in _shell]], [True, [], []],
+       "sw.js lists what the browser keeps: a file named there and missing stops the copy being made at all; a file the page loads and not named there is missing when there is no connection")
+_mfp = os.path.join(SITE, "manifest.webmanifest")
+try: _mf = json.load(open(_mfp, encoding="utf-8"))
+except Exception: _mf = {}
+expect("the page can be kept as an app: its manifest names icons that are here, and the page links to it",
+       [bool(_mf.get("icons")), [i.get("src") for i in _mf.get("icons", []) if not os.path.isfile(os.path.join(SITE, str(i.get("src"))))], bool(re.search(r'<link[^>]+rel="manifest"', _html))], [True, [], True],
+       "without a manifest a phone's home-screen copy opens in a browser tab with its address bar, and has no icon of its own")
+
 # The page-view counter announces that it skips local addresses; that note is expected here.
 _GC_LOCAL = "goatcounter: not counting because of: localhost"
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
+    # The page keeps a copy of itself for starting without a connection (sw.js). A context here
+    # runs without that worker unless it asks for it (service_workers="allow"), so every request
+    # goes to the server above and each check sees exactly what the page asked for.
+    _new_context = browser.new_context
+    def _context(**kw):
+        kw.setdefault("service_workers", "block"); return _new_context(**kw)
+    browser.new_context = _context
 
     # 1. The real security policy is enforced: boot must run with no violation, no error,
     #    and no stray request (a look-ahead fetch of a URL half-written in a script).
     gc_local = {"notes": 0, "sent": []}
     for i in range(6):
-        ctx = browser.new_context(); pg = ctx.new_page()
+        ctx = browser.new_context(service_workers="allow"); pg = ctx.new_page()
         notes = []
         def _note(m, notes=notes):
             if m.text == _GC_LOCAL: gc_local["notes"] += 1
@@ -263,6 +287,15 @@ with sync_playwright() as p:
         pg.on("request", lambda r: notes.append("stray request " + r.url) if "'" in r.url else None)
         pg.on("request", lambda r: gc_local["sent"].append(r.url) if "goatcounter.com" in r.url else None)
         pg.goto(URL); pg.wait_for_selector("#home-recent .card", timeout=20000); settle(0.5)
+        if i == 0:
+            # The first run stays until the page has set up its start without a connection, a few
+            # seconds after boot, so the policy is seen to allow the worker and all that it keeps.
+            for _ in range(60):
+                if ctx.service_workers: break
+                pg.wait_for_timeout(250)
+            pg.wait_for_timeout(2000)
+            expect("the page sets up its start without a connection, under the security policy", len(ctx.service_workers), 1,
+                   "the worker that keeps the page for a start without a connection must register with the Content-Security-Policy on")
         if notes or i == 0:
             expect("boot under the security policy, run %d" % (i + 1), notes, [], "the page must boot cleanly with its Content-Security-Policy on")
         ctx.close()
@@ -720,9 +753,10 @@ with sync_playwright() as p:
       const si=window.setInterval; let tick=null;
       window.setInterval=function(f, ms){ if(ms===10000){ tick=f; return 0; } return si.apply(window, arguments); };
       try{ startReadTimer(); } finally { window.setInterval=si; }
-      let puts=0; const put=DB.put; DB.put=function(s){ if(s==='meta') puts++; return put.apply(DB, arguments); };
+      let puts=0; const put=DB.put, upd=DB.update;
+      DB.put=function(s){ if(s==='meta') puts++; return put.apply(DB, arguments); }; DB.update=function(s){ if(s==='meta') puts++; return upd.apply(DB, arguments); };
       const before=currentBook.readMs||0;
-      try{ tick(); tick(); } finally { DB.put=put; }
+      try{ tick(); tick(); } finally { DB.put=put; DB.update=upd; }
       const counted=(currentBook.readMs||0)-before;
       cloudAdoptOpen(currentBook.id, Object.assign({}, await DB.get('meta', currentBook.id)), null);   // a sync arriving meanwhile
       const kept=(currentBook.readMs||0)-before;
@@ -803,9 +837,9 @@ with sync_playwright() as p:
            "a book never opened came out with its last-opened time changed from none to 0, so the record looked changed and was written again")
     expect("a record that brings nothing new writes nothing, by every path", each_path(r"""async([id, path])=>{
       await __put({ meta:%s, highlights:((await DB.get('highlights', id))||{}).items||[], updatedAt:((await DB.get('highlights', id))||{}).updatedAt||0 });
-      const rec=await __rec(id), p=DB.put, log=[];
-      DB.put=function(s, v){ if((s==='meta'||s==='highlights') && v && v.id===id) log.push(s); return p.apply(DB, arguments); };
-      try{ await __deliver(path, rec); } finally { DB.put=p; }
+      const rec=await __rec(id), log=[]; let on=true;
+      DB.onWrite((s, op, v, key)=>{ if(on && (s==='meta'||s==='highlights') && key===id) log.push(s); });     // every write that lands, however it was made
+      try{ await __deliver(path, rec); await new Promise(r=>setTimeout(r,150)); } finally { on=false; }
       return log.length; }""" % json.dumps(orig)), [],
            "the same record, arriving again, was written again: every connect rewrote each book never opened, and some paths wrote whatever arrived")
     expect("a record whose id names a different book here changes nothing, by every path", each_path(r"""async([id, path])=>{
@@ -887,8 +921,8 @@ with sync_playwright() as p:
     ev(mp_, SYNC); add_in_app(mp_, "beta", "beta.epub"); add_in_app(mp_, "gamma", "gamma.epub")   # two books added here: the folder holds their records as the import made them
     ev(mp_, "async()=>{ await vaultWriteIndex(await vaultDirs()); await B.quiet(200); return true; }")   # and the library's index lists them
     expect("connecting a folder that already holds this library's records rewrites none of them", ev(mp_, r"""async()=>{
-      await B.quiet(300); B.mark(); let n=0; const p=DB.put; DB.put=function(s){ if(s==='meta') n++; return p.apply(DB, arguments); };
-      try{ vault.handle=null; vault.connected=false; vault.handle=B.root; vault.connected=true; _vaultLastWrite={}; await vaultPull(); await vaultPushAll(); await B.quiet(600); } finally { DB.put=p; }
+      await B.quiet(300); B.mark(); let n=0, on=true; DB.onWrite((s)=>{ if(on && s==='meta') n++; });     // every write that lands, however it was made
+      try{ vault.handle=null; vault.connected=false; vault.handle=B.root; vault.connected=true; _vaultLastWrite={}; await vaultPull(); await vaultPushAll(); await B.quiet(600); } finally { on=false; }
       return [n, B.log('w')]; }"""), [0, []],
            "a record merged with itself came out different (last opened: none became 0), so connecting rewrote every book never opened, here and in the folder")
     ev(mp_, "(id)=>{ openBook(id); return true; }", mid)
@@ -1785,14 +1819,259 @@ with sync_playwright() as p:
         st_stored = ev(stp, "async()=>{ try{ return hlLive(((await DB.get('highlights', currentBook.id))||{}).items||[]).map(h=>h.text); }catch(e){ return 'storage unreadable: '+e.name; } }")
         expect("a database connection the browser closed is opened again, and the mark made next is stored", [st_toast, st_stored], ["Highlighted", ["quick brown fox"]],
                "every write failed until the page was reloaded, while the page went on drawing marks it could not keep")
-        ev(stp, "()=>{ window.__put=DB.put; DB.put=function(store){ return store==='highlights' ? Promise.reject(new Error('disk')) : window.__put.apply(DB, arguments); }; return true; }")
+        ev(stp, "()=>{ window.__put=DB.put; window.__upd=DB.update; const no=(w)=>function(store){ return store==='highlights' ? Promise.reject(new Error('disk')) : w.apply(DB, arguments); }; DB.put=no(window.__put); DB.update=no(window.__upd); return true; }")
         st_fail = ev(stp, ST_MARK, ["Call me Ishmael", "green"])
-        ev(stp, "()=>{ DB.put=window.__put; return true; }")
+        ev(stp, "()=>{ DB.put=window.__put; DB.update=window.__upd; return true; }")
         expect('a save that failed is never followed by "saved"', ["Highlighted" in str(st_fail), "Could not save" in str(st_fail)], [False, True],
                'the words "Could not save" were replaced at once by "Highlighted", so a mark that was only drawn read as kept')
     except Exception as e:
         expect("the storage checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
     stctx.close()
+
+    # 4q. What two devices wrote is all kept. The margins have their own stamp and one writer: a
+    #     favorite or a tag set on a device holding older margins does not put those margins back;
+    #     margins changed in two places keep the newer words and hold the others beside them; a
+    #     page turn, a second tab and a sync arriving mid-sentence write over nothing. A mark made,
+    #     and margins saved, in the instant a sync merges their book are both kept. An edit is
+    #     stamped later than the version it was made on, whatever the other device's clock says.
+    #     Tags changed in the Edit details form reach the other device. A page turn alone is nothing
+    #     device sync uploads for. And the page starts with no connection at all.
+    mqctx = browser.new_context(viewport={"width": 1280, "height": 800}, bypass_csp=True); mq = mqctx.new_page(); watch(mq, "two-devices")
+    mq.goto(URL); wait(mq, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+    mq.set_input_files("#file-input", [ALPHA, BETA])
+    wait(mq, "DB.all('meta').then(ms=>{ window.__mqa=(ms.filter(m=>/Alpha Testing/.test(m.title))[0]||{}).id; window.__mqb=(ms.filter(m=>/Beta Second/.test(m.title))[0]||{}).id; }), !!window.__mqa && !!window.__mqb", 30000); settle(1.0)
+    MQ_READING = "currentBook && currentBook.id===window.__mq && rendition && rendition.getContents().length && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent) && !document.querySelector('#reader').classList.contains('hidden')"
+    def mq_open(pg):
+        ev(pg, "()=>{ openBook(window.__mq); return true; }"); wait(pg, MQ_READING); settle(0.8)
+    # The phone: its copy of this book's record, changed as given, arriving the way every record does.
+    # Margins it stamps carry the mark of their words, as this build writes them.
+    MQ_HELPERS = r"""()=>{ window.__q={
+      other: async (change)=>{ const id=window.__mq, m=await DB.get('meta', id), h=(await DB.get('highlights', id))||{}, meta=Object.assign({}, m, change||{});
+        if(change && change.scratchAt && typeof bcTextMark==='function') meta.scratchFor=bcTextMark(meta.scratch);
+        return { meta:meta, highlights:(h.items||[]).slice(), updatedAt:h.updatedAt||0 }; },
+      take: (rec)=>bcTakeRecords([JSON.parse(JSON.stringify(rec))], { from:'the phone' }),
+      m: ()=>DB.get('meta', window.__mq),
+      wait: (ms)=>new Promise(r=>setTimeout(r, ms)),
+      mark: (quote, color)=>{ const c=rendition.getContents()[0]; lastSelection={ cfiRange:c.cfiFromRange(findQuoteRange(c, secTextMap(c), quote)), text:quote, contents:c }; return createHighlight(color); } }; return true; }"""
+    ev(mq, MQ_HELPERS)
+    # Words typed in the drawer and not yet saved, the phone's margins arriving, a page turn, then the save.
+    MQ_DRAWER = r"""async()=>{
+      await bcEditorLoad(); openScratch(); await __q.wait(400); toggleScratchEdit(); await __q.wait(400);
+      const v=_scratchEd.view, was=v.state.doc.toString(), at=(await __q.m()).scratchAt;
+      v.dispatch({ changes:{ from:v.state.doc.length, insert:'\nTyped here, not yet saved.' }, userEvent:'input' });
+      await __q.take(await __q.other({ scratch:'Rewritten on the phone meanwhile.', scratchAt:Date.now()+9000, scratchBy:'the-phone', scratchBase:at, updated:Date.now()+9000 }));
+      await saveProgress(currentBook, { place:true }); await saveProgress(currentBook);      // a page turn, and any other save the reader makes
+      const stored=(await __q.m()).scratch;
+      saveScratch(); await __q.wait(600);
+      const m=await __q.m(); toggleScratchEdit(); closePanels(); await __q.wait(300);
+      return [stored, m.scratch===was+'\nTyped here, not yet saved.', (m.scratchPrev||'').indexOf('Rewritten on the phone meanwhile.')>=0]; }"""
+    MQ_DRAWER_WHY = "margins that arrived while the drawer was in Edit were written over with nothing kept: by the next page turn, which saved the reader's whole copy of the record, or, once the book's page had been opened, by the save of what was being typed"
+    try:
+        ev(mq, "()=>{ window.__mq=window.__mqb; return true; }"); mq_open(mq)
+        expect("margins that arrive while the drawer is being written in survive a page turn, and are kept when the writing is saved", ev(mq, MQ_DRAWER), ["Rewritten on the phone meanwhile.", True, True], MQ_DRAWER_WHY)
+        ev(mq, "async()=>{ closeBook(); await __q.wait(500); window.__mq=window.__mqa; return true; }"); mq_open(mq)
+        expect("a book made a favorite on a device holding older margins does not put those margins back", ev(mq, r"""async()=>{
+          await bcSaveMargins(currentBook, 'First thoughts.');
+          const phone=await __q.other();                               // the phone has the book, with these margins
+          await __q.wait(30); await bcSaveMargins(currentBook, 'First thoughts, and second ones written here later.'); await __q.wait(30);
+          phone.meta.fav=true; phone.meta.updated=Date.now();          // on the phone the book is made a favorite; its margins are still the first
+          await __q.take(phone); const m=await __q.m();
+          return [m.scratch, !!m.fav]; }"""), ["First thoughts, and second ones written here later.", True],
+               "the margins shared one stamp with the favorite, the rating and the summary, so making a book a favorite on the phone put the phone's older margins back over the newer ones")
+        expect("margins changed in two places keep the newer words and hold the others beside them; words written on top of yours simply replace them", ev(mq, r"""async()=>{
+          const at=(await __q.m()).scratchAt;
+          // the phone, having these margins, writes on top of them: a plain change, with nothing to keep
+          await __q.take(await __q.other({ scratch:'Second thoughts, tidied on the phone.', scratchAt:at+1000, scratchBy:'the-phone', scratchBase:at, updated:Date.now()+1000 }));
+          const plain=await __q.m();
+          // a line is added here, while the phone, which has not seen it, adds its own
+          await bcSaveMargins(currentBook, 'Second thoughts, tidied on the phone. And a line added here.');
+          await __q.take(await __q.other({ scratch:'Second thoughts, tidied on the phone. A line from the train.', scratchAt:Date.now()+5000, scratchBy:'the-phone', scratchBase:at+1000, updated:Date.now()+5000 }));
+          await __q.wait(700); const m=await __q.m();
+          return { plain:[plain.scratch, plain.scratchPrev||''], margins:m.scratch, kept:m.scratchPrev||'', page:[currentBook.scratch, currentBook.scratchPrev||''],
+            said:/changed in two places/.test(document.getElementById('toast').textContent), drawer:document.getElementById('scratch-prev-note') ? !document.getElementById('scratch-prev-note').hidden : 'no note' }; }"""),
+               {"plain": ["Second thoughts, tidied on the phone.", ""], "margins": "Second thoughts, tidied on the phone. A line from the train.", "kept": "Second thoughts, tidied on the phone. And a line added here.",
+                "page": ["Second thoughts, tidied on the phone. A line from the train.", "Second thoughts, tidied on the phone. And a line added here."], "said": True, "drawer": True},
+               "the newer margins replaced the older ones whole, so a line written on one device before the two had met was gone, and nothing said so")
+        expect("the version kept is on the book's page, and Add to the margins puts its words back", ev(mq, r"""async()=>{
+          await openDetails(window.__mq); await __q.wait(500);
+          const d=document.querySelector('#det-prev'); if(!d) return 'nothing is shown';
+          const shown=[d.querySelector('summary').textContent.trim(), document.querySelector('#det-prev-text').textContent];
+          document.querySelector('#det-prev-add').click(); await __q.wait(700);
+          const m=await __q.m(); return [shown, m.scratch, m.scratchPrev||'', !!document.querySelector('#det-prev')]; }"""),
+               [["An earlier version of these margins is kept", "Second thoughts, tidied on the phone. And a line added here."],
+                "Second thoughts, tidied on the phone. A line from the train.\n\nSecond thoughts, tidied on the phone. And a line added here.\n", "", False],
+               "there was no earlier version to show: margins another device replaced were gone")
+        expect("tags changed in the Edit details form hold against the other device's older set, and reach it", ev(mq, r"""async()=>{
+          const form=async(tags)=>{ detailsEdit(); await __q.wait(300); document.querySelector('#meta-tags').value=tags; saveMetaForm(); await __q.wait(700); };
+          await form('stoics, systems'); const phone=await __q.other();     // the phone has both tags
+          await form('stoics');                                               // here, one is taken off
+          const here=await __q.m(), there=mergeMeta(JSON.parse(JSON.stringify(phone.meta)), JSON.parse(JSON.stringify(here))).tags;   // what the phone makes of this device's record
+          await __q.take(phone);                                              // and the phone's older set comes round again
+          return [(await __q.m()).tags, there]; }"""), [["stoics"], ["stoics"]],
+               "tags changed in the form carried no stamp of their own, so a tag taken off there came back at the next sync, on both devices")
+        mq_open(mq)
+        # The book's page, opened from the reader, holds the reader's own copy of the record: the same again.
+        expect("  and the same once the book's page has been opened, which holds the reader's own copy of the record", ev(mq, MQ_DRAWER), ["Rewritten on the phone meanwhile.", True, True], MQ_DRAWER_WHY)
+        for mine, theirs, order in (("lazy dog", "zygomorphic flowers", "merge first"), ("never mind how long", "bloom in spring", "mark first")):
+            expect("a mark made in the instant a sync merges its book is kept, and so is the mark that arrived (%s)" % order, ev(mq, r"""async([mine, theirs, order])=>{
+              const id=currentBook.id, c=rendition.getContents()[0], tm=secTextMap(c), now=Date.now(), cfi=(q)=>c.cfiFromRange(findQuoteRange(c, tm, q));
+              const phone=await __q.other();     // what the phone sends: this book's record, with a mark of its own
+              phone.highlights.push({ id:'phone-'+theirs.replace(/\W+/g,'-'), cfiRange:cfi(theirs), text:theirs, color:'green', note:'', fav:false, chapter:'', created:now, updated:now }); phone.updatedAt=now;
+              // the reader marks `mine` at the moment the merge first touches the open book's marks
+              const get=DB.get, upd=DB.update; let armed=true, own=false, how='';
+              const markNow=()=>{ own=true; lastSelection={ cfiRange:cfi(mine), text:mine, contents:c }; const p=createHighlight('pink'); own=false; return p; };
+              DB.get=function(store, key){ const p=get.apply(DB, arguments);
+                if(armed && !own && store==='highlights' && key===id){ armed=false; how='after its read'; return p.then(async rec=>{ await markNow(); return rec; }); }
+                return p; };
+              DB.update=function(store, key){
+                if(armed && !own && store==='highlights' && key===id){ armed=false; how='beside its write';
+                  if(order==='mark first'){ const m=markNow(), p=upd.apply(DB, arguments); return p.then(async r=>{ await m; return r; }); }
+                  const p=upd.apply(DB, arguments), m=markNow(); return p.then(async r=>{ await m; return r; }); }
+                return upd.apply(DB, arguments); };
+              try{ await __q.take(phone); await __q.wait(600); } finally { DB.get=get; DB.update=upd; }
+              const stored=hlLive(((await DB.get('highlights', id))||{}).items||[]).map(h=>h.text), shown=highlights.filter(h=>!h.deleted).map(h=>h.text);
+              return [how!=='', stored.includes(mine), stored.includes(theirs), shown.includes(mine), shown.includes(theirs)]; }""", [mine, theirs, order]), [True, True, True, True, True],
+                   "the merge read the book's marks, merged, and wrote: a mark stored between its read and its write was written over, and then dropped from the page")
+        expect("margins saved in the instant a sync merges their book are kept, and so is what arrived", ev(mq, r"""async()=>{
+          const id=currentBook.id, phone=await __q.other({ rating:4, updated:Date.now()+20000 });     // the phone rates the book
+          const get=DB.get; let armed=true, own=false;
+          DB.get=function(store, key){ const p=get.apply(DB, arguments);
+            if(armed && !own && store==='meta' && key===id){ armed=false; return p.then(async rec=>{ own=true; const s=bcSaveMargins(currentBook, 'Typed as the sync arrived.'); own=false; await s; return rec; }); }
+            return p; };
+          try{ await __q.take(phone); await __q.wait(400); } finally { DB.get=get; }
+          const m=await __q.m(); return [!armed, m.scratch, m.rating]; }"""), [True, "Typed as the sync arrived.", 4],
+               "the merge read the book's record, merged, and wrote: margins saved between its read and its write were written over")
+        expect("an edit made after a version stamped by a faster clock still holds: a mark deleted, a tag added, the margins edited", ev(mq, r"""async()=>{
+          const id=window.__mq, ahead=Date.now()+7200000;
+          await __q.mark('Call me Ishmael', 'yellow');
+          // the phone's clock runs two hours fast: its recolouring of the mark, its tag and its margins all carry that time
+          const phone=await __q.other({ tags:['from-the-phone'], tagsUpdated:ahead, scratch:'Margins from a phone whose clock runs fast.', scratchAt:ahead, scratchBy:'the-phone', scratchBase:(await __q.m()).scratchAt, updated:ahead });
+          phone.highlights=phone.highlights.map(h=>h.text==='Call me Ishmael' ? Object.assign({}, h, { color:'blue', updated:ahead }) : h); phone.updatedAt=ahead;
+          await __q.take(phone); await __q.wait(300);
+          const took=[(highlights.find(h=>h.text==='Call me Ishmael' && !h.deleted)||{}).color, currentBook.scratch];
+          // then, here: the mark is deleted, the margins are edited, a tag is added
+          deleteHighlight((highlights.find(h=>h.text==='Call me Ishmael' && !h.deleted)||{}).id); await __q.wait(300);
+          await bcSaveMargins(currentBook, 'Margins edited here afterwards.');
+          await openDetails(id); await __q.wait(400); addDetTag('added-here'); await __q.wait(400);
+          await __q.take(phone); await __q.wait(300);        // the phone's version comes round again at the next sync
+          const m=await __q.m(), hs=((await DB.get('highlights', id))||{}).items||[];
+          return [took, hs.filter(h=>h.text==='Call me Ishmael').map(h=>!!h.deleted), (m.tags||[]).slice().sort(), m.scratch]; }"""),
+               [["blue", "Margins from a phone whose clock runs fast."], [True], ["added-here", "from-the-phone"], "Margins edited here afterwards."],
+               "an edit was stamped by this device's clock alone, so one made on top of a version from a device whose clock ran fast lost to that very version: the deleted mark came back, the tag went, the margins reverted")
+        mq_open(mq)
+        expect("a page turn alone is nothing device sync uploads for, and a real change still is", ev(mq, r"""async()=>{
+          const sig=async()=>{ const b=await cloudBuildBundle(); return [cloudSig(b), typeof cloudPlaceSig==='function' ? cloudPlaceSig(b) : '']; };
+          const a=await sig(); let b, turned, edited;
+          currentBook.lastCfi=rendition.currentLocation().end.cfi; currentBook.posAt=(currentBook.posAt||Date.now())+5;     // the reader turns a page
+          cloud.cfg={ url:'https://relay.invalid', token:'t', name:'Desk' }; cloud.key={}; clearTimeout(cloud.pushT); cloud.firstDirtyAt=0;   // device sync is on; no check is let run, so nothing is sent
+          try{
+            await saveProgress(currentBook, { place:true }); turned=cloud.firstDirtyAt; b=await sig();
+            await bcSaveMargins(currentBook, 'A real change.'); edited=cloud.firstDirtyAt;
+          } finally { clearTimeout(cloud.pushT); cloud.firstDirtyAt=0; cloud.placeDue=false; cloud.cfg=null; cloud.key=null; }
+          return { notes:a[0]===b[0] ? 'unchanged' : 'changed', place:a[1]!==b[1] ? 'changed' : 'unchanged', pageTurnWakesSync:turned>0, editWakesSync:edited>0 }; }"""),
+               {"notes": "unchanged", "place": "changed", "pageTurnWakesSync": False, "editWakesSync": True},
+               "the place read was part of what sync compared, so every page turn was a change: each one uploaded every book's notes again, megabytes over a commute for a library of a few hundred books")
+        expect("margins rewritten on a device a build behind, which stamps nothing, are taken as the newer they are, and the words they replace are kept", ev(mq, r"""async()=>{
+          await bcSaveMargins(currentBook, 'Written here, on this build.'); const at=(await __q.m()).scratchAt||Date.now();
+          // the phone still runs the build before this one: three seconds later it rewrites the margins, and leaves the stamp it holds as it was
+          await __q.take(await __q.other({ scratch:'Rewritten on a phone a build behind.', updated:at+3000 })); await __q.wait(600);
+          const m=await __q.m();
+          return [m.scratch, (m.scratchPrev||'').indexOf('Written here, on this build.')>=0, typeof bcStamped==='function' && bcStamped(m)]; }"""), ["Rewritten on a phone a build behind.", True, True],
+               "until every device runs this build, one of them writes margins with no stamp: read as older than any stamped margins, its newer words were passed over, and lost when that device updated")
+        mq2 = mqctx.new_page(); watch(mq2, "two-devices-tab-2")
+        mq2.goto(URL); wait(mq2, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+        ev(mq2, "(id)=>{ window.__mq=id; return true; }", ev(mq, "()=>window.__mq")); mq_open(mq2)
+        ev(mq, "async()=>{ await bcSaveMargins(currentBook, 'Saved in the first tab.'); return true; }"); settle(1.0)
+        mq_seen = ev(mq2, "()=>currentBook.scratch")
+        ev(mq2, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms)); await bcEditorLoad(); openScratch(); await w(400); toggleScratchEdit(); await w(300);
+          _scratchEd.view.dispatch({ changes:{ from:0, to:_scratchEd.view.state.doc.length, insert:'Typed in the second tab.' }, userEvent:'input' }); return true; }""")
+        ev(mq, "async()=>{ await bcSaveMargins(currentBook, 'Saved again in the first tab.'); return true; }"); settle(0.3)
+        expect("a second tab reads the margins the first one saved, and its save over words it has not read keeps them", [mq_seen, ev(mq2, r"""async()=>{
+          saveScratch(); await new Promise(r=>setTimeout(r, 600)); const m=await DB.get('meta', currentBook.id); toggleScratchEdit(); closePanels();
+          return [m.scratch, (m.scratchPrev||'').indexOf('Saved again in the first tab.')>=0]; }""")], ["Saved in the first tab.", ["Typed in the second tab.", True]],
+               "each tab kept the margins as they were when it opened the book, and its next save wrote that copy over whatever another tab had saved since")
+        mq2.close()
+        # Margins as the build before this one left them: words, and no stamp. Then the page starts again.
+        ev(mq, r"""async()=>{ closePanels(); closeBook(); await __q.wait(400);
+          await DB.update('meta', window.__mq, m=>{ m.scratch='Margins from before this build.'; m.updated=1700000000000; ['scratchAt','scratchFor','scratchBy','scratchBase','scratchPrev','scratchPrevAt'].forEach(k=>delete m[k]); return m; });
+          sessionStorage.setItem('mq', window.__mq); return true; }""")
+        mq.reload(); wait(mq, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(3.0)
+        ev(mq, "()=>{ window.__mq=sessionStorage.getItem('mq'); return true; }"); ev(mq, MQ_HELPERS)
+        expect("margins from before this build are given their stamp at the next start, so a favorite made since no longer makes them the newer ones", ev(mq, r"""async()=>{
+          const m0=await __q.m();
+          await DB.update('meta', window.__mq, m=>{ m.fav=!m.fav; m.updated=Date.now(); return m; });      // made a favorite here, today
+          await __q.take(await __q.other({ scratch:'Written on the phone since.', scratchAt:1700000500000, scratchBy:'the-phone', scratchBase:0, updated:1700000500000, fav:false }));
+          return [m0.scratchAt, typeof bcStamped==='function' && bcStamped(m0), (await __q.m()).scratch]; }"""), [1700000000000, True, "Written on the phone since."],
+               "margins written before they had a stamp went by their record's time, which a favorite, a tag or a saved spot moves: the older margins on this device then beat the newer ones from the other")
+    except Exception as e:
+        expect("the two-device checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    mqctx.close()
+
+    # Starting with no connection. The page keeps a copy of itself (sw.js): the host is asked
+    # first, so a newer build is never held back, and the copy is used when the host cannot be
+    # reached. Only the files sw.js names are kept, and a newer page brings the rest of them with
+    # it. Served here as GitHub Pages serves it, stale at once, from a copy that can be changed and
+    # a server that can be stopped.
+    off_site = tempfile.mkdtemp(prefix="backchat-offline-")
+    shutil.copytree(SITE, off_site, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".git", "tools"))
+    class Stale(Quiet):
+        def end_headers(self):
+            self.send_header("Cache-Control", "max-age=0"); super().end_headers()
+    OFF_PORT = free_port()
+    def off_serve():
+        h = socketserver.ThreadingTCPServer(("127.0.0.1", OFF_PORT), functools.partial(Stale, directory=off_site))
+        threading.Thread(target=h.serve_forever, daemon=True).start(); return h
+    def off_stop(h):
+        try: h.shutdown(); h.server_close()
+        except Exception: pass
+    OFF_URL = "http://127.0.0.1:%d/index.html" % OFF_PORT
+    off_httpd = off_serve()
+    # Not watched: with the host gone, requests fail, and the browser says so in the console.
+    offctx = browser.new_context(bypass_csp=True, service_workers="allow"); off = offctx.new_page(); off_errs = []
+    off.on("pageerror", lambda e: off_errs.append(str(e)[:200])); off.on("dialog", lambda d: d.accept())
+    def off_goto():
+        try: off.goto(OFF_URL, timeout=15000); return True
+        except Exception as e: return str(e).splitlines()[0][:120]
+    try:
+        off.goto(OFF_URL); wait(off, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.8)
+        off.set_input_files("#file-input", [ALPHA])
+        wait(off, "DB.all('meta').then(ms=>window.__of=(ms.filter(m=>/Alpha Testing/.test(m.title))[0]||{}).id), !!window.__of", 30000)
+        try:
+            wait(off, "navigator.serviceWorker.getRegistration().then(r=>window.__sw=!!(r && r.active)), window.__sw===true", 15000); settle(2.0)
+            off_kept = ev(off, "async()=>{ await fetch('robots.txt'); await fetch('CHANGELOG.md'); await new Promise(r=>setTimeout(r,300)); const c=await caches.open('backchat-shell-1'); return (await c.keys()).map(x=>new URL(x.url).pathname); }")
+        except Exception:
+            off_kept = "the page set up nothing"
+        expect("the page keeps itself, its libraries and the guide for a start without a connection, and nothing else",
+               [[f for f in ["/" + x for x in _shell] if f not in off_kept], [f for f in off_kept if f[1:] not in _shell]] if isinstance(off_kept, list) else off_kept, [[], []],
+               "nothing of the page was kept in the browser: without a connection, or with the host down, Backchat did not open and the library in this browser could not be read")
+        off_stop(off_httpd); offctx.set_offline(True); settle(0.5)        # no signal, and no host either
+        off_opened = off_goto(); off_did = None
+        if off_opened is True:
+            wait(off, "typeof DB!=='undefined' && typeof renderHome==='function'"); settle(0.5)
+            off_did = ev(off, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+              const m=(await DB.all('meta')).find(x=>/Alpha Testing/.test(x.title)); if(!m) return 'the library is empty';
+              openBook(m.id); for(let i=0;i<60 && !(rendition && rendition.getContents().length && currentBook);i++) await w(250);
+              const read=!!rendition && /quick brown fox/.test(rendition.getContents()[0].document.body.textContent);
+              await bcEditorLoad(); openScratch(); await w(400); toggleScratchEdit(); await w(400);
+              _scratchEd.view.dispatch({ changes:{ from:0, to:_scratchEd.view.state.doc.length, insert:'Written with no connection.' }, userEvent:'input' }); saveScratch(); await w(500);
+              toggleScratchEdit(); closePanels(); const s=(await DB.get('meta', m.id)).scratch; closeBook(); await w(400);
+              return [read, s]; }""")
+        expect("with no connection Backchat opens: the library, a book, and the margins' editor, with no error on the page", [off_opened, off_did, off_errs[:4]], [True, [True, "Written with no connection."], []],
+               "the page was fetched from its host at every start, so with no connection there was no Backchat, though every book and note was in the browser")
+        _off_index = os.path.join(off_site, "index.html")
+        _off_html = open(_off_index, encoding="utf-8").read()
+        open(_off_index, "w", encoding="utf-8").write(re.sub(r"<title>[^<]*</title>", "<title>Backchat: a newer build</title>", _off_html, count=1))
+        with open(os.path.join(off_site, "lib", "codemirror.js"), "a", encoding="utf-8") as _f: _f.write("\n// the newer build's editor\n")   # a library the page does not ask for until the margins are written in
+        off_httpd = off_serve(); offctx.set_offline(False); settle(0.5)
+        off_now = off.title() if off_goto() is True else "did not open"; settle(2.5)
+        off_stop(off_httpd); offctx.set_offline(True); settle(0.5)
+        off_next = off.title() if off_goto() is True else "did not open"
+        off_lib = ev(off, "()=>caches.open('backchat-shell-1').then(c=>c.match('lib/codemirror.js')).then(r=>r ? r.text() : '').then(t=>t.slice(-60).indexOf('the newer build')>=0)") if off_next != "did not open" else None
+        expect("with a connection the host's newer build is what loads, and it is kept whole for the next start without one", [off_now, off_next, off_lib], ["Backchat: a newer build", "Backchat: a newer build", True],
+               "a copy kept in the browser must never hold a newer build back: the host is asked first, its answer replaces the copy, and the libraries the page has not asked for yet follow it")
+    except Exception as e:
+        expect("the offline checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    off_stop(off_httpd); offctx.close(); shutil.rmtree(off_site, ignore_errors=True)
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
