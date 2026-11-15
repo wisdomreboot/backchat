@@ -2,6 +2,23 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.85 (15 November 2026)
+
+An audit of 1.0.84 as a reader uses it: on the current Chrome, with a real mouse, keyboard and touch, with two devices syncing, and with storage made to fail. Six things it found are fixed here.
+
+**Fixed**
+- **Margins written on a book's page are no longer undone by the reader's margins.** Closing the reader's Margins with the X while writing saved the words but left the drawer in writing, still holding them. From then on, each panel opened and each book closed saved those old words again, over whatever the book's page had saved since, and said nothing. Closing the drawer, or the book, now ends the writing as Done does (`bcScratchDone`).
+- **The keyboard works after a click in the page.** A click in a book's words moves the keyboard's focus into the page, where no shortcut was listening: the arrow keys, Space, H, C, S, ? and Esc did nothing until a click on a button. Each section of a book now hands its keys to the same handler as the rest of the reader.
+- **A book that opens keeps its progress.** The page reported its place while the book's locations were still being counted. The unfinished count read as 0%, and 0% was shown and stored until the next page turn; a book closed in that moment kept 0% on the shelf and on your other devices. The place itself was never lost. Progress is now read only from a finished count.
+- **A sideways swipe turns the page on the current Chrome.** The book's own scroller held sideways overscroll, and Chrome 153 then took a swipe across the page as its own Back gesture, whatever the page said: the page turned back and the book closed. The scroller now holds overscroll up and down only, and the page refuses it sideways while a book is open.
+- **A database connection the browser closed is opened again.** A browser closes the connection when its storage is cleared or a tab is put away. Every write then failed until the page was reloaded, while marks went on being drawn. The connection is now opened again and the write made once more.
+- **A save that failed is never followed by "saved".** "Could not save your highlight" was replaced in the same instant by "Highlighted" or "Comment saved", so a mark that was only drawn read as kept. The words of success now wait for the save, and the words of failure say what to do: reload the page, then mark it again.
+
+**Checks**
+- New section 4p, six checks, one for each fix: the swipe, the keys, the margins, the progress, the closed connection and the failed save.
+- All six fail on 1.0.84. Full suite: 293 of 293.
+- On Chrome 153, 1.0.84 failed "a swipe turns the page on a phone", and the eight phone checks after it never ran. With this build all of them run and pass there.
+
 ## 1.0.84 (9 November 2026)
 
 An audit: what Backchat is and does, checked for what could break or cause trouble. The code was linted for undefined names, clashes and dead functions (none), its HTML for unescaped text (none: every book and note field is escaped, and the page's policy blocks scripts), its syntax against older Safari (nothing newer than it reads), and it was run through hostile books, damaged notes files, a 600-book library with 30,000 highlights, and a browser that stores nothing. What turned up is fixed here.
