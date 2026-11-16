@@ -2,6 +2,37 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.86 (16 November 2026)
+
+The second half of the audit of 1.0.84: what two devices, two tabs and one bad connection do to a reader's words. Every fix here closes a way that something written could be lost without a word, or a way Backchat could fail to open.
+
+**Fixed**
+- **Margins are no longer undone by a favorite, a tag or a saved spot.** The margins shared one stamp with the favorite, the rating, the summary and the related books, and the newer stamp took everything. Make a book a favorite on the phone, and the phone's older margins replaced the newer ones on the desktop. The margins now have a stamp of their own (`scratchAt`), and only a newer version of the margins replaces the margins. Margins written before this build are given their stamp the first time it starts. A device still on the build before this one writes margins with no stamp: they are read by the old rule until it updates, and the words they replace are kept, so nothing is lost while your devices catch up.
+- **Margins changed in two places are both kept.** The newer words still win, so an edit and a deletion both hold. The words they replace, when this device wrote them and the other had not seen them, are now held beside the margins as an earlier version (`scratchPrev`). The book's page shows it under the margins, with Copy, Add to the margins and Remove; the reader's drawer says that one is kept; and a line says so when it happens. Nothing is merged back by itself, so text you deleted stays deleted.
+- **A page turn no longer writes the margins.** Every save of a book's record wrote the reader's whole copy of it, margins included. Margins that arrived from another device while the drawer was in Edit were written over by the next page turn. The margins now have one writer (`bcSaveMargins`), and every other save leaves the stored margins as they are (`bcPutMeta`).
+- **Words being written are protected on the book's page and in the reader alike.** The book's page, opened from the reader, holds the reader's own copy of the record. An arriving record was kept out of that copy for the drawer's sake and then put into it for the page's, so the next save took the arrived words for its own and wrote over them. Either editor writing in the copy now counts for it (`bcMarginsWriting`).
+- **A second tab reads what the first one saved.** Each tab kept the margins as they were when it opened the book, and its next save wrote that copy over the other tab's. A tab now reads the margins again when another tab saves them, and a save over words it has not read keeps those words as the earlier version.
+- **A mark made as a sync arrives is kept.** A record from another device was merged in three steps: read the book's marks, merge, write. A highlight stored between the read and the write was written over, and then dropped from the page. The margins had the same gap. Both merges now read and write in one step of the database (`DB.update`), and the page's list of marks is joined with what arrived instead of replaced by it.
+- **An edit holds against a faster clock.** An edit was stamped by this device's clock alone. Made on top of a version from a device whose clock ran ahead, it lost to that very version: a deleted highlight came back, a tag went, margins reverted, a place read later was thrown back. Every edit is now stamped later than the version it was made on (`bcAfter`): marks, tags, margins, the favorite, the place read, the voice's place and the saved spot.
+- **Tags changed in Edit details reach the other device.** Tags carry their own stamp, and the form set none. A tag taken off there came back at the next sync, on both devices.
+
+**Changed**
+- **Backchat starts without a connection.** The page came from its host at every start, so with no signal there was no Backchat, though every book and note was in the browser. A small worker (`sw.js`) now keeps the page, its libraries and the guide on the device. The host is always asked first, so a new build is used as soon as it is published; the copy answers only when the host cannot be reached, is failing, or takes more than four seconds. A newer page brings the rest of the files with it, so the copy kept is always one build. Only the files the worker names are its business: the relay, book images and video go to the network as before.
+- **Backchat can be kept as an app.** A manifest and a larger icon let a phone or a desktop keep the page in its own window, from the browser's menu. Nothing asks you to: the browser's own banner is not shown.
+- **A page turn alone uploads nothing.** With device sync on, the place read was part of what sync compared, so each page turn was a change, and each change uploaded every book's notes again: megabytes over a commute for a library of a few hundred books. Sync now compares what you wrote (marks, margins, tags, deletions) apart from where you are. The place goes with the next real change, when you close the book, when you leave the app, after each look for the other devices' changes, and with Sync now.
+
+**Known limits**
+- The favorite, the rating, the summary and the related books still share one stamp. Change two of them on two devices before they meet, and the later change takes both.
+- The place read can be a few minutes behind on the other device if the upload made on leaving the app does not finish.
+- Words held as an earlier version are kept only when this device wrote them. Two other devices that disagree are settled on those devices.
+- Margins cleared on a device still on the build before this one can come back from another device, once. Cleared on this build, they stay cleared.
+
+**Checks**
+- New section 4q, seventeen checks: a favorite over older margins; margins changed in two places; the earlier version on the book's page; tags from the form; margins arriving while the drawer is written in, before and after a visit to the book's page; a mark made as a sync merges its book, both orders; margins saved in the same instant; edits after a version stamped two hours ahead; a page turn and device sync; a device a build behind; two tabs; margins from before this build stamped at the next start; and three for a start without a connection, with the host stopped and then serving a newer build.
+- Three more outside it: every file the worker keeps is in the repository and every file the page loads is on its list; the manifest names icons that are here; and the worker registers under the security policy.
+- All twenty fail on 1.0.85. Full suite: 313 of 313.
+- Checks that counted writes now count every write that lands, by `DB.put` or `DB.update`. Every context in the suite runs without the worker unless it asks for it, so each check still sees exactly what the page requested.
+
 ## 1.0.85 (15 November 2026)
 
 An audit of 1.0.84 as a reader uses it: on the current Chrome, with a real mouse, keyboard and touch, with two devices syncing, and with storage made to fail. Six things it found are fixed here.

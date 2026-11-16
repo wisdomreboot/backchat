@@ -10,6 +10,7 @@
 ## What protects it
 
 - **Only this repository's code runs.** The page's Content-Security-Policy lets the browser run scripts from this site and the inline scripts whose fingerprints it lists, and nothing else. The four libraries, the page-view counter included, are stored in [lib/](lib/), unchanged from their published versions. A script linked from another site is refused, which is why the counter is kept here rather than loaded from GoatCounter's server.
+- **The copy kept for a start without a connection is this repository's too.** A worker (`sw.js`) keeps the page, its libraries and the guide in the browser. It handles only the files it names, all from this site, asks the host first each time, and holds nothing of yours: no book, no note, no setting.
 - **Books can't run code.** Book pages render in a sandboxed frame with scripts off, and scripts, plug-ins and event handlers are stripped before display.
 - **Imported data is treated as untrusted.** Notes, records, backups, hand-off files and synced bundles are escaped before display. Settings from a backup are checked key by key.
 
