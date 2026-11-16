@@ -2,6 +2,32 @@
 
 What changed in each build of Backchat, newest first. The build number shows at the bottom of **Settings > Advanced**.
 
+## 1.0.87 (16 November 2026)
+
+The rest of the audit of 1.0.84: the findings that lose no words but cost a reader trust. A book that will not open, a colour that cannot be told from its neighbour, a Delete with no way back, a backup that cannot be made.
+
+**Fixed**
+- **Books from the wild open, or say why not.** A chapter with one stray `&nbsp;` or an unclosed tag, common in books converted from PDF, showed the browser's pink error box and lost the text after the fault. Such a chapter is now read again the lenient way a browser reads a web page (`bcLenientLoad`). A chapter the book lists and its file does not hold gets a page that says so, and the rest of the book reads. A copy-protected book, and a book that lists no chapters, are refused at import with the reason; they used to be added without a word and open as an error or a blank page. The chapter named at the foot of the page is cleared when a book opens, so it is never the last book's.
+- **An import of several files says what it did.** Each file said its own line and the next file's line replaced it within milliseconds. The import now ends with one line: how many were added, and each file skipped, with its reason.
+- **A book is not deleted when its backup could not be written.** The backup made before a delete was allowed to fail quietly; the book was deleted all the same, on every device with sync on, and the line read "full backup saved". No backup, no delete, and the line says where the backup went.
+- **A library too large for one backup file is saved in several.** A backup is one piece of text before it is a file, and text has a ceiling: past a few hundred megabytes of books the answer was "library too large for one file", on the devices with no folder to fall back on. Past 120 MB of book files the library is now saved as one file of notes, marks, settings and deletions, then the book files in groups. Each is a backup in its own right; opening them one after another, in any order, puts the library back. The backup before a reset does the same.
+- **The guide's sample marks are one set on every device.** Each device gave them ids of its own, so the first sync or restore showed every sample twice. They now carry an id made from their words, and doubles made before this build are folded into one.
+- **An answer that is not the relay's is not a sync.** Any answer of 200 counted as an upload, so behind a Wi-Fi sign-in page the chip read Synced with nothing sent. The relay's own answer is now required. And one damaged upload is no longer reported as a passphrase that does not match: when the passphrase opens the other devices' uploads, the damaged one is passed over, said so, and read the next time that device syncs.
+
+**Changed**
+- **The four meanings of a highlight no longer depend on telling hues apart.** Each has a letter on its swatch and its filter dot (R remember, C create, U use later, L link), with the key under the filters; a word on each highlight in a list; and a line of its own under the words on the page: none, solid, dashed, dotted. A comment's double line sits below it.
+- **Delete can be taken back.** Removing a highlight shows Undo for eight seconds, in the book and after it is closed. Delete also stands apart from the other actions, at the end of its line.
+- **A finger has 44px to land on.** On a phone the top bar buttons, swatches, filter dots, stars and the actions under each highlight take a press over at least 44px, whatever size they are drawn.
+- **Cards and filters answer to the keyboard.** Tab reaches a book's card and the highlight filters, Enter or Space presses them, and the six close buttons that had no name have one.
+
+**Known limits**
+- The line under a highlight is drawn by current browsers. On an older one the letter and the word still tell the meanings apart; the page itself does not. Not seen on Safari: tested on Chrome only.
+- A chapter read the lenient way is the browser's best reading of broken markup. Its words are all there; its layout can differ from what the publisher meant.
+- A backup in several files downloads several files. Some browsers ask once before allowing that.
+
+**Checks**
+- New section 4r, thirteen checks, with five test books built for it: locked, empty, broken markup, a missing chapter, and a file that is no book. All thirteen fail on 1.0.86. Full suite: 326 of 326.
+
 ## 1.0.86 (16 November 2026)
 
 The second half of the audit of 1.0.84: what two devices, two tabs and one bad connection do to a reader's words. Every fix here closes a way that something written could be lost without a word, or a way Backchat could fail to open.
