@@ -5,7 +5,7 @@
 <!-- Security policy. The browser runs only scripts from this site plus the inline
      scripts hashed below. After editing ANY inline script, run
      python3 tools/csp.py index.html  (or the app will stop running). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ug5Yk/FyoC/AqUuGD9rwmC9nJSeH+9lZ9fYJjequw9o=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xzZekBft1dQTAMj2PRyQPAOZ43pkYepzyHaLSN2+fus=' 'sha256-Vn3m7y/Eo7PHW1WwrxR+wil//GdofDrMReiOe01cZpM='; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Backchat: talk back to your books</title>
 <meta name="description" content="Backchat is a free EPUB reader for highlighting, commenting and writing in the margins, with your notes kept as plain files in a folder you own.">
@@ -228,6 +228,8 @@
   .card:hover .card-fav{opacity:1}
   .card-fav:hover{background:rgba(0,0,0,.62);transform:scale(1.08)}
   .card-fav:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+  .card:focus-visible,.dot:focus-visible,.hl-controls .chip:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:10px}
+  .dot:focus-visible,.hl-controls .chip:focus-visible{border-radius:99px}
   .card-fav.fav-on{opacity:1;background:var(--accent)}
   .card-fav.fav-on svg{fill:#fff;stroke:#fff}
   @media (hover:none){ .card-fav{opacity:1;background:rgba(0,0,0,.5)} }
@@ -367,16 +369,15 @@
   .toc-item{padding:.6rem .2rem;border-bottom:1px solid var(--line);cursor:pointer;font-size:.9rem;line-height:1.35;color:var(--ink)}
   .toc-item:hover{color:var(--accent)}
   .toc-empty{color:var(--muted);font-size:.85rem;padding:.6rem .2rem;line-height:1.45}
-  .dot{width:16px;height:16px;border-radius:50%;border:2px solid transparent;cursor:pointer}
-  .dot.active{border-color:var(--ink)}
-  .hl-controls .dot{width:18px;height:18px;flex:0 0 auto}
+  .dot{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex:0 0 auto}
+  .dot.active{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel) inset}
   .hl-controls .chip.icon{display:inline-flex;align-items:center;justify-content:center;padding:0;width:30px;height:26px;line-height:1}
   .hl-controls .chip.icon svg{width:15px;height:15px;display:block}
   .hl-controls .chip.icon.star{font-size:1rem}
   .hl-controls .hl-sep{display:inline-block;width:1px;height:18px;background:var(--line);margin:0 .2rem;flex:0 0 auto}
   .hl-item{border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;margin-bottom:.7rem;cursor:pointer;transition:.15s}
   .hl-item:hover{border-color:var(--accent)}
-  .hl-item .bar{width:34px;height:5px;border-radius:99px;margin-bottom:.5rem;display:inline-block}
+  .hl-item .bar{border-radius:99px;margin-bottom:.5rem;display:inline-block;padding:.16rem .5rem;font:700 .66rem/1.1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em;color:#1c1c1c}
   .hl-item .star{float:right;color:var(--muted);font-size:1rem;cursor:pointer}
   .hl-item .star.on{color:#f0a500}
   .hl-item .txt{font-size:.85rem;line-height:1.4}
@@ -502,11 +503,15 @@
   .hl-item .row{display:flex;flex-wrap:wrap;gap:.35rem .8rem;margin-top:.5rem}
   .hl-item .row button{font-size:.75rem;color:var(--muted);white-space:nowrap;padding:0}
   .hl-item .row button:hover{color:var(--accent)}
+  .hl-item .row [data-del]{margin-left:auto}     /* apart from the rest, at the end of its line */
   .hl-empty{color:var(--muted);font-size:.88rem;text-align:center;padding:2rem 0}
 
   #note-pop{position:fixed;z-index:75;display:none;max-width:260px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:.55rem .7rem;font-size:.84rem;line-height:1.4;box-shadow:var(--shadow);white-space:pre-wrap;pointer-events:none}
   #sel-pop{position:fixed;z-index:70;background:#222;color:#fff;border-radius:10px;padding:.4rem;display:none;gap:.35rem;box-shadow:0 6px 20px rgba(0,0,0,.3)}
   #sel-pop .sw{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.25);cursor:pointer}
+  #sel-pop .sw,.dot{display:inline-flex;align-items:center;justify-content:center;padding:0;font:700 11px/1 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1c1c1c;-webkit-user-select:none;user-select:none}
+  .hl-legend{flex:1 0 100%;font-size:.72rem;color:var(--muted);line-height:1.3}
+  .hl-legend b{color:var(--ink);font-weight:700}
   #sel-pop button.act{display:flex;align-items:center;justify-content:center;width:30px;height:24px;border-radius:6px;color:#fff}
   #sel-pop button.act:hover{background:rgba(255,255,255,.15)}
   .rs-overlay{position:fixed;inset:0;z-index:76;background:var(--bg);display:flex;flex-direction:column}
@@ -607,6 +612,9 @@
 
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#222;color:#fff;padding:.6rem 1rem;border-radius:10px;font-size:.85rem;z-index:90;opacity:0;transition:.25s;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.show.has-act{pointer-events:auto;display:flex;align-items:center;gap:.5rem;padding:.35rem .45rem .35rem 1rem}
+  .toast-act{color:#fff;font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:.18em;padding:.55rem .8rem;min-height:44px;border-radius:8px}
+  .toast-act:hover,.toast-act:focus-visible{background:rgba(255,255,255,.16)}
 
   /* ---- Phones and touch screens ---- */
   /* Keep text its set size when a phone turns sideways, and let a quick second tap be a tap, not a zoom. */
@@ -673,10 +681,20 @@
     #rdr-sync{padding:12px;margin:-12px}
     .linkbtn{padding:.6rem .7rem}
     body #bc-conns-ov .bc-conns-x,body #bc-peek .bc-peek-x{padding:.25rem .55rem;margin-right:-.4rem}   /* body: outranks the overlay's own sheet, added later */
-    .hl-controls .dot{width:24px;height:24px}
-    .hl-controls .chip{padding:.45rem .7rem}
-    .hl-controls .chip.icon{width:36px;height:32px}
-    .hl-item .row button,.mark-echo{padding:.4rem 0}
+    /* What is seen keeps its size where the row is full; what is pressed is 44px either way:
+       an unseen margin round each small target takes the finger. */
+    .topbar .iconbtn,#sel-pop .sw,#sel-pop button.act,.dot,.hl-controls .chip,.hl-item .star,.hl-item .row button,.mark-echo{position:relative}
+    .topbar .iconbtn::after,#sel-pop .sw::after,#sel-pop button.act::after,.dot::after,.hl-controls .chip::after,.hl-item .star::after,.hl-item .row button::after,.mark-echo::after{content:"";position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:44px;min-height:44px;transform:translate(-50%,-50%)}
+    #sel-pop{gap:.55rem;padding:.5rem .6rem}
+    #sel-pop .sw{width:34px;height:34px;font-size:13px}
+    #sel-pop button.act{width:36px;height:34px}
+    .hl-controls{gap:.45rem}
+    .dot,.hl-controls .dot{width:32px;height:32px;font-size:13px}
+    .hl-controls .chip{padding:.5rem .75rem}
+    .hl-controls .chip.icon{width:40px;height:34px}
+    .hl-item .row{gap:.2rem 1.15rem}
+    .hl-item .row button,.mark-echo{padding:.7rem 0}
+    .hl-item .star{padding:.2rem .35rem;margin:-.2rem -.35rem 0 0}
     .cs-link,#meta-rating-clear{padding:.35rem .1rem}
   }
   @media(pointer:coarse) and (max-width:360px){ #sel-pop{gap:.2rem} #sel-pop .sw{width:28px;height:28px} #sel-pop button.act{width:30px} }
@@ -1212,10 +1230,17 @@ function bcCheckQuota(){
 
 var $ = function(s){ return document.querySelector(s); };
 // A short status message at the bottom of the screen.
-function toast(msg, ms){
+// A line at the foot of the screen. With act ({ label, fn }) it carries one button, for taking
+// back what was just done; it then stays long enough to be read and pressed.
+function toast(msg, ms, act){
   var t=document.getElementById("toast"); if(!t) return;
-  t.textContent=msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove("show"); }, ms||2400);
+  t.textContent=msg; t.classList.add("show"); t.classList.toggle("has-act", !!act);
+  if(act){
+    var b=document.createElement("button"); b.type="button"; b.className="toast-act"; b.textContent=act.label;
+    b.onclick=function(){ clearTimeout(toast._t); t.classList.remove("show","has-act"); try{ act.fn(); }catch(e){ console.error(e); } };
+    t.appendChild(document.createTextNode(" ")); t.appendChild(b);
+  }
+  clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove("show","has-act"); }, ms||(act ? 8000 : 2400));
 }
 /* ---- Core in-memory state for the open session ----
    settings    reader preferences (persisted to localStorage)
@@ -1235,6 +1260,14 @@ var HL_BG = { yellow:"rgba(255,216,77,.45)", green:"rgba(155,227,155,.5)", blue:
    returns the fixed label and ignores any legacy settings.hlLabels overrides. */
 var HL_LABEL_DEFAULTS = { yellow:"I want to remember this", green:"I want to create from this", blue:"I want to use this later", pink:"I want to link this to something else" };
 function hlLabel(name){ return HL_LABEL_DEFAULTS[name] || (name+" highlights"); }
+/* The same four meanings without their hues. Yellow and green, or green and pink, are close to
+   one colour for a reader who is colour blind, and a phone has no hover to ask. So each meaning
+   also has a letter (on the swatches and the filter dots), a word (on each highlight in a list)
+   and a line of its own under the words on the page: none, solid, dashed, dotted. */
+var HL_GLYPH = { yellow:"R", green:"C", blue:"U", pink:"L" };
+var HL_WORD = { yellow:"Remember", green:"Create", blue:"Use later", pink:"Link" };
+var HL_LINE = { yellow:"", green:"solid", blue:"dashed", pink:"dotted" };
+function hlLegend(){ return '<div class="hl-legend">'+Object.keys(HL_GLYPH).map(function(k){ return '<b>'+HL_GLYPH[k]+'</b> '+HL_WORD[k].toLowerCase(); }).join(' \u00b7 ')+'</div>'; }
 var ICON_COMMENT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 var PAGE = 25;
 var settings = loadSettings();
@@ -1257,7 +1290,7 @@ function bcBooksCached(){ return !!vault.handle && !bcTouchUI(); }   // this bro
 function bcShelfOnly(){ return bcTouchUI() && cloudOn(); }          // this device uses the folder for book files only
 var _syncPausedToasted=false;
 function markSyncPaused(){ if(_syncPausedToasted) return; _syncPausedToasted=true; toast("Folder sync paused. Open settings to reconnect."); }
-var BC_VERSION="1.0.86";   // what changed in each build: CHANGELOG.md
+var BC_VERSION="1.0.87";   // what changed in each build: CHANGELOG.md
 try{ vault.lastSync=parseInt(localStorage.getItem("bc-last-sync")||"0",10)||0; }catch(e){ vault.lastSync=0; }
 function stampSync(){ vault.lastSync=Date.now(); vault.lastError=""; try{ localStorage.setItem("bc-last-sync", String(vault.lastSync)); }catch(e){} updateSyncChip(); }
 // How long ago a time was, as a sync line says it: "just now", "5 min ago", "3 h ago", "on 7/11/2026".
@@ -1497,7 +1530,12 @@ function bcInspectEpub(buf, opts){
     if(count > EPUB_MAX_ENTRIES) return { bad:"too many files inside ("+count+")" };
     if(total > EPUB_MAX_TOTAL_UNCOMPRESSED) return { bad:"contents expand too large ("+Math.round(total/1048576)+" MB)" };
     var cf=zip.file("META-INF/container.xml"); if(!cf) return { bad:"it is not an EPUB" };
-    return cf.async("string").then(function(cx){
+    var enc=zip.file("META-INF/encryption.xml");
+    return (enc ? enc.async("string").then(bcIsProtected, function(){ return false; }) : Promise.resolve(false)).then(function(locked){
+      if(locked) return { bad:"it is copy-protected (DRM), so its pages cannot be read here" };
+      return cf.async("string");
+    }).then(function(cx){
+      if(cx && cx.bad) return cx;
       var root=bcXmlDoc(cx).querySelector("rootfile"), full=root && root.getAttribute("full-path"), at=full ? bcZipPath("", full) : null, of=at && zip.file(at);
       if(!of) return cant;
       var dir=full.lastIndexOf("/")>=0 ? full.slice(0, full.lastIndexOf("/")) : "";
@@ -1505,9 +1543,34 @@ function bcInspectEpub(buf, opts){
     });
   }, function(){ return { bad:"it is damaged or still downloading" }; }).catch(function(e){ console.warn("read epub", e); return cant; });
 }
+/* Is the book locked? META-INF/encryption.xml lists the files a publisher has encrypted. Fonts
+   scrambled the two standard ways are not a lock: such a book reads everywhere. Anything else
+   encrypted is, and the book would import without a word and then open as an error box. */
+function bcIsProtected(xml){
+  try{
+    var free={ "http://www.idpf.org/2008/embedding":1, "http://ns.adobe.com/pdf/enc#RC":1 };
+    var all=bcXmlDoc(xml).getElementsByTagNameNS("*", "EncryptedData");
+    for(var i=0;i<all.length;i++){
+      var m=all[i].getElementsByTagNameNS("*", "EncryptionMethod")[0], alg=m ? (m.getAttribute("Algorithm")||"") : "";
+      if(!free[alg]) return true;
+    }
+  }catch(e){}
+  return false;
+}
+// How many of the chapters a book lists are in its file.
+function bcSpineFiles(zip, manifest, spine, dir){
+  var refs=spine.getElementsByTagNameNS("*", "itemref"), items=manifest.getElementsByTagNameNS("*", "item"), by={}, here=0;
+  for(var i=0;i<items.length;i++) by[items[i].getAttribute("id")||""]=items[i].getAttribute("href")||"";
+  for(var j=0;j<refs.length;j++){ var h=by[refs[j].getAttribute("idref")||""], at=h ? bcZipPath(dir, h.split("#")[0]) : null; if(at && zip.file(at)) here++; }
+  return { listed:refs.length, here:here };
+}
 function bcReadPackage(zip, opf, dir, buf, opts){
   var doc=bcXmlDoc(opf), md=doc.querySelector("metadata"), manifest=doc.querySelector("manifest"), spine=doc.querySelector("spine");
   if(!md || !manifest || !spine) return { bad:"it could not be read" };
+  // A book that lists no chapters, or none that are in its file, opens as a blank page.
+  var chapters=bcSpineFiles(zip, manifest, spine, dir);
+  if(!chapters.listed) return { bad:"it lists no chapters" };
+  if(!chapters.here) return { bad:"none of its chapters are in the file" };
   // epub.js waits for the table of contents a book names, so a book naming one it does not hold
   // would never open. (An id no selector can name throws here, as it does in epub.js.)
   var nav=manifest.querySelector("item[properties~='nav']"), ncx=manifest.querySelector("item[media-type~='application/x-dtbncx+xml']"), toc=spine.getAttribute("toc");
@@ -2283,6 +2346,7 @@ async function bcMergeRecord(tid, held, rec, metas, stamp, from){
       before=(lh && lh.items)||[];
       var was=(lh && lh.updatedAt)||0;
       merged=mergeHighlights(before, rec.highlights||[]);
+      if(tid===GUIDE_ID) merged=bcGuideOnce(merged);
       hl=!lh || bcHlSig(merged)!==bcHlSig(before);
       var at=Math.max(was, rec.updatedAt||0) || (hl && stamp) || 0;
       if(hl || at!==was) return { id:tid, items:hl ? merged : before, updatedAt:at };
@@ -2917,14 +2981,16 @@ async function vaultWriteOutput(subdir, name, contents){
   var dir = await vault.handle.getDirectoryHandle(subdir, {create:true});
   await writeFileInDir(dir, name, contents);
 }
+// Resolves to where the file went: "folder" or "download". Rejects when it went nowhere, so that
+// nothing downstream says "saved", or deletes on the strength of a backup that was not made.
 function saveOrDownload(name, content, type, subdir){
+  var down=function(){ downloadBlob(content, type, name); return "download"; };
   if(vault.connected && vault.handle){
     return vaultWriteOutput(subdir||"backups", name, content)
-      .then(function(){ toast("Saved to your folder: "+(subdir||"backups")+"/"+name); })
-      .catch(function(e){ console.warn("vault write", e); try{ downloadBlob(content, type, name); }catch(e2){} });
+      .then(function(){ toast("Saved to your folder: "+(subdir||"backups")+"/"+name); return "folder"; })
+      .catch(function(e){ console.warn("vault write", e); return down(); });
   }
-  try{ downloadBlob(content, type, name); }catch(e){}
-  return Promise.resolve();
+  try{ return Promise.resolve(down()); }catch(e){ return Promise.reject(e); }
 }
 // Union two mark lists by id; for a shared id keep whichever has the newer 'updated'.
 function hlLive(a){ return (a||[]).filter(function(h){ return h && !h.deleted; }); }   // live marks only: a deleted mark is kept as a tombstone in the record (rides through merge/sync) but hidden from every view/count/export
@@ -3097,20 +3163,31 @@ function vaultToggle(){ if(vault.connected) disconnectVault(); else if(vault.nee
    IMPORT EPUBs & COVER EXTRACTION
    Take dropped/picked .epub files into the library.
    ============================================================ */
+/* What an import did, said once at its end. Each file used to say its own line, and the next
+   file's "Importing…" replaced it within milliseconds: of five files with two damaged, the last
+   thing on screen was the name of the fifth. */
+function bcImportSay(added, skipped){
+  if(!skipped.length){ if(added>1) toast("Added "+added+" books"); return; }
+  if(!added && skipped.length===1 && skipped[0].declined){ toast("Did not add "+skipped[0].name); return; }     // you said no to the one file: nothing more to tell
+  var names=skipped.slice(0, 4).map(function(x){ return x.name+" ("+x.why+")"; }).join("; ")+(skipped.length>4 ? "; and "+(skipped.length-4)+" more" : "");
+  var head=(added ? "Added "+added+" book"+(added===1?"":"s")+". " : "")+(skipped.length===1 ? "Skipped " : "Skipped "+skipped.length+": ");
+  toast(head+names, Math.min(20000, 6000+skipped.length*2500));
+}
 function importFiles(files){
-  var chain = Promise.resolve();
+  var chain = Promise.resolve(), added=0, skipped=[];
   files.forEach(function(file){
     chain = chain.then(function(){
-      if(!/\.epub$/i.test(file.name)){ toast("Skipped non-epub: "+file.name); return; }
+      if(!/\.epub$/i.test(file.name)){ skipped.push({ name:file.name, why:"not an EPUB file" }); return; }
       toast("Importing "+file.name+"…");
       return file.arrayBuffer().then(function(buf){ return bcIngestEpub(buf, file.name, null, false, bcAskAdd); }).then(function(r){
-        if(r.bad){ toast("Skipped "+file.name+": "+r.bad, 5000); return; }
-        if(r.skipped){ toast("Did not add "+file.name); return; }
+        if(r.bad){ skipped.push({ name:file.name, why:r.bad }); return; }
+        if(r.skipped){ skipped.push({ name:file.name, why:"not added", declined:true }); return; }
+        added++;
         if(r.id && vault.handle){ vaultPushEpub(r.id).then(function(){ return vaultPushBook(r.id,false); }); }
-      }).catch(function(err){ console.error(err); toast("Could not read "+file.name); });
+      }).catch(function(err){ console.error(err); skipped.push({ name:file.name, why:"it could not be read" }); });
     });
   });
-  return chain.then(function(){ renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); if(detailsBook && !$("#details").classList.contains("hidden") && !bcDetailsWriting()) openDetails(detailsBook.id); });
+  return chain.then(function(){ bcImportSay(added, skipped); renderHome(); if(!$("#library").classList.contains("hidden")) renderLibrary(); if(detailsBook && !$("#details").classList.contains("hidden") && !bcDetailsWriting()) openDetails(detailsBook.id); });
 }
 function blobToDataUrl(url){ return fetch(url).then(function(r){ return r.blob(); }).then(function(b){ return new Promise(function(res){ var fr=new FileReader(); fr.onload=function(){ res(fr.result); }; fr.readAsDataURL(b); }); }); }
 
@@ -3234,7 +3311,7 @@ var GUIDE_SWATCH=/^swatch-(yellow|green|blue|pink)$/;
 function guideIcon(name){
   var st="vertical-align:-0.28em";
   var sw=name.match(GUIDE_SWATCH);
-  if(sw) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" style="'+st+'"><circle cx="12" cy="12" r="8" fill="'+COLORS[sw[1]]+'"/></svg>';
+  if(sw) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="19" height="19" style="'+st+'"><circle cx="12" cy="12" r="9" fill="'+COLORS[sw[1]]+'"/><text x="12" y="16" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#1c1c1c">'+HL_GLYPH[sw[1]]+'</text></svg>';
   if(name==="star") return "★";
   if(MENU_ICONS[name]) return menuSvg(name, 19, st);
   var sel=GUIDE_ICON_BUTTONS[name], el=sel ? document.querySelector(sel+" svg") : null;
@@ -3312,8 +3389,26 @@ function buildGuide(src){
   ]);
 }
 /* The sample marks, anchored by their quoted words (the reader binds a position on first render). */
+/* The guide's sample marks are the same marks on every device. Each device used to make its own
+   copies, with ids of its own, so the first sync or restore showed every sample twice. They now
+   carry an id made from their words; and of two samples with the same words, made before that,
+   one stays (the one named by its words, else the lower id, so every device keeps the same one)
+   and the other is deleted the way any mark is. A sample you wrote a comment on is never the one
+   that goes while a plain copy stays. */
+function bcGuideOnce(items){
+  var by={}, out=items, changed=false;
+  (items||[]).forEach(function(h){ if(h && h.seed && !h.deleted && h.text) (by[h.text]=by[h.text]||[]).push(h); });
+  Object.keys(by).forEach(function(t){
+    var g=by[t]; if(g.length<2) return;
+    var rank=function(h){ return (h.note ? "0" : "1")+(/^guide-/.test(h.id) ? "0" : "1")+h.id; };
+    g.sort(function(a, b){ return rank(a)<rank(b) ? -1 : 1; });
+    if(!changed){ out=items.slice(); changed=true; }
+    g.slice(1).forEach(function(h){ out[out.indexOf(h)]=Object.assign({}, h, { deleted:true, updated:bcAfter(h.updated) }); });
+  });
+  return out;
+}
 function guideSeedMarks(src, t){
-  return src.marks.map(function(mk, i){ return { id:uid(), cfiRange:"", text:mk.text, color:"yellow", note:mk.note||"", fav:false, seed:true, chapter:"", created:t+i, updated:t+i }; });
+  return src.marks.map(function(mk, i){ return { id:"guide-"+_hashStr(mk.text||""), cfiRange:"", text:mk.text, color:"yellow", note:mk.note||"", fav:false, seed:true, chapter:"", created:t+i, updated:t+i }; });
 }
 /* Rebuild the guide in the library when guide.md carries a newer revision, keeping every mark of
    the reader's whose words are still in the text. */
@@ -3429,7 +3524,7 @@ function renderHome(){
     // recent row
     var recent = byOpened.slice(0, 5);
     var rg=$("#home-recent");
-    rg.innerHTML = recent.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
+    rg.innerHTML = recent.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" tabindex="0" role="link" aria-label="'+escapeHtml((b.title||"Untitled")+(b.author ? ", by "+b.author : ""))+'" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
     [].forEach.call(rg.querySelectorAll(".card"), function(el){ el.onclick=function(){ openDetails(el.dataset.id); }; });
     try{ hydrateCovers($("#home")); }catch(e){}
     wireCardFavs(rg);
@@ -3632,7 +3727,7 @@ function renderLibrary(){
     var slice=arr.slice(lib.page*PAGE, lib.page*PAGE+PAGE);
     var grid=$("#lib-grid");
     if(!arr.length){ grid.innerHTML=libTagBar()+'<div class="empty" style="grid-column:1/-1">'+(lib.tag?("No "+nounPl+" with this tag."):(lib.q?("No "+nounPl+" match."):"No books yet. Add an EPUB."))+'</div>'; $("#lib-pager").innerHTML=""; wireLibTagClear(); return; }
-    grid.innerHTML = libTagBar() + slice.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
+    grid.innerHTML = libTagBar() + slice.map(function(b){ var p=Math.round((b.progress||0)*100); return '<div class="card" tabindex="0" role="link" aria-label="'+escapeHtml((b.title||"Untitled")+(b.author ? ", by "+b.author : ""))+'" data-id="'+escapeHtml(b.id)+'"><div class="cover">'+coverHtml(b)+favBtnHtml(b)+(p>0?'<div class="pct"><i style="width:'+p+'%"></i></div>':"")+'</div><div class="meta"><div class="t">'+escapeHtml(b.title)+'</div><div class="a">'+escapeHtml(b.author||"")+'</div></div></div>'; }).join("");
     [].forEach.call(grid.querySelectorAll(".card"), function(el){ el.onclick=function(){ openDetails(el.dataset.id); }; });
     wireCardFavs(grid);
     markGhostCards(); wireLibTagClear(); hydrateCovers(grid);
@@ -4600,6 +4695,44 @@ function cfiStart(cfi){
 /* Open a book at a section or position (a resume when no target is given). bcGoTo passes
    viaGoTo so it does the landing itself; any other open lands on its saved position here,
    checked on screen, because epub.js alone can stop one page short of it. */
+/* CHAPTERS FROM THE WILD
+   epub.js reads a chapter as strict XML. One stray &nbsp; or an unclosed <br>, common in books
+   converted from PDF or made by hand, and the browser shows its pink error box and drops the
+   text after the fault. Such a chapter is read again the lenient way a browser reads any web
+   page. A chapter that is not in the file, or is not text at all (a locked book added before
+   locked books were refused), gets a plain page that says so, and the reader goes on working. */
+function bcChapterNote(title, text){
+  return new DOMParser().parseFromString('<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>'+escapeHtml(title)+'</title></head><body><h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(text)+'</p></body></html>', "application/xhtml+xml");
+}
+function bcLenientLoad(bk){
+  var load=bk.load;
+  var isChapter=function(p){
+    try{ return (bk.spine.spineItems||[]).some(function(it){ return it.url===p || it.href===p || it.canonical===p; }); }catch(e){ return false; }
+  };
+  var asText=function(p){
+    try{ return Promise.resolve(bk.archive.getText(bk.resolve(p))).then(function(t){ return t; }, function(){ return null; }); }catch(e){ return Promise.resolve(null); }
+  };
+  bk.load=function(p){
+    var args=arguments;
+    if(!bk.archive || !isChapter(p)) return load.apply(bk, args);
+    return Promise.resolve().then(function(){ return load.apply(bk, args); }).then(function(doc){
+      var broken=false; try{ broken=!!(doc && doc.getElementsByTagName && doc.getElementsByTagName("parsererror").length); }catch(e){}
+      if(!broken) return doc;
+      return asText(p).then(function(t){
+        if(t==null) return doc;
+        var odd=(t.slice(0, 4000).match(/[\u0000-\u0008\uFFFD]/g)||[]).length;
+        if(odd>40) return bcChapterNote("This chapter could not be read", "Its file is not text. The book may be copy-protected, or the file damaged. Your highlights and notes are not affected.");
+        if(t.charCodeAt(0)===65279) t=t.slice(1);
+        var html=new DOMParser().parseFromString(t, "text/html");
+        // The strict form of the same page: every tag closed, every entity a character.
+        var strict=new DOMParser().parseFromString(new XMLSerializer().serializeToString(html), "application/xhtml+xml");
+        return strict.getElementsByTagName("parsererror").length ? html : strict;
+      });
+    }, function(err){
+      return bcChapterNote("This chapter is missing", "The book lists a chapter here that is not in its file. The other chapters can be read; use the contents or turn the page.");
+    });
+  };
+}
 function openBookAt(id, target, viaGoTo){
   if(rendition && currentBook && currentBook.id===id){
     show("reader");
@@ -4642,6 +4775,7 @@ function openBookAt(id, target, viaGoTo){
     }
     currentBook=meta; currentData=data;
     highlights=(res[2]&&res[2].items)||[]; _highlightsOwnerId=currentBook.id;
+    if(id===GUIDE_ID){ var _once=bcGuideOnce(highlights); if(_once!==highlights){ highlights=_once; persistHighlights().catch(function(){}); } }
     try{ localStorage.setItem("reader-last-book", id); }catch(e){}
     setTimeout(function(){ try{ enforceBlobCache(); }catch(e){} }, 3000);
     currentBook.lastOpened=Date.now(); if(currentBook.readMs===undefined) currentBook.readMs=0;
@@ -4656,6 +4790,8 @@ function openBookAt(id, target, viaGoTo){
     book=rendition=null;
     _bcOpenedAt=Date.now();
     book=ePub(currentData.slice(0));
+    try{ bcLenientLoad(book); }catch(_e){}
+    try{ $("#chapter-label").textContent=""; }catch(_e){}     // this book's chapter, once it is known; never the last book's
     rendition=book.renderTo("viewport",{width:"100%",height:"100%",flow:(settings.flow==="scrolled"?"scrolled":"paginated"),spread:"none",allowScriptedContent:false}); try{ if(rendition&&rendition.hooks&&rendition.hooks.content){ rendition.hooks.content.register(bcSanitizeContent); rendition.hooks.content.register(bcMeasureInto); } }catch(_e){} try{ BC_wirePlayer(rendition); }catch(_e){}
     registerThemes(); applyTheme();
     startReadTimer();
@@ -4801,6 +4937,18 @@ function globalKeys(e){
   }
 }
 document.addEventListener("keydown", globalKeys);
+/* Things that are pressed and are not buttons (a book's card, a filter) answer to the keyboard as
+   buttons do: Tab reaches them, Enter or Space presses them. */
+function bcKeyPress(e){
+  if(e.key!=="Enter" && e.key!==" " && e.key!=="Spacebar") return;
+  var t=e.target; if(!t || !t.matches || !t.matches(".card[data-id],.dot[data-hf],.dot[data-mf],.chip[data-hf],.chip[data-mf]")) return;
+  e.preventDefault(); t.click();
+}
+document.addEventListener("keydown", bcKeyPress);
+function bcKeyReach(root){
+  [].forEach.call((root||document).querySelectorAll(".dot[data-hf],.dot[data-mf],.chip[data-hf],.chip[data-mf]"), function(el){ el.tabIndex=0; el.setAttribute("role","button"); el.setAttribute("aria-pressed", el.classList.contains("active") ? "true" : "false"); });
+}
+[].forEach.call(document.querySelectorAll("button[data-close]"), function(b){ if(!b.getAttribute("aria-label")) b.setAttribute("aria-label","Close"); if(!b.title) b.title="Close"; });
 
 var THEME_COLORS={ light:{bg:"#f7f6f3",fg:"#1c1b19",link:"#3b5bdb"}, sepia:{bg:"#f4ecd8",fg:"#5b4636",link:"#a06a36"}, dark:{bg:"#1a1a1a",fg:"#cfcdc8",link:"#8ab4ff"} };
 /* Registered themes carry TYPOGRAPHY AND LAYOUT ONLY — no colours. epub.js injects a separate
@@ -5007,7 +5155,7 @@ function doFind(q, triedIndex){
    CSS Custom Highlight API; re-find quote text each render so marks stay put.
    ============================================================ */
 function cssHighlightOK(c){ try{ var w=c.window; return !!(w.CSS && w.CSS.highlights && typeof w.Highlight==="function"); }catch(e){ return false; } }
-function ensureHlStyles(doc){ if(doc.getElementById("rdr-hl-style")) return; var css=""; Object.keys(HL_BG).forEach(function(color){ css+="::highlight(hl-"+color+"){background:"+HL_BG[color]+";color:inherit;}\n"; }); css+="::highlight(noted){ text-decoration: underline double #e0a000; text-decoration-skip-ink:none; }\n"; css+="::highlight(tts){background:rgba(59,91,219,.22);color:inherit;}\n"; css+="::highlight(goto){background:rgba(59,91,219,.22);color:inherit;}\n"; var st=doc.createElement("style"); st.id="rdr-hl-style"; st.textContent=css; (doc.head||doc.documentElement).appendChild(st); }
+function ensureHlStyles(doc){ if(doc.getElementById("rdr-hl-style")) return; var css=""; Object.keys(HL_BG).forEach(function(color){ css+="::highlight(hl-"+color+"){background:"+HL_BG[color]+";color:inherit;"+(HL_LINE[color] ? "text-decoration:underline "+HL_LINE[color]+" currentColor;text-decoration-thickness:"+(HL_LINE[color]==="dotted" ? "2.5px" : "1.5px")+";text-underline-offset:.16em;text-decoration-skip-ink:none;" : "")+"}\n"; }); css+="::highlight(noted){ text-decoration: underline double #e0a000; text-underline-offset:.36em; text-decoration-skip-ink:none; }\n"; css+="::highlight(tts){background:rgba(59,91,219,.22);color:inherit;}\n"; css+="::highlight(goto){background:rgba(59,91,219,.22);color:inherit;}\n"; var st=doc.createElement("style"); st.id="rdr-hl-style"; st.textContent=css; (doc.head||doc.documentElement).appendChild(st); }
 function renderAllHighlights(){ if(!rendition) return; rendition.getContents().forEach(function(c){ renderHighlightsFor(c); }); }
 // Which spine section does a stored highlight belong to. Cached on the record
 // so we parse each cfiRange once. A wrong/missing answer is -1, which never
@@ -5211,7 +5359,7 @@ function bcPlaceSelPop(pop, x, y, yBottom){
 }
 function showSelPop(x,y,yBottom){
   var pop=$("#sel-pop"); pop.innerHTML="";
-  Object.keys(COLORS).forEach(function(name){ var b=document.createElement("button"); b.className="sw"; b.style.background=COLORS[name]; b.title=hlLabel(name); b.onmousedown=function(e){ e.preventDefault(); }; b.onclick=function(){ createHighlight(name); hideSelPop(); }; pop.appendChild(b); });
+  Object.keys(COLORS).forEach(function(name){ var b=document.createElement("button"); b.className="sw"; b.style.background=COLORS[name]; b.title=hlLabel(name); b.setAttribute("aria-label", hlLabel(name)); b.textContent=HL_GLYPH[name]; b.onmousedown=function(e){ e.preventDefault(); }; b.onclick=function(){ createHighlight(name); hideSelPop(); }; pop.appendChild(b); });
   var note=document.createElement("button"); note.className="act"; note.title="Comment"; note.innerHTML=menuSvg("comment",15); note.onmousedown=function(e){ e.preventDefault(); }; note.onclick=function(){ openNoteEditor(); }; pop.appendChild(note);
   var loc=document.createElement("button"); loc.className="act"; loc.title="Copy location link (paste into margins)"; loc.innerHTML=menuSvg("location",15); loc.onmousedown=function(e){ e.preventDefault(); }; loc.onclick=function(){ bcCopyPassage(currentBook?bookKeyOf(currentBook):"", lastSelection?lastSelection.cfiRange:""); hideSelPop(); }; pop.appendChild(loc);
   var quote=document.createElement("button"); quote.className="act"; quote.title="Copy as quote (paste into the margins)"; quote.innerHTML=menuSvg("quote",15); quote.onmousedown=function(e){ e.preventDefault(); }; quote.onclick=function(){ copyQuoteFromSelection(); }; pop.appendChild(quote);
@@ -5225,7 +5373,7 @@ function highlightAtPoint(contents,x,y){ var caret=caretFromPoint(contents.docum
 function showHlActions(id,x,y){
   _selGuardUntil=Date.now()+700;
   var pop=$("#sel-pop"); pop.innerHTML="";
-  Object.keys(COLORS).forEach(function(name){ var b=document.createElement("button"); b.className="sw"; b.style.background=COLORS[name]; b.title=hlLabel(name); b.onmousedown=function(e){ e.preventDefault(); }; b.onclick=function(){ recolorHighlight(id,name); hideSelPop(); }; pop.appendChild(b); });
+  Object.keys(COLORS).forEach(function(name){ var b=document.createElement("button"); b.className="sw"; b.style.background=COLORS[name]; b.title=hlLabel(name); b.setAttribute("aria-label", hlLabel(name)); b.textContent=HL_GLYPH[name]; b.onmousedown=function(e){ e.preventDefault(); }; b.onclick=function(){ recolorHighlight(id,name); hideSelPop(); }; pop.appendChild(b); });
   var star=document.createElement("button"); star.className="act"; star.title="Favorite"; star.textContent="★"; star.onmousedown=function(e){ e.preventDefault(); }; star.onclick=function(){ toggleFav(id); hideSelPop(); }; pop.appendChild(star);
   var noteB=document.createElement("button"); noteB.className="act"; noteB.title="Comment"; noteB.innerHTML=menuSvg("comment",15); noteB.onmousedown=function(e){ e.preventDefault(); }; noteB.onclick=function(){ hideSelPop(); editExistingNote(id); }; pop.appendChild(noteB);
   var del=document.createElement("button"); del.className="act"; del.title="Remove"; del.innerHTML=menuSvg("trash",15); del.onmousedown=function(e){ e.preventDefault(); }; del.onclick=function(){ deleteHighlight(id); hideSelPop(); }; pop.appendChild(del);
@@ -6055,17 +6203,35 @@ function jumpToHighlight(id){
   var h=highlights.filter(function(x){ return x.id===id; })[0];
   if(h && currentBook) bcGoTo(currentBook.id, bcPlaceOfMark(h));
 }
-function deleteHighlight(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.deleted=true; h.updated=bcAfter(h.updated); try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){} renderAllHighlights(); persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast("Removed"); }); }   // soft-delete: mark it deleted with a fresh timestamp so the deletion propagates and wins by recency
+function deleteHighlight(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.deleted=true; h.updated=bcAfter(h.updated); try{ rendition.annotations.remove(h.cfiRange,"highlight"); }catch(e){} renderAllHighlights(); var bookId=_highlightsOwnerId; persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast(h.note ? "Highlight and comment removed" : "Highlight removed", 0, { label:"Undo", fn:function(){ restoreHighlight(bookId, id); } }); }); }   // soft-delete: mark it deleted with a fresh timestamp so the deletion propagates and wins by recency
+/* Take a Delete back. A deleted mark is kept, marked deleted, so that the deletion reaches the
+   other devices; bringing it back is the same mark with the flag off and a later stamp, which
+   reaches them the same way. Works after the book has been closed, too. */
+function restoreHighlight(bookId, id){
+  var open=currentBook && currentBook.id===bookId && _highlightsOwnerId===bookId;
+  if(open){
+    var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return Promise.resolve(false);
+    delete h.deleted; h.updated=bcAfter(h.updated);
+    renderAllHighlights();
+    return persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast("Highlight restored"); return ok!==false; });
+  }
+  return DB.update("highlights", bookId, function(rec){
+    if(!rec || !rec.items) return;
+    var h=rec.items.filter(function(x){ return x.id===id; })[0]; if(!h || !h.deleted) return;
+    delete h.deleted; h.updated=bcAfter(h.updated); rec.updatedAt=Date.now(); return rec;
+  }).then(function(r){ if(r){ toast("Highlight restored"); if(vault.handle) vaultPushBook(bookId, false); } return !!r; }, function(e){ console.error("restore", e); toast("Could not save changes"); return false; });
+}
 function recolorHighlight(id,color){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.color=color; h.updated=bcAfter(h.updated); settings.hlColor=color; saveSettings(); renderAllHighlights(); persistHighlights().then(function(){ renderHighlightList(); }); }
 function toggleFav(id){ var h=highlights.filter(function(x){ return x.id===id; })[0]; if(!h) return; h.fav=!h.fav; h.updated=bcAfter(h.updated); persistHighlights().then(function(ok){ renderHighlightList(); if(ok!==false) toast(h.fav?"Favorited":"Unfavorited"); }); }
 function renderHlControls(){
   var c=$("#hl-controls");
-  var dots=Object.keys(COLORS).map(function(n){ return '<span class="dot'+(hlFilter===n?" active":"")+'" data-hf="'+n+'" title="'+escapeHtml(hlLabel(n))+'" style="background:'+COLORS[n]+'"></span>'; }).join("");
+  var dots=Object.keys(COLORS).map(function(n){ return '<span class="dot'+(hlFilter===n?" active":"")+'" data-hf="'+n+'" title="'+escapeHtml(hlLabel(n))+'" aria-label="'+escapeHtml(hlLabel(n))+'" style="background:'+COLORS[n]+'">'+HL_GLYPH[n]+'</span>'; }).join("");
   c.innerHTML='<span class="chip'+(hlFilter==="all"?" active":"")+'" data-hf="all" title="All marks">All</span>'+dots
     +'<span class="hl-sep"></span>'
     +'<span class="chip icon'+(hlFilter==="notes"?" active":"")+'" data-hf="notes" title="Comments" aria-label="Comments">'+ICON_COMMENT+'</span>'
-    +'<span class="chip icon star'+(hlFilter==="fav"?" active":"")+'" data-hf="fav" title="Starred" aria-label="Starred">★</span>';
-  [].forEach.call(c.querySelectorAll("[data-hf]"), function(el){ el.onclick=function(){ hlFilter=el.dataset.hf; renderHlControls(); renderHighlightList(); }; });
+    +'<span class="chip icon star'+(hlFilter==="fav"?" active":"")+'" data-hf="fav" title="Starred" aria-label="Starred">★</span>'+hlLegend();
+  [].forEach.call(c.querySelectorAll("[data-hf]"), function(el){ el.onclick=function(){ hlFilter=el.dataset.hf; renderHlControls(); renderHighlightList(); try{ c.querySelector('[data-hf="'+hlFilter+'"]').focus({ preventScroll:true }); }catch(e){} }; });
+  bcKeyReach(c);
 }
 function renderHighlightList(){
   var list=$("#hl-list");
@@ -6081,7 +6247,7 @@ function renderHighlightList(){
   arr.forEach(function(h){
     var el=document.createElement("div"); el.className="hl-item";
     var barc = h.kind==="note" ? "#f0a500" : (COLORS[h.color]||COLORS.yellow);
-    el.innerHTML='<span class="bar" style="background:'+barc+'"></span><span class="star'+(h.fav?" on":"")+'">'+(h.fav?"★":"☆")+'</span><div class="txt">'+(h.kind==="note"?'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;margin-right:.25rem;vertical-align:-1px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+(_ht?hiTerms(h.text,_ht):escapeHtml(h.text))+'</div>'+(h.note?'<div class="note">'+commentHtml(h.note)+'</div>':"")+'<div class="row"><button data-note>'+(h.note?"Edit comment":"Comment")+'</button><button data-copy>Copy</button><button data-link title="Copy this highlight location to paste into a comment">Location</button><button data-margin title="Add this highlight, its location and any comment to the book&#39;s margins">Margins</button><button data-echo>Rhymes</button><button data-del>Delete</button></div><div class="hl-echoes" style="display:none"></div>';
+    el.innerHTML='<span class="bar" style="background:'+barc+'">'+(h.kind==="note" ? "Comment" : (HL_WORD[h.color]||HL_WORD.yellow))+'</span><span class="star'+(h.fav?" on":"")+'">'+(h.fav?"★":"☆")+'</span><div class="txt">'+(h.kind==="note"?'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;margin-right:.25rem;vertical-align:-1px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>':'')+(_ht?hiTerms(h.text,_ht):escapeHtml(h.text))+'</div>'+(h.note?'<div class="note">'+commentHtml(h.note)+'</div>':"")+'<div class="row"><button data-note>'+(h.note?"Edit comment":"Comment")+'</button><button data-copy>Copy</button><button data-link title="Copy this highlight location to paste into a comment">Location</button><button data-margin title="Add this highlight, its location and any comment to the book&#39;s margins">Margins</button><button data-echo>Rhymes</button><button data-del>Delete</button></div><div class="hl-echoes" style="display:none"></div>';
     el.querySelector(".txt").onclick=function(){ jumpToHighlight(h.id); };
     el.querySelector(".star").onclick=function(e){ e.stopPropagation(); toggleFav(h.id); };
     el.querySelector("[data-del]").onclick=function(e){ e.stopPropagation(); deleteHighlight(h.id); };
@@ -6598,21 +6764,62 @@ function bcBackup(ids, files){
 function bcStamp(seconds){ var d=new Date(), p=function(n){ return (n<10?"0":"")+n; }; return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())+(seconds===false ? "" : p(d.getSeconds())); }
 // The library's backup, into the folder's backups/ or downloaded. With a folder connected it
 // leaves the book files out: the folder holds them.
-function writeFullBackup(filename){
+/* A browser holds a backup as one piece of text before it is a file, and text has a ceiling: a
+   few hundred megabytes of books and the backup could not be made at all, on exactly the devices
+   (a phone, Safari, Firefox) that have no folder to fall back on. Past BACKUP_PART_BYTES of book
+   files the library is saved as several files instead: one with every note, mark, setting and
+   deletion, then the book files in groups. Each is a backup in its own right, and restoring
+   them one after another, in any order, puts the library back. */
+var BACKUP_PART_BYTES = 120*1024*1024;
+// The books whose files are here, grouped so that no group's files pass the limit.
+function bcBackupPlan(){
+  return DB.all("meta").then(function(metas){
+    var groups=[[]], size=0, total=0, chain=Promise.resolve();
+    (metas||[]).forEach(function(m){ chain=chain.then(function(){ return DB.get("blob", m.id).then(function(b){
+      var n=(b && b.data && b.data.byteLength) || 0; if(!n) return;
+      if(size && size+n>BACKUP_PART_BYTES){ groups.push([]); size=0; }
+      groups[groups.length-1].push(m.id); size+=n; total+=n;
+    }); }); });
+    return chain.then(function(){ return { groups:groups.filter(function(g){ return g.length; }), total:total, books:(metas||[]).length }; });
+  });
+}
+function bcBackupInParts(filename, plan, save){
+  var base=filename.replace(/\.json$/i, ""), count=plan.groups.length+1, done=0;
+  var put=function(name, json){ if(json==null) throw new Error("a part of the backup could not be made"); return Promise.resolve(save(name, json)).then(function(){ done++; return new Promise(function(r){ setTimeout(r, 700); }); }); };   // browsers drop downloads started in the same instant
+  return bcBackup(null, false).then(function(b){ return put(base+"-1-of-"+count+"-notes.json", b.json); }).then(function(){
+    return plan.groups.reduce(function(p, ids, i){ return p.then(function(){ return bcBackup(ids, true); }).then(function(b){ return put(base+"-"+(i+2)+"-of-"+count+"-books.json", b.json); }); }, Promise.resolve());
+  }).then(function(){ return count; }, function(e){ e.done=done; e.count=count; throw e; });
+}
+// Resolves to { books, files, where }; books 0 when there was nothing to save.
+function writeFullBackup(filename, opts){
+  opts=opts||{};
+  var withFiles=opts.files!==undefined ? opts.files : !(vault.connected && vault.handle);
+  var save=opts.save || function(name, json){ return saveOrDownload(name, json, "application/json", "backups"); };
   return DB.count("meta").then(function(n){
-    if(!n){ toast("Nothing to save yet"); return 0; }
-    return bcBackup(null, !(vault.connected && vault.handle)).then(function(b){
-      if(b.json==null){ toast("Backup failed: library too large for one file"); return 0; }
-      if(b.missing) toast(b.missing+" book file"+(b.missing===1?" is":"s are")+" not on this device; notes are in the backup, the EPUB"+(b.missing===1?" is":"s are")+" not");
-      return saveOrDownload(filename, b.json, "application/json", "backups").then(function(){ return b.books; });
+    if(!n){ toast("Nothing to save yet"); return { books:0, files:0 }; }
+    return (withFiles ? bcBackupPlan() : Promise.resolve(null)).then(function(plan){
+      if(plan && plan.total>BACKUP_PART_BYTES) return bcBackupInParts(filename, plan, save).then(function(count){ return { books:plan.books, files:count }; });
+      return bcBackup(null, withFiles).then(function(b){
+        // Under the limit and still too much for one piece of text (a small device): in parts after all.
+        if(b.json==null){ if(plan && plan.groups.length) return bcBackupInParts(filename, plan, save).then(function(count){ return { books:plan.books, files:count }; }); throw new Error("the backup could not be made"); }
+        if(b.missing && !opts.quiet) toast(b.missing+" book file"+(b.missing===1?" is":"s are")+" not on this device; notes are in the backup, the EPUB"+(b.missing===1?" is":"s are")+" not");
+        return Promise.resolve(save(filename, b.json)).then(function(where){ return { books:b.books, files:1, where:where }; });
+      });
     });
   });
 }
+function bcBackupFail(e){
+  console.error(e);
+  toast(e && e.count ? "Save stopped: "+(e.done||0)+" of "+e.count+" backup files were written. Free some space and save again." : "Save failed: no backup was written", 7000);
+}
 function saveAll(){
   var btn=$("#home-save"); if(btn) btn.disabled=true;
-  return writeFullBackup("backchat-save-"+bcStamp()+".json").then(function(n){
-    if(n && !vault.connected) toast("Saved "+n+" book"+(n===1?"":"s")+" to a file");
-  }).catch(function(e){ console.error(e); toast("Save failed"); }).then(function(){ if(btn) btn.disabled=false; });
+  return writeFullBackup("backchat-save-"+bcStamp()+".json").then(function(r){
+    if(!r.books) return;
+    var n=r.books, what=n+" book"+(n===1?"":"s");
+    if(r.files>1) toast("Your library is too large for one backup file, so it was saved as "+r.files+". Keep them together; to restore, open each one.", 12000);
+    else if(r.where==="download") toast("Backup of "+what+" sent to your downloads");
+  }).catch(bcBackupFail).then(function(){ if(btn) btn.disabled=false; });
 }
 /* Restore a backup file. Its books come in through the one merge, as records from any other place
    do: a deleted book stays deleted unless the restore cleared it (importNotesFile), a record whose
@@ -6674,10 +6881,7 @@ function downloadBlob(content, type, filename){ var blob=new Blob([content],{typ
    disconnected so a clean slate cannot re-sync itself away.
    ============================================================ */
 function downloadFullBackup(){
-  return bcBackup(null, true).then(function(b){
-    if(b.json==null) throw new Error("library too large for one file");
-    downloadBlob(b.json, "application/json", "reader-backup-before-reset-"+new Date().toISOString().slice(0,10)+".json");
-  });
+  return writeFullBackup("reader-backup-before-reset-"+new Date().toISOString().slice(0,10)+".json", { files:true, quiet:true, save:function(name, json){ downloadBlob(json, "application/json", name); return "download"; } });
 }
 function purgeEverything(){
   var stores=["meta","blob","highlights","fulltext","app","ftseg","ftblk"], chain=Promise.resolve();   // the disk search index too, or it would outlive the books it indexes
@@ -7829,7 +8033,7 @@ function detailsExport(){
     toast("Exported "+(bits.length?bits.join(" and "):"this book"));
   });
 }
-function detailsBackup(){ if(!detailsBook) return; var bk=detailsBook; bcBackup([bk.id], true).then(function(b){ if(b.json==null){ toast("Backup failed"); return; } return bcFreeBackupName(bk.title).then(function(nm){ return saveOrDownload(nm, b.json, "application/json", "backups"); }).then(function(){ if(!vault.connected) toast("Backed up this book"); }); }); }
+function detailsBackup(){ if(!detailsBook) return; var bk=detailsBook; bcBackup([bk.id], true).then(function(b){ if(b.json==null){ toast("Backup failed"); return; } return bcFreeBackupName(bk.title).then(function(nm){ return saveOrDownload(nm, b.json, "application/json", "backups"); }).then(function(where){ if(where==="download") toast("This book's backup was sent to your downloads"); }); }).catch(bcBackupFail); }
 var metaDraftCover=null, metaDraftRating=0, metaDraftRelated=[];
 function renderMetaCover(){ var _cu=safeCoverUrl(metaDraftCover); $("#meta-cover").innerHTML = _cu ? '\x3cimg src="'+_cu+'" alt="">' : '<div class="ph">No cover</div>'; }
 function renderMetaStars(){ [].forEach.call(document.querySelectorAll("#meta-stars [data-r]"), function(s){ s.classList.toggle("on", Number(s.dataset.r) <= metaDraftRating); }); }
@@ -7943,12 +8147,12 @@ function detailsDelete(){
   // settings are included, so a restore never touches your preferences.
   bcBackup([id], true).then(function(b){
     if(b.json==null) throw new Error("the book's backup could not be made");   // no backup, no delete
-    return bcFreeBackupName(dm.title).then(function(nm){ return saveOrDownload(nm, b.json, "application/json", "backups"); }).catch(function(e){ console.warn("book backup", e); });
-  }).then(function(){
-    return bcDeleteBook(dm);
-  }).then(function(){
-    detailsBook=null; detailsItems=[]; refreshIndexedCount(); goHome(); toast("Deleted \u00b7 full backup saved");
-  }).catch(function(e){ console.error("delete", e); toast("Delete failed"); });
+    return bcFreeBackupName(dm.title).then(function(nm){ return saveOrDownload(nm, b.json, "application/json", "backups"); });
+  }).then(function(where){
+    return bcDeleteBook(dm).then(function(){ return where; });
+  }).then(function(where){
+    detailsBook=null; detailsItems=[]; refreshIndexedCount(); goHome(); toast(where==="folder" ? "Deleted \u00b7 its backup is in your folder" : "Deleted \u00b7 its backup was sent to your downloads", 5000);
+  }).catch(function(e){ console.error("delete", e); toast("Not deleted: its backup could not be saved first", 6000); });
 }
 
 /* ============================================================
@@ -8658,12 +8862,13 @@ function openMarks(){
 var marksFilter="all";   // one active facet at a time: all | yellow|green|blue|pink | notes | fav. Mirrors the in-reader highlight panel.
 function renderMarksFilter(){
   var c=$("#marks-filter"); if(!c) return;
-  var dots=Object.keys(COLORS).map(function(n){ return '<span class="dot'+(marksFilter===n?" active":"")+'" data-mf="'+n+'" title="'+escapeHtml(hlLabel(n))+'" style="background:'+COLORS[n]+'"></span>'; }).join("");
+  var dots=Object.keys(COLORS).map(function(n){ return '<span class="dot'+(marksFilter===n?" active":"")+'" data-mf="'+n+'" title="'+escapeHtml(hlLabel(n))+'" aria-label="'+escapeHtml(hlLabel(n))+'" style="background:'+COLORS[n]+'">'+HL_GLYPH[n]+'</span>'; }).join("");
   c.innerHTML='<span class="chip'+(marksFilter==="all"?" active":"")+'" data-mf="all" title="All marks">All</span>'+dots
     +'<span class="hl-sep"></span>'
     +'<span class="chip icon'+(marksFilter==="notes"?" active":"")+'" data-mf="notes" title="Comments" aria-label="Comments">'+ICON_COMMENT+'</span>'
-    +'<span class="chip icon star'+(marksFilter==="fav"?" active":"")+'" data-mf="fav" title="Starred" aria-label="Starred">★</span>';
-  [].forEach.call(c.querySelectorAll("[data-mf]"), function(el){ el.onclick=function(){ marksFilter=el.dataset.mf; renderMarksFilter(); renderMarks(); }; });
+    +'<span class="chip icon star'+(marksFilter==="fav"?" active":"")+'" data-mf="fav" title="Starred" aria-label="Starred">★</span>'+hlLegend();
+  [].forEach.call(c.querySelectorAll("[data-mf]"), function(el){ el.onclick=function(){ marksFilter=el.dataset.mf; renderMarksFilter(); renderMarks(); try{ c.querySelector('[data-mf="'+marksFilter+'"]').focus({ preventScroll:true }); }catch(e){} }; });
+  bcKeyReach(c);
 }
 function renderMarks(){
   if(!marksCache) return;
@@ -8683,7 +8888,7 @@ function renderMarks(){
     out.push('<div class="mark-row" data-book="'+escapeHtml(r.bookId)+'" data-cfi="'+escapeHtml(h.cfiRange||"")+'" data-id="'+escapeHtml(h.id)+'" style="border-left:3px solid '+barc+';padding-left:.55rem">'
       +'<div class="mark-q">'+(h.fav?'<span class="mark-star" title="Starred">★</span> ':'')+(terms?hiTerms(h.text,terms):escapeHtml((h.text||"").slice(0,220)))+'</div>'
       +(h.note?'<div class="mark-n">'+escapeHtml(commentPlain(h.note).slice(0,160))+'</div>':'')
-      +'<div class="mark-src">'+escapeHtml((m&&m.title)||"")+' \u00b7 '+fmtWhen(h.updated||h.created||0)+' \u00b7 <button class="mark-echo" type="button">Rhymes</button></div>'
+      +'<div class="mark-src">'+(h.kind==="note" ? "Comment" : (HL_WORD[h.color]||HL_WORD.yellow))+' \u00b7 '+escapeHtml((m&&m.title)||"")+' \u00b7 '+fmtWhen(h.updated||h.created||0)+' \u00b7 <button class="mark-echo" type="button">Rhymes</button></div>'
       +'<div class="hl-echoes" style="display:none"></div></div>');
   }
   $("#marks-list").innerHTML = out.join("") || '<div class="hint">No marks match.</div>';
@@ -9115,7 +9320,7 @@ function cloudSetSig(s){ try{ localStorage.setItem(CLOUD_SIG_KEY, s||""); }catch
 function cloudGetPlaceSig(){ try{ return localStorage.getItem(CLOUD_PLACE_KEY)||""; }catch(e){ return ""; } }
 function cloudSetPlaceSig(s){ try{ localStorage.setItem(CLOUD_PLACE_KEY, s||""); }catch(e){} }
 function cloudForgetLocal(){
-  cloud.cfg=null; cloud.key=null; cloud.lastError=""; cloud.errCode=""; cloud.devices=[];
+  cloud.cfg=null; cloud.key=null; cloud.keyOk=false; cloud.lastError=""; cloud.errCode=""; cloud.devices=[];
   try{ [CLOUD_CFG_KEY,CLOUD_SEEN_KEY,CLOUD_SIG_KEY,CLOUD_PLACE_KEY,CLOUD_OK_KEY].forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
   try{ DB.del("app","cloud-key").catch(function(){}); }catch(e){}
 }
@@ -9287,6 +9492,12 @@ function cloudPushIfChanged(force, place){
       return cloudFetch("/slot/"+encodeURIComponent(cloudSlotId()), { method:"PUT", body:bytes, name:cloudDeviceName() });
     }).then(function(r){
       if(!r.ok) throw cloudErr("http","The relay refused the upload (error "+r.status+").");
+      // The relay says { ok:true } when it has stored the upload. Anything else that answers 200,
+      // a sign-in page on public Wi-Fi or a web page at a mistyped address, has stored nothing.
+      return r.json().then(function(j){ return j; }, function(){ return null; }).then(function(j){
+        if(!j || j.ok!==true) throw cloudErr("network","Something other than your relay answered, so nothing was uploaded. A Wi-Fi sign-in page does this. Your changes are safe here and will sync when the relay can be reached.");
+      });
+    }).then(function(){
       cloudSetSig(sig); cloudSetPlaceSig(psig); cloudMarkOk();
       var me=cloudSlotId(), row={ id:me, name:cloudDeviceName(), updated:Date.now() };   // show this device in the list right away
       cloud.devices=(cloud.devices||[]).filter(function(d){ return d.id!==me; }).concat([row]);
@@ -9309,7 +9520,7 @@ function cloudPull(){
     var slots=(j && j.slots) || [], me=cloudSlotId(), seen=cloudGetSeen(), mine=null, todo=[];
     slots.forEach(function(s){ if(s.id===me){ mine=s; return; } if((+s.updated||0) > (+seen[s.id]||0)) todo.push(s); });
     cloud.devices=slots;
-    var changed=0, chain=Promise.resolve();
+    var changed=0, chain=Promise.resolve(), shut=[];
     todo.forEach(function(s){
       chain=chain.then(function(){
         return cloudFetch("/slot/"+encodeURIComponent(s.id)).then(function(r){
@@ -9317,15 +9528,27 @@ function cloudPull(){
           if(!r.ok) throw cloudErr("http","The relay answered with error "+r.status+".");
           var upd=+(r.headers.get("X-Slot-Updated")||0) || +s.updated || 0;
           return r.arrayBuffer().then(function(buf){ return cloudOpen(new Uint8Array(buf)); }).then(function(bundle){
-            return cloudApplyBundle(bundle);
+            cloud.keyOk=true;
+            return cloudApplyBundle(bundle).then(function(n){ changed+=(n||0); seen[s.id]=upd; cloudSetSeen(seen); });
           }, function(err){
-            if(err && err.code==="passphrase") throw cloudErr("passphrase","Your passphrase here does not match the one on "+(s.name||"another device")+". Use the same passphrase on every device.");
+            // An upload this passphrase cannot open: the passphrases differ, or that one upload is
+            // damaged. Which it is shows once the other devices' uploads have been tried.
+            if(err && err.code==="passphrase"){ shut.push(s); return; }
             throw err;
-          }).then(function(n){ changed+=(n||0); seen[s.id]=upd; cloudSetSeen(seen); });
+          });
         });
       });
     });
-    return chain.then(function(){ if(!mine) cloudSetSig(""); cloudMarkOk(); return changed; });   // our slot missing on the relay: upload afresh
+    return chain.then(function(){
+      if(shut.length){
+        var who=shut[0].name||"another device";
+        if(!cloud.keyOk) throw cloudErr("passphrase","Your passphrase here does not match the one on "+who+". Use the same passphrase on every device.");
+        // The passphrase opens the others, so it is right: this one upload is damaged. It is passed
+        // over, not marked as read, and taken the next time that device uploads.
+        toast("What "+who+" last uploaded is damaged and was passed over. It will be read when that device next syncs.", 8000);
+      }
+      if(!mine) cloudSetSig(""); cloudMarkOk(); return changed;   // our slot missing on the relay: upload afresh
+    });
   }).then(function(n){
     if(n){
       markCorpusDirty();
@@ -9442,7 +9665,7 @@ function cloudConnect(){
       cloudMsg("Checking your passphrase against "+(others[0].name||"your other device")+"…", false);
       return cloudFetch("/slot/"+encodeURIComponent(others[0].id)).then(function(r){ if(!r.ok) return null; return r.arrayBuffer(); }).then(function(buf){
         if(!buf) return key;
-        return cloudOpen(new Uint8Array(buf), key).then(function(){ return key; }, function(err){
+        return cloudOpen(new Uint8Array(buf), key).then(function(){ cloud.keyOk=true; return key; }, function(err){
           if(err && err.code==="passphrase") throw cloudErr("passphrase","That passphrase does not match the one "+(others[0].name||"your other device")+" uses. Type the same passphrase you used there.");
           throw err;
         });
@@ -9753,7 +9976,7 @@ $("#notes-import-input").onchange=function(e){ if(e.target.files[0]) importNotes
 $("#reset-btn").onclick=deleteEverything;
 $("#reset-confirm").oninput=setResetEnabled;
 $("#reset-confirm").onkeydown=function(e){ if(e.key==="Enter" && !$("#reset-btn").disabled) deleteEverything(); };
-$("#backup-first-btn").onclick=function(){ downloadFullBackup().then(function(){ toast("Backup downloaded"); }).catch(function(){ toast("Backup failed"); }); };
+$("#backup-first-btn").onclick=function(){ downloadFullBackup().then(function(r){ toast(!r.books ? "Nothing to back up yet" : (r.files>1 ? "Backup sent to your downloads as "+r.files+" files. Keep them together." : "Backup sent to your downloads"), 7000); }).catch(bcBackupFail); };
 $("#index-btn").onclick=buildAllIndex;
 
 $("#back-btn").onclick=closeBook;

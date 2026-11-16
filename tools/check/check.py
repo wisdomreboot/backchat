@@ -94,6 +94,23 @@ with zipfile.ZipFile(CROWDED, "a") as _z:
     for _i in range(5001): _z.writestr("OEBPS/extra/%d.txt" % _i, "")
 LONG = os.path.join(TMP, "long.epub")
 make_long_epub(LONG)
+# Books from the wild. A locked one (a publisher's encryption.xml over its chapter); one that
+# lists no chapters; one whose first chapter breaks the rules of XML the way converted books do;
+# one whose first chapter is listed and not in the file; and a file that is not a book at all.
+WILD_LOCKED, WILD_EMPTY, WILD_BROKEN, WILD_GAP, WILD_DAMAGED = [os.path.join(TMP, n) for n in ("locked.epub", "empty.epub", "broken.epub", "gap.epub", "damaged.epub")]
+make_epub(WILD_LOCKED, "Locked Book", "A Publisher", "urn:isbn:9780000000801", [("Locked", ["These words would be scrambled."])])
+with zipfile.ZipFile(WILD_LOCKED, "a") as _z:
+    _z.writestr("META-INF/encryption.xml", '<?xml version="1.0"?><encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><enc:CipherData><enc:CipherReference URI="OEBPS/c0.xhtml"/></enc:CipherData></enc:EncryptedData></encryption>')
+make_epub(WILD_EMPTY, "Empty Book", "Nobody", "urn:isbn:9780000000802", [])
+make_epub(WILD_BROKEN, "Broken Markup Book", "A Converter", "urn:isbn:9780000000803", [
+    ("Broken", ["An undefined&nbsp;entity and an unclosed <br> tag.", "The words after the fault are still here."]),
+    ("Fine", ["The second chapter is well formed."])])
+_gap = os.path.join(TMP, "gap-whole.epub")
+make_epub(_gap, "Gap Book", "A Packager", "urn:isbn:9780000000804", [("Gone", ["This chapter is left out of the file."]), ("Here", ["The second chapter is in the file."])])
+with zipfile.ZipFile(_gap) as _a, zipfile.ZipFile(WILD_GAP, "w") as _b:
+    for _i in _a.infolist():
+        if _i.filename != "OEBPS/c0.xhtml": _b.writestr(_i, _a.read(_i.filename))
+with open(WILD_DAMAGED, "wb") as _f: _f.write(os.urandom(4096))
 # A book that sets its own tight line spacing and side margins, as many do.
 STYLED = os.path.join(TMP, "styled.epub")
 make_epub(STYLED, "Styled Spacing Book", "Test Author", "urn:isbn:9780000000999",
@@ -2072,6 +2089,158 @@ with sync_playwright() as p:
     except Exception as e:
         expect("the offline checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
     off_stop(off_httpd); offctx.close(); shutil.rmtree(off_site, ignore_errors=True)
+
+    # 4r. The last of the audit. Books from the wild: a locked book and a book with no chapters
+    #     are refused with their reason, a chapter a strict parser refuses is read all the same,
+    #     and a chapter missing from the file says so. An import of several files says at its end
+    #     what it skipped. The four meanings of a highlight are told apart without their hues. A
+    #     deleted highlight can be taken back. A library too large for one backup file is saved in
+    #     several, and a book is not deleted when its backup could not be written. The guide's
+    #     sample marks are one set on every device. An answer that is not the relay's is not a
+    #     sync. Cards answer to the keyboard, and a finger has 44px to land on.
+    wdctx = browser.new_context(viewport={"width": 1280, "height": 800}, bypass_csp=True); wd = wdctx.new_page(); watch(wd, "from-the-wild")
+    WD_READY = "typeof DB!=='undefined' && typeof renderHome==='function'"
+    WD_OPEN = r"""async([title, words])=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+      const m=(await DB.all('meta')).find(x=>x.title===title); if(!m) return 'not in the library';
+      openBook(m.id); for(let i=0;i<40;i++){ await w(250); try{ if(currentBook && currentBook.id===m.id && rendition && rendition.getContents().length && (!words || rendition.getContents()[0].document.body.textContent.indexOf(words)>=0)) break; }catch(e){} }
+      await w(500); return true; }"""
+    try:
+        wd.goto(URL); wait(wd, WD_READY); settle(0.8)
+        wd.set_input_files("#file-input", [WILD_LOCKED, WILD_EMPTY, WILD_BROKEN, WILD_GAP, ALPHA, WILD_DAMAGED])
+        wait(wd, "DB.all('meta').then(ms=>window.__wd=ms.map(m=>m.title)), (window.__wd||[]).indexOf('Alpha Testing Book')>=0", 40000); settle(1.5)
+        wd_said = ev(wd, "()=>document.getElementById('toast').textContent"); wd_titles = ev(wd, "()=>DB.all('meta').then(ms=>ms.map(m=>m.title))")
+        expect("a locked book and a book with no chapters are refused at the door",
+               [t for t in ("Locked Book", "Empty Book") if t in wd_titles], [],
+               "a copy-protected book was added without a word and opened as the browser's error box; a book listing no chapters opened as a blank page with dead arrow keys")
+        expect("an import of several files ends by saying what it added and naming each file it skipped, with the reason",
+               [("Added 3 books" in wd_said), [n for n in ("locked.epub", "empty.epub", "damaged.epub") if n not in wd_said], ("copy-protected" in wd_said)], [True, [], True],
+               "each file said its own line and the next file's line replaced it within milliseconds: the last thing on screen was the name of the last file")
+        ev(wd, WD_OPEN, ["Broken Markup Book", "Broken"])
+        expect("a chapter a strict parser refuses is read all the same, to its last word", ev(wd, r"""()=>{ const d=rendition.getContents()[0].document, t=d.body.textContent;
+          return [t.indexOf('an unclosed')>=0, t.indexOf('The words after the fault are still here.')>=0, d.getElementsByTagName('parsererror').length]; }"""), [True, True, 0],
+               "one stray &nbsp; or an unclosed tag, and the chapter showed the browser's pink error box and lost everything after the fault")
+        ev(wd, WD_OPEN, ["Gap Book", ""])
+        expect("a chapter missing from the book's file says so, the next one reads, and the chapter named is this book's", ev(wd, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+          const c=rendition && rendition.getContents()[0], first=c ? c.document.body.textContent : '', label=document.querySelector('#chapter-label').textContent;
+          try{ await Promise.race([rendition.next(), w(1500)]); }catch(e){} await w(1200);      // a page turn that never ends must not hold the check
+          const c2=rendition && rendition.getContents()[0];
+          return [first.indexOf('This chapter is missing')>=0, label.indexOf('Broken')<0, !!c2 && c2.document.body.textContent.indexOf('The second chapter is in the file.')>=0]; }"""), [True, True, True],
+               "the reader opened blank, the label still named the last book's chapter, the arrow keys did nothing, and nothing said why")
+        ev(wd, WD_OPEN, ["Alpha Testing Book", "quick brown fox"])
+        expect("the four meanings of a highlight are told apart without their hues: a letter, a word, and a line of its own on the page", ev(wd, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+          const c=rendition.getContents()[0], tm=secTextMap(c);
+          for(const [q, col] of [['quick brown fox','yellow'],['lazy dog','green'],['zygomorphic flowers','blue'],['bloom in spring','pink']]){ lastSelection={ cfiRange:c.cfiFromRange(findQuoteRange(c, tm, q)), text:q, contents:c }; await createHighlight(col); }
+          await w(300);
+          const css=(c.document.getElementById('rdr-hl-style')||{}).textContent||'', line={};
+          ['yellow','green','blue','pink'].forEach(k=>{ const m=new RegExp('::highlight\\(hl-'+k+'\\)\\{([^}]*)\\}').exec(css), d=m && /text-decoration:\s*underline (\w+)/.exec(m[1]); line[k]=d ? d[1] : 'none'; });
+          showSelPop(300, 300, 320); const menu=[].map.call(document.querySelectorAll('#sel-pop .sw'), b=>b.textContent); hideSelPop();
+          openPanel(document.querySelector('#hl-panel')); renderHlControls(); renderHighlightList(); await w(300);
+          const dots=[].map.call(document.querySelectorAll('#hl-controls .dot'), d=>d.textContent), legend=(document.querySelector('#hl-controls .hl-legend')||{}).textContent||'';
+          const words=[].map.call(document.querySelectorAll('#hl-list .hl-item .bar'), b=>b.textContent).sort();
+          closePanels();
+          return { lines:new Set(Object.values(line)).size, menu:menu.join(''), dots:dots.join(''), legend:/remember/.test(legend) && /link/.test(legend), words:words }; }"""),
+               {"lines": 4, "menu": "RCUL", "dots": "RCUL", "legend": True, "words": ["Create", "Link", "Remember", "Use later"]},
+               "yellow, green, blue and pink carried their meanings by colour alone: to a colour-blind reader yellow and green on the page are close to one colour, and a phone has no hover to ask")
+        expect("a deleted highlight can be taken back, in the book and after it is closed", ev(wd, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms)), id=currentBook.id;
+          const stored=async(q)=>(((await DB.get('highlights', id))||{}).items||[]).filter(h=>h.text===q).map(h=>!!h.deleted);
+          const undo=()=>document.querySelector('#toast .toast-act');
+          deleteHighlight(highlights.find(h=>h.text==='lazy dog' && !h.deleted).id); await w(500);
+          const offered=!!undo() && undo().textContent==='Undo', gone=await stored('lazy dog');
+          if(undo()) undo().click(); await w(600);
+          const back=[await stored('lazy dog'), highlights.some(h=>h.text==='lazy dog' && !h.deleted)];
+          deleteHighlight(highlights.find(h=>h.text==='bloom in spring' && !h.deleted).id); await w(500); closeBook(); await w(500);
+          if(undo()) undo().click(); await w(600);
+          return [offered, gone, back, await stored('bloom in spring')]; }"""), [True, [True], [[False], True], [False]],
+               "Delete removed a highlight and its comment on one tap, beside Rhymes, with no way back")
+        expect("a library too large for one backup file is saved as several, and every book file is in one of them", ev(wd, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+          const real=downloadBlob, saved=[], limit=(typeof BACKUP_PART_BYTES==='number') ? BACKUP_PART_BYTES : null;
+          downloadBlob=(content, type, name)=>{ saved.push([name, String(content)]); };
+          try{ BACKUP_PART_BYTES=1500; await saveAll(); await w(300); } finally { downloadBlob=real; if(limit!==null) BACKUP_PART_BYTES=limit; }
+          window.__parts=saved.map(x=>x[1]);
+          const held=(await DB.keys('blob')).length, files=saved.map(x=>JSON.parse(x[1]));
+          const withFile=new Set(); files.forEach(f=>(f.books||[]).forEach(b=>{ if(b.data) withFile.add(b.id); }));
+          return [saved.length>2, saved.every(x=>/-\d+-of-\d+-(notes|books)\.json$/.test(x[0])), withFile.size===held, (files[0].highlights||[]).length>0, /saved as \d+/.test(document.getElementById('toast').textContent)]; }"""),
+               [True, True, True, True, True],
+               "a backup is one piece of text before it is a file, and text has a ceiling: past a few hundred megabytes of books the answer was 'library too large for one file', and a phone had no other full backup")
+        wd_parts = ev(wd, "()=>window.__parts||[]")
+        expect("the guide's sample marks are one set on every device", ev(wd, r"""async()=>{
+          const mine=((await DB.get('highlights', GUIDE_ID))||{}).items||[], seeds=mine.filter(h=>h.seed && !h.deleted);
+          // the phone made its own copies of the same samples, with ids of its own, before they had one
+          const theirs=seeds.map((h, i)=>Object.assign({}, h, { id:'phone-made-'+i }));
+          await bcTakeRecords([{ meta:await DB.get('meta', GUIDE_ID), highlights:theirs, updatedAt:Date.now() }], { from:'the phone' });
+          const after=(((await DB.get('highlights', GUIDE_ID))||{}).items||[]).filter(h=>h.seed && !h.deleted), n={}; after.forEach(h=>{ n[h.text]=(n[h.text]||0)+1; });
+          return [seeds.length>0, seeds.every(h=>/^guide-/.test(h.id)), Math.max.apply(null, Object.values(n).concat([0]))]; }"""), [True, True, 1],
+               "each device gave the guide's sample marks ids of its own, so the first sync or restore showed every sample twice")
+        ev(wd, "async()=>{ goHome(); await new Promise(r=>setTimeout(r, 500)); document.querySelector('#home-recent .card[data-id]').focus(); return true; }")
+        wd_card = ev(wd, "()=>[document.activeElement && document.activeElement.classList.contains('card'), [].filter.call(document.querySelectorAll('button[data-close]'), b=>!(b.getAttribute('aria-label')||b.title)).length]")
+        wd.keyboard.press("Enter"); settle(1.0)
+        expect("a book's card is reached with Tab and pressed with Enter, and every close button has a name", [wd_card, ev(wd, "()=>document.querySelector('#home').classList.contains('hidden')")], [[True, 0], True],
+               "a card was a div with a click on it: the keyboard could not reach it, and a screen reader called six close buttons 'button'")
+        # What fails on purpose says so in the console: on a page of its own, not watched.
+        wx = wdctx.new_page(); wx.on("dialog", lambda d: d.accept()); wx.goto(URL); wait(wx, WD_READY); settle(0.8)
+        expect("a book is not deleted when its backup could not be written first", ev(wx, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+          const m=(await DB.all('meta')).find(x=>x.title==='Gap Book'); await openDetails(m.id); await w(500);
+          const real=downloadBlob; downloadBlob=()=>{ throw new Error('nowhere to write'); };
+          try{ detailsDelete(); await w(1200); } finally { downloadBlob=real; }
+          return [!!(await DB.get('meta', m.id)), /Not deleted/.test(document.getElementById('toast').textContent)]; }"""), [True, True],
+               "a backup that failed was passed over: the book was deleted, on every device with sync on, and the last line read 'full backup saved'")
+        expect("an answer that is not the relay's is not a sync, and one damaged upload is not a wrong passphrase", ev(wx, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+          const real=cloudFetch, out={};
+          cloud.cfg={ url:'https://relay.invalid', token:'t', name:'Desk' }; cloud.key=await crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']); cloud.pushing=false; cloud.pulling=null;
+          try{
+            // a sign-in page on public Wi-Fi answers every address with 200 and a web page
+            cloudFetch=()=>Promise.resolve(new Response('<html><title>Sign in to Wi-Fi</title></html>', { status:200, headers:{ 'Content-Type':'text/html' } }));
+            cloudSetSig(''); try{ await cloudPushIfChanged(true); }catch(e){} await w(300);
+            out.portal=[cloudGetSig()==='', cloud.errCode||''];
+            // two other devices: what one uploaded opens, what the other uploaded is damaged
+            const good=await cloudSeal(await cloudBuildBundle()), bad=good.slice(); bad[bad.length-5]^=255;
+            cloudFetch=(path)=>Promise.resolve(path==='/slots'
+              ? new Response(JSON.stringify({ slots:[{ id:'aaaaaaaaaaaa', name:'Phone', updated:Date.now() }, { id:'bbbbbbbbbbbb', name:'Tablet', updated:Date.now() }] }), { status:200 })
+              : new Response(path.indexOf('aaaaaaaaaaaa')>=0 ? good : bad, { status:200, headers:{ 'X-Slot-Updated':String(Date.now()) } }));
+            cloud.lastError=''; cloud.errCode=''; cloud.keyOk=false; cloud.pulling=null; try{ await cloudPull(); }catch(e){} await w(400);
+            const seen=cloudGetSeen();
+            out.damaged=[cloud.errCode||'', /damaged/.test(document.getElementById('toast').textContent), !!seen.aaaaaaaaaaaa, !!seen.bbbbbbbbbbbb];
+          } finally { cloudFetch=real; clearTimeout(cloud.pushT); cloud.cfg=null; cloud.key=null; try{ cloudForgetLocal(); }catch(e){} }
+          return out; }"""), {"portal": [True, "network"], "damaged": ["", True, True, False]},
+               "any answer of 200 counted as an upload, so behind a Wi-Fi sign-in page the chip read Synced with nothing sent; and one damaged upload was reported as a passphrase that did not match, which sends a reader to change a passphrase that is right")
+        wx.close()
+        # The parts of the backup, opened one after another in a browser that holds nothing.
+        rsctx = browser.new_context(bypass_csp=True); rs = rsctx.new_page(); watch(rs, "restore-in-parts"); rs.goto(URL); wait(rs, WD_READY); settle(0.8)
+        expect("the parts of a backup, opened one after another, put the library back: books, files and marks", ev(rs, r"""async(parts)=>{
+          if(!parts || parts.length<2) return 'there were no parts';
+          for(const p of parts.slice().reverse()) await restoreFromObject(JSON.parse(p));      // any order
+          const ms=await DB.all('meta'), a=ms.find(m=>m.title==='Alpha Testing Book'), files=(await DB.keys('blob')).length;
+          const marks=a ? (((await DB.get('highlights', a.id))||{}).items||[]).filter(h=>!h.deleted).map(h=>h.text).sort() : [];
+          return [['Alpha Testing Book','Broken Markup Book','Gap Book'].filter(t=>!ms.some(m=>m.title===t)), files>=4, marks.indexOf('quick brown fox')>=0 && marks.indexOf('lazy dog')>=0]; }""", wd_parts), [[], True, True],
+               "a backup in several files is only a backup if the files put the library back")
+        rsctx.close()
+    except Exception as e:
+        expect("the checks of the last audit findings run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    wdctx.close()
+    # A finger. Measured where it lands: the size of what takes the press, seen or unseen.
+    fgctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True, bypass_csp=True); fg = fgctx.new_page(); watch(fg, "finger")
+    try:
+        fg.goto(URL); wait(fg, WD_READY); settle(0.8)
+        fg.set_input_files("#file-input", [ALPHA])
+        wait(fg, "DB.all('meta').then(ms=>window.__fg=(ms.filter(m=>/Alpha Testing/.test(m.title))[0]||{}).id), !!window.__fg", 30000); settle(1.0)
+        ev(fg, WD_OPEN, ["Alpha Testing Book", "quick brown fox"])
+        expect("on a phone everything pressed in the reader takes a finger: 44px, and Delete stands apart from the rest", ev(fg, r"""async()=>{ const w=(ms)=>new Promise(r=>setTimeout(r, ms));
+          const c=rendition.getContents()[0], tm=secTextMap(c);
+          lastSelection={ cfiRange:c.cfiFromRange(findQuoteRange(c, tm, 'quick brown fox')), text:'quick brown fox', contents:c }; await createHighlight('yellow'); await w(300);
+          const hit=(el)=>{ const r=el.getBoundingClientRect(), a=getComputedStyle(el, '::after'); return Math.min(Math.max(r.width, parseFloat(a.width)||0), Math.max(r.height, parseFloat(a.height)||0)); };
+          const small=(sel)=>{ const els=[].filter.call(document.querySelectorAll(sel), el=>el.offsetParent!==null); return els.length ? Math.round(Math.min.apply(null, els.map(hit))) : 0; };
+          const out={ topbar:small('#reader .topbar .iconbtn') };
+          lastSelection={ cfiRange:c.cfiFromRange(findQuoteRange(c, tm, 'lazy dog')), text:'lazy dog', contents:c }; showSelPop(190, 300, 320); await w(200); out.swatch=small('#sel-pop .sw'); out.action=small('#sel-pop button.act'); hideSelPop();
+          openPanel(document.querySelector('#hl-panel')); renderHlControls(); renderHighlightList(); await w(400);
+          out.dot=small('#hl-controls .dot'); out.row=small('#hl-list .hl-item .row button'); out.star=small('#hl-list .hl-item .star');
+          const row=document.querySelector('#hl-list .hl-item .row'), del=row.querySelector('[data-del]'), prev=del.previousElementSibling, rr=row.getBoundingClientRect(), dr=del.getBoundingClientRect(), pr=prev.getBoundingClientRect();
+          out.deleteApart=Math.abs(rr.right-dr.right)<3 && (pr.bottom<=dr.top+1 || dr.left-pr.right>=24);
+          closePanels();
+          return [Object.keys(out).filter(k=>k!=='deleteApart' && out[k]<44).map(k=>k+' '+out[k]), out.deleteApart]; }"""), [[], True],
+               "measured on a 390px screen: top bar buttons 34px, swatches 30, filter dots 24, the row under each highlight 28 high, with Delete beside Rhymes")
+    except Exception as e:
+        expect("the finger checks run to the end", str(e).splitlines()[0][:200], None, "a step above could not continue")
+    fgctx.close()
 
     # 5. Every way back to a place lands on it: the page showing holds the words, and the words
     #    flashed are the ones that were marked (the second of two identical sentences, when that
